@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signInAdmin } from '@/lib/supabase/auth';
-import { Lock, Mail } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signInAdmin } from "@/lib/supabase/auth";
+import { Lock, Mail } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -19,10 +19,10 @@ export default function AdminLoginPage() {
 
     try {
       await signInAdmin(formData.email, formData.password);
-      router.push('/admin/dashboard');
+      router.push("/admin/dashboard");
       router.refresh();
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,9 @@ export default function AdminLoginPage() {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="admin@example.com"
                 required
@@ -63,7 +65,9 @@ export default function AdminLoginPage() {
               <input
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Enter your password"
                 required
@@ -76,11 +80,10 @@ export default function AdminLoginPage() {
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
       </div>
     </div>
   );
 }
-
