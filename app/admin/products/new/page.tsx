@@ -3,37 +3,99 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
-import { Upload, X } from 'lucide-react';
+import { uploadImage, generateImagePath } from '@/lib/supabase/storage';
+import { Upload, X, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     discount_price: '',
-    image_url: '',
     rating: '5',
     category: 'flowers' as 'flowers' | 'accessories' | 'fruits',
     stock: '',
   });
 
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setGalleryFiles([...galleryFiles, ...files]);
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGalleryPreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryFiles(galleryFiles.filter((_, i) => i !== index));
+    setGalleryPreviews(galleryPreviews.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!coverImageFile) {
+      toast.error('Please upload a cover image');
+      return;
+    }
+
     setLoading(true);
+    setUploading(true);
 
     try {
+      // Generate product ID first
+      const productId = crypto.randomUUID();
+      
+      // Upload cover image
+      const coverImagePath = generateImagePath(productId, coverImageFile.name, 'cover');
+      const coverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+
+      // Upload gallery images
+      const galleryUrls: string[] = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        const galleryPath = generateImagePath(productId, galleryFiles[i].name, 'gallery');
+        const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+        galleryUrls.push(galleryUrl);
+      }
+
+      setUploading(false);
+
+      // Create product
       const { error } = await supabase
         .from('products')
         .insert([
           {
+            id: productId,
             title: formData.title,
             description: formData.description || null,
             price: parseFloat(formData.price),
             discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
-            image_url: formData.image_url,
+            cover_image: coverImageUrl,
+            gallery_images: galleryUrls.length > 0 ? galleryUrls : null,
             rating: parseFloat(formData.rating),
             category: formData.category,
             stock: parseInt(formData.stock) || 0,
@@ -47,6 +109,7 @@ export default function NewProductPage() {
       toast.success('Product created successfully!');
       router.push('/admin/dashboard');
     } catch (error: any) {
+      setUploading(false);
       toast.error('Failed to create product: ' + error.message);
     } finally {
       setLoading(false);
@@ -156,30 +219,99 @@ export default function NewProductPage() {
               </div>
             </div>
 
+            {/* Cover Image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image URL *
+                Cover Image *
               </label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
-                required
-              />
-              {formData.image_url && (
-                <div className="mt-2">
-                  <img
-                    src={formData.image_url}
-                    alt="Preview"
-                    className="h-32 w-32 object-cover rounded border"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                <div className="space-y-1 text-center">
+                  {coverImagePreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={coverImagePreview}
+                        alt="Cover preview"
+                        className="h-48 w-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverImageFile(null);
+                          setCoverImagePreview('');
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-600">
+                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                          <span>Upload a file</span>
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleCoverImageChange}
+                            required
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* Gallery Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gallery Images (Optional)
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                <div className="space-y-1 text-center w-full">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600 justify-center">
+                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                      <span>Upload files</span>
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        multiple
+                        onChange={handleGalleryImagesChange}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                  
+                  {galleryPreviews.length > 0 && (
+                    <div className="mt-4 grid grid-cols-4 gap-4">
+                      {galleryPreviews.map((preview, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={preview}
+                            alt={`Gallery ${index + 1}`}
+                            className="h-24 w-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeGalleryImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div>
@@ -198,10 +330,10 @@ export default function NewProductPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploading}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : 'Create Product'}
+                {uploading ? 'Uploading images...' : loading ? 'Creating...' : 'Create Product'}
               </button>
               <button
                 type="button"
@@ -217,4 +349,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-

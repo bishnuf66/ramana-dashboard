@@ -13,9 +13,9 @@ import { ProductType } from "../types/ProductType";
 interface CartContextType {
   cart: ProductType[];
   addToCart: (product: ProductType) => void;
-  increaseQuantity: (id: number) => void;
-  decreaseQuantity: (id: number) => void;
-  removeFromCart: (id: number) => void;
+  increaseQuantity: (id: number | string) => void;
+  decreaseQuantity: (id: number | string) => void;
+  removeFromCart: (id: number | string) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
@@ -55,7 +55,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success(`${product.title} added to cart`);
   };
 
-  const increaseQuantity = (id: number) => {
+  const increaseQuantity = (id: number | string) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
@@ -64,7 +64,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success("Quantity increased");
   };
 
-  const decreaseQuantity = (id: number) => {
+  const decreaseQuantity = (id: number | string) => {
     setCart((prevCart) =>
       prevCart
         .map((item) =>
@@ -75,7 +75,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success("Quantity decreased");
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: number | string) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
     toast.error("Item removed from cart");
   };

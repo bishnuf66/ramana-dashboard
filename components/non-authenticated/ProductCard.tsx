@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 
 interface ProductProps {
   product: {
-    id: number;
+    id: number | string;
     image: string;
     price: number;
     rating: number;

@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT,
   price DECIMAL(10, 2) NOT NULL,
   discount_price DECIMAL(10, 2),
-  image_url TEXT NOT NULL,
+  cover_image TEXT NOT NULL,
+  gallery_images JSONB DEFAULT '[]'::jsonb,
   rating DECIMAL(2, 1) DEFAULT 5.0 CHECK (rating >= 1 AND rating <= 5),
   category TEXT NOT NULL CHECK (category IN ('flowers', 'accessories', 'fruits')),
   stock INTEGER DEFAULT 0,
@@ -45,57 +46,47 @@ CREATE POLICY "Products are viewable by everyone" ON products
   FOR SELECT USING (true);
 
 CREATE POLICY "Only admins can insert products" ON products
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
-  );
+  FOR INSERT WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Only admins can update products" ON products
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
-  );
+  FOR UPDATE USING (is_admin(auth.uid()));
 
 CREATE POLICY "Only admins can delete products" ON products
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
-  );
+  FOR DELETE USING (is_admin(auth.uid()));
 
 -- RLS Policies for orders (admin only)
 CREATE POLICY "Only admins can view orders" ON orders
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
-  );
+  FOR SELECT USING (is_admin(auth.uid()));
 
 CREATE POLICY "Anyone can create orders" ON orders
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Only admins can update orders" ON orders
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
+  FOR UPDATE USING (is_admin(auth.uid()));
+
+-- Function to check if user is admin (bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE admin_users.id = user_id
   );
+END;
+$$;
 
 -- RLS Policies for admin_users
-CREATE POLICY "Admins can view admin users" ON admin_users
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM admin_users
-      WHERE admin_users.id = auth.uid()
-    )
-  );
+-- Allow users to see their own record (to check if they're admin)
+CREATE POLICY "Users can view their own admin record" ON admin_users
+  FOR SELECT USING (id = auth.uid());
+
+-- Allow admins to view all admin users (using the function to avoid recursion)
+CREATE POLICY "Admins can view all admin users" ON admin_users
+  FOR SELECT USING (is_admin(auth.uid()));
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
