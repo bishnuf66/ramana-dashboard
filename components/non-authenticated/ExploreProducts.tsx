@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ProductCard from "./ProductCard";
+import PremiumProductCard from "./PremiumProductCard";
 import { supabase } from "@/lib/supabase/client";
 
 interface Product {
@@ -76,19 +76,16 @@ const ExploreProducts: React.FC = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex flex-row justify-between ">
-        <div className="font-bold text-2xl">Explore Products</div>
-        <div className="primary-red underline">View more</div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.length > 0 ? (
-          products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          products.map((product, index) => (
+            <PremiumProductCard key={product.id} product={product} index={index} />
           ))
         ) : (
-          <div className="col-span-full text-center text-gray-500 py-8">
-            No products available at the moment.
+          <div className="col-span-full text-center text-gray-500 py-12">
+            <p className="text-lg">No products available at the moment.</p>
+            <p className="text-sm mt-2">Check back soon for our latest arrangements!</p>
           </div>
         )}
       </div>

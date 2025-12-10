@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { CartProvider } from "@/components/context/CartContext";
-import Header from "@/components/global/Header";
-import Footer from "@/components/global/Footer";
-import MobileHeader from "@/components/global/MobileHeader";
+import PremiumHeader from "@/components/non-authenticated/PremiumHeader";
+import PremiumFooter from "@/components/global/PremiumFooter";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Small Shop - Fresh Fruits",
-  description: "Your one-stop shop for fresh fruits",
+  title: "Bloom & Blossom - Premium Floral Arrangements",
+  description: "Discover exquisite handcrafted flowers and accessories. Premium quality arrangements for every special moment.",
 };
 
 export default function RootLayout({
@@ -21,19 +20,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <CartProvider>
-          <div>
-            {/* Mobile Header */}
-            <div className="block md:hidden">
-              <MobileHeader />
-            </div>
-
-            {/* Desktop Header */}
-            <div className="hidden md:block">
-              <Header />
-            </div>
-          </div>
-          {children}
-          <Footer />
+          <PremiumHeader />
+          <main className="pt-20">
+            {children}
+          </main>
+          <PremiumFooter />
           <ToastContainer />
         </CartProvider>
       </body>
