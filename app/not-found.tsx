@@ -31,7 +31,8 @@ export default function NotFound() {
             Oops! Page Not Found
           </h2>
           <p className="text-lg text-gray-600 mb-2">
-            The page you're looking for seems to have vanished into thin air
+            The page you&apos;re looking for seems to have vanished into thin
+            air
           </p>
           <p className="text-md text-gray-500">
             Maybe it was eaten by a hungry caterpillar or simply never existed
