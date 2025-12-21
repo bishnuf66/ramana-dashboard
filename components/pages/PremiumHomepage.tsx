@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import PremiumHero from '../non-authenticated/PremiumHero';
-import ExploreProducts from '../non-authenticated/ExploreProducts';
-import PremiumTestimonials from '../non-authenticated/PremiumTestimonials';
-import PremiumFeatures from '../non-authenticated/PremiumFeatures';
-import PremiumCTA from '../non-authenticated/PremiumCTA';
+import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import PremiumHero from "../non-authenticated/PremiumHero";
+import ExploreProducts from "../non-authenticated/ExploreProducts";
+import PremiumTestimonials from "../non-authenticated/PremiumTestimonials";
+import PremiumFeatures from "../non-authenticated/PremiumFeatures";
+import PremiumCTA from "../non-authenticated/PremiumCTA";
 
 // Custom hook for scroll animations
 function useScrollAnimation() {
@@ -27,9 +27,10 @@ function useScrollAnimation() {
       observer.observe(ref.current);
     }
 
+    const currentRef = ref.current;
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
@@ -37,7 +38,13 @@ function useScrollAnimation() {
   return { ref, isVisible };
 }
 
-function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function AnimatedSection({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -65,7 +72,10 @@ export default function PremiumHomepage() {
       </AnimatedSection>
 
       {/* Products Section */}
-      <section id="products" className="py-20 bg-gradient-to-b from-white to-green-50/30">
+      <section
+        id="products"
+        className="py-20 bg-gradient-to-b from-white to-green-50/30"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -97,4 +107,3 @@ export default function PremiumHomepage() {
     </div>
   );
 }
-

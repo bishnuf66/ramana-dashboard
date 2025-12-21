@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useMemo,
+  useCallback,
 } from "react";
 import { toast } from "react-toastify";
 import { ProductType } from "../types/ProductType";
@@ -40,7 +41,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [cart]);
 
-  const addToCart = (product: ProductType) => {
+  const addToCart = useCallback((product: ProductType) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
@@ -53,18 +54,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       return [...prevCart, product];
     });
     toast.success(`${product.title} added to cart`);
-  };
+  }, []);
 
-  const increaseQuantity = (id: number | string) => {
+  const increaseQuantity = useCallback((id: number | string) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
       )
     );
     toast.success("Quantity increased");
-  };
+  }, []);
 
-  const decreaseQuantity = (id: number | string) => {
+  const decreaseQuantity = useCallback((id: number | string) => {
     setCart((prevCart) =>
       prevCart
         .map((item) =>
@@ -73,25 +74,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         .filter((item) => item.quantity > 0)
     );
     toast.success("Quantity decreased");
-  };
+  }, []);
 
-  const removeFromCart = (id: number | string) => {
+  const removeFromCart = useCallback((id: number | string) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
     toast.error("Item removed from cart");
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
     toast.error("Cart cleared");
-  };
+  }, []);
 
-  const getTotalPrice = () => {
+  const getTotalPrice = useCallback(() => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
+  }, [cart]);
 
-  const getTotalItems = () => {
+  const getTotalItems = useCallback(() => {
     return cart.reduce((total, item) => total + item.quantity, 0);
-  };
+  }, [cart]);
 
   const value = useMemo(
     () => ({
@@ -104,16 +105,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       getTotalPrice,
       getTotalItems,
     }),
-    [
-      cart,
-      addToCart,
-      increaseQuantity,
-      decreaseQuantity,
-      removeFromCart,
-      clearCart,
-      getTotalPrice,
-      getTotalItems,
-    ]
+    [cart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -43,11 +43,7 @@ export default function EditProductPage() {
     stock: "",
   });
 
-  useEffect(() => {
-    fetchProduct();
-  }, [productId]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("products")
@@ -79,7 +75,11 @@ export default function EditProductPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId, router]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [productId, fetchProduct]);
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

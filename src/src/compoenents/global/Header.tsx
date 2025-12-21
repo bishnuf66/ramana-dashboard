@@ -55,16 +55,16 @@ function Header() {
           </form>
         </div>
         <div className="flex space-x-4 items-center justify-center">
-          <a href="/">
+          <Link href="/">
             {" "}
             <div>Home</div>{" "}
-          </a>
+          </Link>
 
           <div className="flex flex-row items-center justify-center gap-1 ">
             <Heart className="w-6 h-6" />
             <span>Favorite</span>
           </div>
-          <a href="/cart">
+          <Link href="/cart">
             <div className="flex flex-row items-center justify-center gap-1 relative">
               <ShoppingCart className="w-6 h-6" />
               Cart{" "}
@@ -72,7 +72,7 @@ function Header() {
                 {items}
               </span>
             </div>
-          </a>
+          </Link>
 
           <button
             className="primary-green text-white py-1 px-4 rounded"
