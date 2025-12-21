@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useAnimation } from "framer-motion";
+import { motion, useAnimation, easeOut } from "framer-motion";
 import { useEffect, useRef } from "react";
 import ExploreProducts from "../non-authenticated/ExploreProducts";
 import HomeBanner from "../non-authenticated/HomeBanner";
@@ -26,9 +26,10 @@ function useInView() {
       observer.observe(ref.current);
     }
 
+    const currentRef = ref.current;
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [controls]);
@@ -47,7 +48,7 @@ function AnimatedSection({ children }: any) {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut",
+        ease: easeOut,
       },
     },
   };
@@ -96,6 +97,3 @@ function Homepage() {
 }
 
 export default Homepage;
-
-
-

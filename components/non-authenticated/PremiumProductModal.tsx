@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import { ShoppingCart, X, Plus, Minus, Star, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { ShoppingCart, X, Plus, Minus, Star, Heart } from "lucide-react";
+import Image from "next/image";
 
 interface ProductModalProps {
   product: {
@@ -68,19 +69,21 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
             onClick={() => setIsFavorite(!isFavorite)}
             className={`absolute top-6 left-6 z-10 p-3 rounded-full shadow-lg transition-all ${
               isFavorite
-                ? 'bg-rose-500 text-white'
-                : 'bg-white/80 backdrop-blur-sm text-gray-600 hover:bg-rose-50'
+                ? "bg-rose-500 text-white"
+                : "bg-white/80 backdrop-blur-sm text-gray-600 hover:bg-rose-50"
             }`}
           >
-            <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
+            <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
           </motion.button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
             {/* Image Section */}
             <div className="relative h-96 md:h-full min-h-[400px] bg-gradient-to-br from-green-50 to-rose-50">
-              <img
+              <Image
                 src={product.image}
                 alt={product.title}
+                width={400}
+                height={400}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -96,17 +99,21 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                         key={i}
                         className={`w-5 h-5 ${
                           i < Math.floor(product.rating)
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-300"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">({product.rating})</span>
+                  <span className="text-sm text-gray-600">
+                    ({product.rating})
+                  </span>
                 </div>
 
                 {/* Title */}
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">{product.title}</h2>
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  {product.title}
+                </h2>
 
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-6">
@@ -120,14 +127,22 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                   )}
                   {product.discountPrice && (
                     <span className="px-3 py-1 bg-rose-100 text-rose-600 rounded-full text-sm font-semibold">
-                      Save {Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
+                      Save{" "}
+                      {Math.round(
+                        ((product.price - product.discountPrice) /
+                          product.price) *
+                          100
+                      )}
+                      %
                     </span>
                   )}
                 </div>
 
                 {/* Description */}
                 {product.description && (
-                  <p className="text-gray-600 leading-relaxed mb-8">{product.description}</p>
+                  <p className="text-gray-600 leading-relaxed mb-8">
+                    {product.description}
+                  </p>
                 )}
 
                 {/* Quantity Selector */}
@@ -167,7 +182,10 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300"
               >
                 <ShoppingCart className="w-6 h-6" />
-                Add to Cart - ${((product.discountPrice ?? product.price) * quantity).toFixed(2)}
+                Add to Cart - $
+                {((product.discountPrice ?? product.price) * quantity).toFixed(
+                  2
+                )}
               </motion.button>
             </div>
           </div>
@@ -178,4 +196,3 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
 };
 
 export default PremiumProductModal;
-

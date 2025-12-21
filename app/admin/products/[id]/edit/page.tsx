@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { uploadImage, deleteImage, generateImagePath } from '@/lib/supabase/storage';
-import { Upload, X, Trash2 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import {
+  uploadImage,
+  deleteImage,
+  generateImagePath,
+} from "@/lib/supabase/storage";
+import { Upload, X, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { toast } from "react-toastify";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -14,24 +19,28 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
-  const [currentCoverImage, setCurrentCoverImage] = useState<string>('');
-  
+  const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+  const [currentCoverImage, setCurrentCoverImage] = useState<string>("");
+
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
-  const [currentGalleryImages, setCurrentGalleryImages] = useState<string[]>([]);
-  const [removedGalleryImages, setRemovedGalleryImages] = useState<string[]>([]);
-  
+  const [currentGalleryImages, setCurrentGalleryImages] = useState<string[]>(
+    []
+  );
+  const [removedGalleryImages, setRemovedGalleryImages] = useState<string[]>(
+    []
+  );
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    discount_price: '',
-    rating: '5',
-    category: 'flowers' as 'flowers' | 'accessories' | 'fruits',
-    stock: '',
+    title: "",
+    description: "",
+    price: "",
+    discount_price: "",
+    rating: "5",
+    category: "flowers" as "flowers" | "accessories" | "fruits",
+    stock: "",
   });
 
   useEffect(() => {
@@ -41,9 +50,9 @@ export default function EditProductPage() {
   const fetchProduct = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
+        .from("products")
+        .select("*")
+        .eq("id", productId)
         .single();
 
       if (error) throw error;
@@ -51,22 +60,22 @@ export default function EditProductPage() {
       if (data) {
         setFormData({
           title: data.title,
-          description: data.description || '',
+          description: data.description || "",
           price: data.price.toString(),
-          discount_price: data.discount_price?.toString() || '',
+          discount_price: data.discount_price?.toString() || "",
           rating: data.rating.toString(),
           category: data.category,
           stock: data.stock.toString(),
         });
-        
-        setCurrentCoverImage(data.cover_image || '');
-        setCoverImagePreview(data.cover_image || '');
+
+        setCurrentCoverImage(data.cover_image || "");
+        setCoverImagePreview(data.cover_image || "");
         setCurrentGalleryImages(data.gallery_images || []);
         setGalleryPreviews(data.gallery_images || []);
       }
     } catch (error: any) {
-      toast.error('Failed to fetch product: ' + error.message);
-      router.push('/admin/dashboard');
+      toast.error("Failed to fetch product: " + error.message);
+      router.push("/admin/dashboard");
     } finally {
       setLoading(false);
     }
@@ -84,14 +93,16 @@ export default function EditProductPage() {
     }
   };
 
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryImagesChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = Array.from(e.target.files || []);
     setGalleryFiles([...galleryFiles, ...files]);
-    
-    files.forEach(file => {
+
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setGalleryPreviews(prev => [...prev, reader.result as string]);
+        setGalleryPreviews((prev) => [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
     });
@@ -101,7 +112,9 @@ export default function EditProductPage() {
     if (isExisting) {
       const imageToRemove = currentGalleryImages[index];
       setRemovedGalleryImages([...removedGalleryImages, imageToRemove]);
-      setCurrentGalleryImages(currentGalleryImages.filter((_, i) => i !== index));
+      setCurrentGalleryImages(
+        currentGalleryImages.filter((_, i) => i !== index)
+      );
       setGalleryPreviews(galleryPreviews.filter((_, i) => i !== index));
     } else {
       const newIndex = index - currentGalleryImages.length;
@@ -117,15 +130,19 @@ export default function EditProductPage() {
 
     try {
       let coverImageUrl = currentCoverImage;
-      
+
       // Upload new cover image if changed
       if (coverImageFile) {
         // Delete old cover image
         if (currentCoverImage) {
           await deleteImage(currentCoverImage).catch(console.error);
         }
-        
-        const coverImagePath = generateImagePath(productId, coverImageFile.name, 'cover');
+
+        const coverImagePath = generateImagePath(
+          productId,
+          coverImageFile.name,
+          "cover"
+        );
         coverImageUrl = await uploadImage(coverImageFile, coverImagePath);
       }
 
@@ -137,7 +154,11 @@ export default function EditProductPage() {
       // Upload new gallery images
       const newGalleryUrls: string[] = [];
       for (let i = 0; i < galleryFiles.length; i++) {
-        const galleryPath = generateImagePath(productId, galleryFiles[i].name, 'gallery');
+        const galleryPath = generateImagePath(
+          productId,
+          galleryFiles[i].name,
+          "gallery"
+        );
         const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
         newGalleryUrls.push(galleryUrl);
       }
@@ -149,12 +170,14 @@ export default function EditProductPage() {
 
       // Update product
       const { error } = await supabase
-        .from('products')
+        .from("products")
         .update({
           title: formData.title,
           description: formData.description || null,
           price: parseFloat(formData.price),
-          discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
+          discount_price: formData.discount_price
+            ? parseFloat(formData.discount_price)
+            : null,
           cover_image: coverImageUrl,
           gallery_images: allGalleryImages.length > 0 ? allGalleryImages : null,
           rating: parseFloat(formData.rating),
@@ -162,15 +185,15 @@ export default function EditProductPage() {
           stock: parseInt(formData.stock) || 0,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', productId);
+        .eq("id", productId);
 
       if (error) throw error;
 
-      toast.success('Product updated successfully!');
-      router.push('/admin/dashboard');
+      toast.success("Product updated successfully!");
+      router.push("/admin/dashboard");
     } catch (error: any) {
       setUploading(false);
-      toast.error('Failed to update product: ' + error.message);
+      toast.error("Failed to update product: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -207,7 +230,9 @@ export default function EditProductPage() {
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -219,7 +244,12 @@ export default function EditProductPage() {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      category: e.target.value as any,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 >
@@ -237,7 +267,9 @@ export default function EditProductPage() {
                   type="number"
                   step="0.01"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -251,7 +283,9 @@ export default function EditProductPage() {
                   type="number"
                   step="0.01"
                   value={formData.discount_price}
-                  onChange={(e) => setFormData({ ...formData, discount_price: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, discount_price: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
@@ -266,7 +300,9 @@ export default function EditProductPage() {
                   max="5"
                   step="0.1"
                   value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rating: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -280,7 +316,9 @@ export default function EditProductPage() {
                   type="number"
                   min="0"
                   value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stock: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -296,9 +334,11 @@ export default function EditProductPage() {
                 <div className="space-y-1 text-center">
                   {coverImagePreview ? (
                     <div className="relative inline-block">
-                      <img
+                      <Image
                         src={coverImagePreview}
                         alt="Cover preview"
+                        width={192}
+                        height={192}
                         className="h-48 w-48 object-cover rounded-lg"
                       />
                       <button
@@ -327,7 +367,9 @@ export default function EditProductPage() {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
                     </>
                   )}
                 </div>
@@ -355,20 +397,29 @@ export default function EditProductPage() {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
-                  
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 10MB each
+                  </p>
+
                   {galleryPreviews.length > 0 && (
                     <div className="mt-4 grid grid-cols-4 gap-4">
                       {galleryPreviews.map((preview, index) => (
                         <div key={index} className="relative">
-                          <img
+                          <Image
                             src={preview}
                             alt={`Gallery ${index + 1}`}
+                            width={96}
+                            height={96}
                             className="h-24 w-24 object-cover rounded-lg"
                           />
                           <button
                             type="button"
-                            onClick={() => removeGalleryImage(index, index < currentGalleryImages.length)}
+                            onClick={() =>
+                              removeGalleryImage(
+                                index,
+                                index < currentGalleryImages.length
+                              )
+                            }
                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -387,7 +438,9 @@ export default function EditProductPage() {
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Product description..."
@@ -400,7 +453,11 @@ export default function EditProductPage() {
                 disabled={saving || uploading}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {uploading ? 'Uploading images...' : saving ? 'Saving...' : 'Update Product'}
+                {uploading
+                  ? "Uploading images..."
+                  : saving
+                  ? "Saving..."
+                  : "Update Product"}
               </button>
               <button
                 type="button"

@@ -1,20 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { signOutAdmin } from '@/lib/supabase/auth';
-import { 
-  Package, 
-  ShoppingCart, 
-  Plus, 
-  LogOut, 
-  Edit, 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import { signOutAdmin } from "@/lib/supabase/auth";
+import {
+  Package,
+  ShoppingCart,
+  Plus,
+  LogOut,
+  Edit,
   Trash2,
   Eye,
-} from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'react-toastify';
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { toast } from "react-toastify";
 
 interface Product {
   id: string;
@@ -25,7 +26,7 @@ interface Product {
   cover_image: string;
   gallery_images: string[] | null;
   rating: number;
-  category: 'flowers' | 'accessories' | 'fruits';
+  category: "flowers" | "accessories" | "fruits";
   stock: number;
   created_at: string;
 }
@@ -37,14 +38,14 @@ interface Order {
   customer_phone: string | null;
   shipping_address: string;
   total_amount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   items: any;
   created_at: string;
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,85 +65,86 @@ export default function AdminDashboard() {
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
-      toast.error('Failed to fetch products: ' + error.message);
+      toast.error("Failed to fetch products: " + error.message);
     }
   };
 
   const fetchOrders = async () => {
     try {
       const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setOrders(data || []);
     } catch (error: any) {
-      toast.error('Failed to fetch orders: ' + error.message);
+      toast.error("Failed to fetch orders: " + error.message);
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
 
     try {
       // Get product to delete images
-      const product = products.find(p => p.id === id);
-      
+      const product = products.find((p) => p.id === id);
+
       // Delete images from storage
       if (product) {
         const imagesToDelete: string[] = [];
         if (product.cover_image) imagesToDelete.push(product.cover_image);
-        if (product.gallery_images) imagesToDelete.push(...product.gallery_images);
-        
+        if (product.gallery_images)
+          imagesToDelete.push(...product.gallery_images);
+
         // Delete images (non-blocking)
-        import('@/lib/supabase/storage').then(({ deleteImages }) => {
+        import("@/lib/supabase/storage").then(({ deleteImages }) => {
           deleteImages(imagesToDelete).catch(console.error);
         });
       }
 
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("products").delete().eq("id", id);
 
       if (error) throw error;
-      toast.success('Product deleted successfully');
+      toast.success("Product deleted successfully");
       fetchProducts();
     } catch (error: any) {
-      toast.error('Failed to delete product: ' + error.message);
+      toast.error("Failed to delete product: " + error.message);
     }
   };
 
-  const handleUpdateOrderStatus = async (id: string, status: Order['status']) => {
+  const handleUpdateOrderStatus = async (
+    id: string,
+    status: Order["status"]
+  ) => {
     try {
       const { error } = await supabase
-        .from('orders')
+        .from("orders")
         .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
-      toast.success('Order status updated');
+      toast.success("Order status updated");
       fetchOrders();
     } catch (error: any) {
-      toast.error('Failed to update order: ' + error.message);
+      toast.error("Failed to update order: " + error.message);
     }
   };
 
   const handleLogout = async () => {
     try {
       await signOutAdmin();
-      router.push('/admin/login');
+      router.push("/admin/login");
       router.refresh();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -160,7 +162,9 @@ export default function AdminDashboard() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Admin Dashboard
+            </h1>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -176,11 +180,11 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b">
           <button
-            onClick={() => setActiveTab('products')}
+            onClick={() => setActiveTab("products")}
             className={`px-6 py-3 font-semibold transition ${
-              activeTab === 'products'
-                ? 'border-b-2 border-green-500 text-green-600'
-                : 'text-gray-600 hover:text-gray-800'
+              activeTab === "products"
+                ? "border-b-2 border-green-500 text-green-600"
+                : "text-gray-600 hover:text-gray-800"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -189,11 +193,11 @@ export default function AdminDashboard() {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('orders')}
+            onClick={() => setActiveTab("orders")}
             className={`px-6 py-3 font-semibold transition ${
-              activeTab === 'orders'
-                ? 'border-b-2 border-green-500 text-green-600'
-                : 'text-gray-600 hover:text-gray-800'
+              activeTab === "orders"
+                ? "border-b-2 border-green-500 text-green-600"
+                : "text-gray-600 hover:text-gray-800"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -204,7 +208,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Content */}
-        {activeTab === 'products' && (
+        {activeTab === "products" && (
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Product Management</h2>
@@ -245,15 +249,21 @@ export default function AdminDashboard() {
                   {products.map((product) => (
                     <tr key={product.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <img
-                          src={product.cover_image || '/placeholder.jpg'}
+                        <Image
+                          src={product.cover_image || "/placeholder.jpg"}
                           alt={product.title}
+                          width={64}
+                          height={64}
                           className="h-16 w-16 object-cover rounded"
                         />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{product.title}</div>
-                        <div className="text-sm text-gray-500">{product.description}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {product.title}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {product.description}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -261,7 +271,9 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">${product.price}</div>
+                        <div className="text-sm text-gray-900">
+                          ${product.price}
+                        </div>
                         {product.discount_price && (
                           <div className="text-sm text-gray-500 line-through">
                             ${product.discount_price}
@@ -300,7 +312,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'orders' && (
+        {activeTab === "orders" && (
           <div>
             <h2 className="text-xl font-semibold mb-6">Order Management</h2>
 
@@ -335,8 +347,12 @@ export default function AdminDashboard() {
                         #{order.id.slice(0, 8)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
-                        <div className="text-sm text-gray-500">{order.customer_email}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.customer_name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {order.customer_email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         ${order.total_amount.toFixed(2)}
@@ -344,17 +360,22 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as Order['status'])}
+                          onChange={(e) =>
+                            handleUpdateOrderStatus(
+                              order.id,
+                              e.target.value as Order["status"]
+                            )
+                          }
                           className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
-                            order.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : order.status === 'processing'
-                              ? 'bg-blue-100 text-blue-800'
-                              : order.status === 'shipped'
-                              ? 'bg-purple-100 text-purple-800'
-                              : order.status === 'delivered'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                            order.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : order.status === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status === "shipped"
+                              ? "bg-purple-100 text-purple-800"
+                              : order.status === "delivered"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                           }`}
                         >
                           <option value="pending">Pending</option>
@@ -370,7 +391,13 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => {
-                            alert(`Order Details:\n\nCustomer: ${order.customer_name}\nEmail: ${order.customer_email}\nAddress: ${order.shipping_address}\nItems: ${JSON.stringify(order.items, null, 2)}`);
+                            alert(
+                              `Order Details:\n\nCustomer: ${
+                                order.customer_name
+                              }\nEmail: ${order.customer_email}\nAddress: ${
+                                order.shipping_address
+                              }\nItems: ${JSON.stringify(order.items, null, 2)}`
+                            );
                           }}
                           className="text-blue-600 hover:text-blue-900"
                         >

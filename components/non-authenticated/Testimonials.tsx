@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import Image from "next/image";
 
 interface Testimonial {
   id: number;
@@ -37,9 +38,11 @@ export default function TestimonialCards() {
         >
           <h2 className="text-2xl font-bold mb-4">TESTIMONIAL</h2>
           <div className="flex items-start mb-4">
-            <img
+            <Image
               src={testimonial.image}
               alt={`${testimonial.name}'s profile`}
+              width={64}
+              height={64}
               className="rounded-full border-2 w-16 h-16 border-red-500 object-cover"
             />
 
@@ -65,6 +68,3 @@ export default function TestimonialCards() {
     </div>
   );
 }
-
-
-

@@ -1,30 +1,39 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Heart } from 'lucide-react';
-import Link from 'next/link';
+import { motion } from "framer-motion";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Facebook,
+  Instagram,
+  Twitter,
+  Heart,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function PremiumFooter() {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     company: [
-      { name: 'About Us', href: '#about' },
-      { name: 'Our Story', href: '#story' },
-      { name: 'Careers', href: '#careers' },
-      { name: 'Contact', href: '#contact' },
+      { name: "About Us", href: "#about" },
+      { name: "Our Story", href: "#story" },
+      { name: "Careers", href: "#careers" },
+      { name: "Contact", href: "#contact" },
     ],
     shop: [
-      { name: 'All Products', href: '#products' },
-      { name: 'Flowers', href: '#flowers' },
-      { name: 'Accessories', href: '#accessories' },
-      { name: 'Gift Sets', href: '#gifts' },
+      { name: "All Products", href: "#products" },
+      { name: "Flowers", href: "#flowers" },
+      { name: "Accessories", href: "#accessories" },
+      { name: "Gift Sets", href: "#gifts" },
     ],
     support: [
-      { name: 'FAQ', href: '#faq' },
-      { name: 'Shipping', href: '#shipping' },
-      { name: 'Returns', href: '#returns' },
-      { name: 'Privacy Policy', href: '#privacy' },
+      { name: "FAQ", href: "#faq" },
+      { name: "Shipping", href: "#shipping" },
+      { name: "Returns", href: "#returns" },
+      { name: "Privacy Policy", href: "#privacy" },
     ],
   };
 
@@ -46,19 +55,24 @@ export default function PremiumFooter() {
             className="lg:col-span-2"
           >
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <img
+              <Image
                 src="/images/fruit-store-logo.jpg"
                 alt="Logo"
+                width={56}
+                height={56}
                 className="h-14 w-14 rounded-full object-cover ring-2 ring-green-500"
               />
               <div>
                 <div className="text-2xl font-bold">Bloom & Blossom</div>
-                <div className="text-sm text-gray-400">Premium Floral Arrangements</div>
+                <div className="text-sm text-gray-400">
+                  Premium Floral Arrangements
+                </div>
               </div>
             </Link>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Creating beautiful moments with handcrafted floral arrangements. 
-              Every bloom tells a story, every arrangement speaks from the heart.
+              Creating beautiful moments with handcrafted floral arrangements.
+              Every bloom tells a story, every arrangement speaks from the
+              heart.
             </p>
             <div className="flex gap-4">
               {[Facebook, Instagram, Twitter].map((SocialIcon, index) => (
@@ -155,11 +169,11 @@ export default function PremiumFooter() {
             Copyright © {currentYear} Bloom & Blossom. All rights reserved.
           </p>
           <p className="text-gray-400 text-sm flex items-center gap-2">
-            Made with <Heart className="w-4 h-4 text-rose-500 fill-current" /> for flower lovers
+            Made with <Heart className="w-4 h-4 text-rose-500 fill-current" />{" "}
+            for flower lovers
           </p>
         </motion.div>
       </div>
     </footer>
   );
 }
-

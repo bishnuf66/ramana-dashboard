@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ShoppingCart, X, Plus, Minus } from "lucide-react";
+import Image from "next/image";
 
 interface ProductModalProps {
   product: {
@@ -38,9 +39,11 @@ const SingleProductModal: React.FC<ProductModalProps> = ({
         </button>
 
         {/* Product Image */}
-        <img
+        <Image
           src={product.image}
           alt={product.title}
+          width={400}
+          height={240}
           className="w-full h-60 object-cover rounded-md"
         />
 

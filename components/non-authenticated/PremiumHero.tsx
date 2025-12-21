@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { motion } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function PremiumHero() {
   return (
@@ -30,7 +31,9 @@ export default function PremiumHero() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-lg"
             >
               <Sparkles className="w-4 h-4 text-rose-500" />
-              <span className="text-sm font-medium text-gray-700">Premium Handcrafted Arrangements</span>
+              <span className="text-sm font-medium text-gray-700">
+                Premium Handcrafted Arrangements
+              </span>
             </motion.div>
 
             <motion.h1
@@ -50,8 +53,9 @@ export default function PremiumHero() {
               transition={{ delay: 0.4, duration: 0.6 }}
               className="text-xl text-gray-600 leading-relaxed max-w-xl"
             >
-              Discover our exquisite collection of handcrafted flowers and accessories. 
-              Each arrangement is carefully curated to bring beauty and elegance to your special moments.
+              Discover our exquisite collection of handcrafted flowers and
+              accessories. Each arrangement is carefully curated to bring beauty
+              and elegance to your special moments.
             </motion.p>
 
             <motion.div
@@ -60,7 +64,10 @@ export default function PremiumHero() {
               transition={{ delay: 0.5, duration: 0.6 }}
               className="flex flex-wrap gap-4"
             >
-              <Link href="#products" className="btn-premium inline-flex items-center gap-2">
+              <Link
+                href="#products"
+                className="btn-premium inline-flex items-center gap-2"
+              >
                 Shop Now
                 <ArrowRight className="w-5 h-5" />
               </Link>
@@ -100,9 +107,11 @@ export default function PremiumHero() {
           >
             <div className="relative z-10">
               <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                <img
+                <Image
                   src="/images/home-banner.jpg"
                   alt="Premium Flower Arrangement"
+                  width={400}
+                  height={400}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -143,4 +152,3 @@ export default function PremiumHero() {
     </section>
   );
 }
-

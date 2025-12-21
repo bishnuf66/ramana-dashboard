@@ -1,13 +1,16 @@
 import { Phone, Mail, MapPin } from "lucide-react";
+import Image from "next/image";
 
 export default function Footer() {
   return (
     <footer className=" py-8 px-4 md:px-8">
       <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
         <div className="w-40 h-40  ">
-          <img
+          <Image
             src="/images/fruit-store-logo.jpg"
-            alt=""
+            alt="Fruit Store Logo"
+            width={160}
+            height={160}
             className="object-cover "
           />
         </div>
@@ -105,6 +108,3 @@ export default function Footer() {
     </footer>
   );
 }
-
-
-

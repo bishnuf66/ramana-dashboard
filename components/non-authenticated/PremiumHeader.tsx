@@ -1,25 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useCart } from '../context/CartContext';
-import { Heart, Search, ShoppingCart, Menu, X, User } from 'lucide-react';
-import LoginModal from './LoginModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useCart } from "../context/CartContext";
+import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
+import LoginModal from "./LoginModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function PremiumHeader() {
   const { getTotalItems } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const items = getTotalItems();
@@ -32,8 +33,8 @@ export default function PremiumHeader() {
         transition={{ duration: 0.5 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-lg'
-            : 'bg-transparent'
+            ? "bg-white/95 backdrop-blur-md shadow-lg"
+            : "bg-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,15 +46,21 @@ export default function PremiumHeader() {
                 transition={{ duration: 0.5 }}
                 className="relative"
               >
-                <img
+                <Image
                   src="/images/fruit-store-logo.jpg"
                   alt="Logo"
+                  width={48}
+                  height={48}
                   className="h-12 w-12 rounded-full object-cover ring-2 ring-green-200 group-hover:ring-green-500 transition-all"
                 />
               </motion.div>
               <div>
-                <div className="text-xl font-bold text-gray-900">Bloom & Blossom</div>
-                <div className="text-xs text-gray-500">Premium Floral Arrangements</div>
+                <div className="text-xl font-bold text-gray-900">
+                  Bloom & Blossom
+                </div>
+                <div className="text-xs text-gray-500">
+                  Premium Floral Arrangements
+                </div>
               </div>
             </Link>
 
@@ -148,7 +155,11 @@ export default function PremiumHeader() {
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="md:hidden p-2 text-gray-700"
               >
-                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isMobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
               </button>
             </div>
           </div>
@@ -159,7 +170,7 @@ export default function PremiumHeader() {
           {isMobileMenuOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden bg-white border-t border-gray-200"
             >
@@ -208,8 +219,10 @@ export default function PremiumHeader() {
         </AnimatePresence>
       </motion.header>
 
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
     </>
   );
 }
-

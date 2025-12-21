@@ -1,29 +1,30 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { uploadImage, generateImagePath } from '@/lib/supabase/storage';
-import { Upload, X, Trash2 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import { uploadImage, generateImagePath } from "@/lib/supabase/storage";
+import { Upload, X, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { toast } from "react-toastify";
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
+  const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
-  
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    discount_price: '',
-    rating: '5',
-    category: 'flowers' as 'flowers' | 'accessories' | 'fruits',
-    stock: '',
+    title: "",
+    description: "",
+    price: "",
+    discount_price: "",
+    rating: "5",
+    category: "flowers" as "flowers" | "accessories" | "fruits",
+    stock: "",
   });
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,14 +39,16 @@ export default function NewProductPage() {
     }
   };
 
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryImagesChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = Array.from(e.target.files || []);
     setGalleryFiles([...galleryFiles, ...files]);
-    
-    files.forEach(file => {
+
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setGalleryPreviews(prev => [...prev, reader.result as string]);
+        setGalleryPreviews((prev) => [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
     });
@@ -59,7 +62,7 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coverImageFile) {
-      toast.error('Please upload a cover image');
+      toast.error("Please upload a cover image");
       return;
     }
 
@@ -69,15 +72,23 @@ export default function NewProductPage() {
     try {
       // Generate product ID first
       const productId = crypto.randomUUID();
-      
+
       // Upload cover image
-      const coverImagePath = generateImagePath(productId, coverImageFile.name, 'cover');
+      const coverImagePath = generateImagePath(
+        productId,
+        coverImageFile.name,
+        "cover"
+      );
       const coverImageUrl = await uploadImage(coverImageFile, coverImagePath);
 
       // Upload gallery images
       const galleryUrls: string[] = [];
       for (let i = 0; i < galleryFiles.length; i++) {
-        const galleryPath = generateImagePath(productId, galleryFiles[i].name, 'gallery');
+        const galleryPath = generateImagePath(
+          productId,
+          galleryFiles[i].name,
+          "gallery"
+        );
         const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
         galleryUrls.push(galleryUrl);
       }
@@ -85,32 +96,32 @@ export default function NewProductPage() {
       setUploading(false);
 
       // Create product
-      const { error } = await supabase
-        .from('products')
-        .insert([
-          {
-            id: productId,
-            title: formData.title,
-            description: formData.description || null,
-            price: parseFloat(formData.price),
-            discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
-            cover_image: coverImageUrl,
-            gallery_images: galleryUrls.length > 0 ? galleryUrls : null,
-            rating: parseFloat(formData.rating),
-            category: formData.category,
-            stock: parseInt(formData.stock) || 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ]);
+      const { error } = await supabase.from("products").insert([
+        {
+          id: productId,
+          title: formData.title,
+          description: formData.description || null,
+          price: parseFloat(formData.price),
+          discount_price: formData.discount_price
+            ? parseFloat(formData.discount_price)
+            : null,
+          cover_image: coverImageUrl,
+          gallery_images: galleryUrls.length > 0 ? galleryUrls : null,
+          rating: parseFloat(formData.rating),
+          category: formData.category,
+          stock: parseInt(formData.stock) || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
 
       if (error) throw error;
 
-      toast.success('Product created successfully!');
-      router.push('/admin/dashboard');
+      toast.success("Product created successfully!");
+      router.push("/admin/dashboard");
     } catch (error: any) {
       setUploading(false);
-      toast.error('Failed to create product: ' + error.message);
+      toast.error("Failed to create product: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -121,7 +132,9 @@ export default function NewProductPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow p-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Add New Product</h1>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Add New Product
+            </h1>
             <button
               onClick={() => router.back()}
               className="text-gray-500 hover:text-gray-700"
@@ -139,7 +152,9 @@ export default function NewProductPage() {
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -151,7 +166,12 @@ export default function NewProductPage() {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      category: e.target.value as any,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 >
@@ -169,7 +189,9 @@ export default function NewProductPage() {
                   type="number"
                   step="0.01"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -183,7 +205,9 @@ export default function NewProductPage() {
                   type="number"
                   step="0.01"
                   value={formData.discount_price}
-                  onChange={(e) => setFormData({ ...formData, discount_price: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, discount_price: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
@@ -198,7 +222,9 @@ export default function NewProductPage() {
                   max="5"
                   step="0.1"
                   value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rating: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -212,7 +238,9 @@ export default function NewProductPage() {
                   type="number"
                   min="0"
                   value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stock: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -228,16 +256,18 @@ export default function NewProductPage() {
                 <div className="space-y-1 text-center">
                   {coverImagePreview ? (
                     <div className="relative inline-block">
-                      <img
+                      <Image
                         src={coverImagePreview}
                         alt="Cover preview"
+                        width={192}
+                        height={192}
                         className="h-48 w-48 object-cover rounded-lg"
                       />
                       <button
                         type="button"
                         onClick={() => {
                           setCoverImageFile(null);
-                          setCoverImagePreview('');
+                          setCoverImagePreview("");
                         }}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
                       >
@@ -260,7 +290,9 @@ export default function NewProductPage() {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
                     </>
                   )}
                 </div>
@@ -288,15 +320,19 @@ export default function NewProductPage() {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
-                  
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 10MB each
+                  </p>
+
                   {galleryPreviews.length > 0 && (
                     <div className="mt-4 grid grid-cols-4 gap-4">
                       {galleryPreviews.map((preview, index) => (
                         <div key={index} className="relative">
-                          <img
+                          <Image
                             src={preview}
                             alt={`Gallery ${index + 1}`}
+                            width={96}
+                            height={96}
                             className="h-24 w-24 object-cover rounded-lg"
                           />
                           <button
@@ -320,7 +356,9 @@ export default function NewProductPage() {
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Product description..."
@@ -333,7 +371,11 @@ export default function NewProductPage() {
                 disabled={loading || uploading}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {uploading ? 'Uploading images...' : loading ? 'Creating...' : 'Create Product'}
+                {uploading
+                  ? "Uploading images..."
+                  : loading
+                  ? "Creating..."
+                  : "Create Product"}
               </button>
               <button
                 type="button"

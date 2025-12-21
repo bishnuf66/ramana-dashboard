@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import SingleProductModal from "./SingleProductModal";
+import Image from "next/image";
 import { toast } from "react-toastify";
 
 interface ProductProps {
@@ -37,9 +38,11 @@ const ProductCard: React.FC<ProductProps> = ({ product }) => {
       >
         {/* Image container */}
         <div className="bg-green-200 p-6 md:p-8 relative flex justify-center items-center">
-          <img
+          <Image
             src={product.image}
             alt={product.title}
+            width={112}
+            height={112}
             className="w-20 h-20 md:w-28 md:h-28 object-cover rounded-md"
           />
           <button
@@ -104,6 +107,3 @@ const ProductCard: React.FC<ProductProps> = ({ product }) => {
 };
 
 export default ProductCard;
-
-
-

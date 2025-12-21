@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Trash } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import Image from "next/image";
 import { toast } from "react-toastify";
 
 const CartPage: React.FC = () => {
@@ -84,9 +85,11 @@ const CartPage: React.FC = () => {
                   className="flex items-center justify-between border p-4 rounded shadow"
                 >
                   <div className="flex flex-col items-center justify-center">
-                    <img
+                    <Image
                       src={item.image}
                       alt={item.title}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 object-cover"
                     />
                     <div className="flex-1 ml-4">
@@ -145,6 +148,3 @@ const CartPage: React.FC = () => {
 };
 
 export default CartPage;
-
-
-

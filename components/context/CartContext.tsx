@@ -104,7 +104,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       getTotalPrice,
       getTotalItems,
     }),
-    [cart]
+    [
+      cart,
+      addToCart,
+      increaseQuantity,
+      decreaseQuantity,
+      removeFromCart,
+      clearCart,
+      getTotalPrice,
+      getTotalItems,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -117,6 +126,3 @@ export const useCart = () => {
   }
   return context;
 };
-
-
-

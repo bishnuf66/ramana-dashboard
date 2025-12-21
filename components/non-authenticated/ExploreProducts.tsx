@@ -5,15 +5,14 @@ import PremiumProductCard from "./PremiumProductCard";
 import { supabase } from "@/lib/supabase/client";
 
 interface Product {
-  id: number;
+  id: number | string;
   title: string;
   description?: string;
   price: number;
-  discount_price?: number;
-  cover_image: string;
-  gallery_images?: string[];
+  discountPrice?: number;
+  image: string;
   rating: number;
-  category: 'flowers' | 'accessories' | 'fruits';
+  category?: string;
 }
 
 const ExploreProducts: React.FC = () => {
@@ -27,9 +26,11 @@ const ExploreProducts: React.FC = () => {
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('id, title, description, price, discount_price, cover_image, gallery_images, rating, category')
-        .order('created_at', { ascending: false })
+        .from("products")
+        .select(
+          "id, title, description, price, discount_price, cover_image, gallery_images, rating, category"
+        )
+        .order("created_at", { ascending: false })
         .limit(8); // Limit to 8 products for the homepage
 
       if (error) throw error;
@@ -41,14 +42,14 @@ const ExploreProducts: React.FC = () => {
         description: product.description,
         price: product.price,
         discountPrice: product.discount_price,
-        image: product.cover_image || '/placeholder.jpg',
+        image: product.cover_image || "/placeholder.jpg",
         rating: product.rating,
         category: product.category,
       }));
 
       setProducts(transformedProducts);
     } catch (error) {
-      console.error('Failed to fetch products:', error);
+      console.error("Failed to fetch products:", error);
       // Fallback to empty array on error
       setProducts([]);
     } finally {
@@ -80,12 +81,18 @@ const ExploreProducts: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.length > 0 ? (
           products.map((product, index) => (
-            <PremiumProductCard key={product.id} product={product} index={index} />
+            <PremiumProductCard
+              key={product.id}
+              product={product}
+              index={index}
+            />
           ))
         ) : (
           <div className="col-span-full text-center text-gray-500 py-12">
             <p className="text-lg">No products available at the moment.</p>
-            <p className="text-sm mt-2">Check back soon for our latest arrangements!</p>
+            <p className="text-sm mt-2">
+              Check back soon for our latest arrangements!
+            </p>
           </div>
         )}
       </div>

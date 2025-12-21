@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import LoginModal from "../non-authenticated/LoginModal";
 import { Heart, Search, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
@@ -28,10 +29,12 @@ function Header() {
       <div className="flex  flex-row items-center justify-between px-6 py-1 bg-white text-black">
         <div className="flex items-center gap-20">
           <Link href="/">
-            <img
+            <Image
               className="h-12 w-12"
               src={"/images/fruit-store-logo.jpg"}
               alt="header-image"
+              width={48}
+              height={48}
             />
           </Link>
           {/* Search Bar */}
@@ -87,6 +90,3 @@ function Header() {
 }
 
 export default Header;
-
-
-

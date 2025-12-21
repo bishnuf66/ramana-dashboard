@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 interface DealCardProps {
   title: string;
@@ -33,9 +34,11 @@ const DealCard: React.FC<DealCardProps> = ({
           <ArrowRight />
         </button>
       </div>
-      <img
+      <Image
         src={imageSrc}
         alt="product"
+        width={160}
+        height={192}
         className="md:w-40 md:h-48 w-24 h-32 object-cover absolute bottom-8 right-4"
       />
     </div>

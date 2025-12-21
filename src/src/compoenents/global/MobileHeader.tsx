@@ -10,6 +10,8 @@ import {
   House,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import Image from "next/image";
+import Link from "next/link";
 
 function MobileHeader() {
   const { getTotalItems } = useCart();
@@ -36,13 +38,15 @@ function MobileHeader() {
       {/* Header Section */}
       <div className="flex items-center justify-between px-6 py-2 bg-white text-black">
         <div className="flex items-center">
-          <a href="/">
-            <img
+          <Link href="/">
+            <Image
               className="h-12 w-12"
               src={"/images/fruit-store-logo.jpg"}
               alt="header-image"
+              width={48}
+              height={48}
             />
-          </a>
+          </Link>
         </div>
 
         {/* Hamburger Icon for Mobile */}
@@ -75,13 +79,15 @@ function MobileHeader() {
             </button>
           </div>
           <div className="flex items-center">
-            <a href="/">
-              <img
+            <Link href="/">
+              <Image
                 className="h-12 w-12"
                 src={"/images/fruit-store-logo.jpg"}
                 alt="header-image"
+                width={48}
+                height={48}
               />
-            </a>
+            </Link>
           </div>
           {/* Search Bar */}
           <form
@@ -100,10 +106,10 @@ function MobileHeader() {
               <Search className="text-white" />
             </span>
           </form>
-          <a href="/" className="flex flex-row space-x-2 py-2">
+          <Link href="/" className="flex flex-row space-x-2 py-2">
             <span> Home</span>
             <House />
-          </a>
+          </Link>
 
           <button
             className=" py-2 flex flex-row  space-x-2"
@@ -116,14 +122,14 @@ function MobileHeader() {
             <span>Favorite</span>
             <Heart className="w-6 h-6" />
           </div>
-          <a href="/cart" className="block py-2">
+          <Link href="/cart" className="block py-2">
             <div className="flex items-center justify-center gap-1 relative">
               Cart <ShoppingCart className="w-6 h-6" />
               <span className="absolute bg-green-500 text-white -top-3 -right-3 rounded-full w-5 h-5 flex items-center justify-center">
                 {items}
               </span>
             </div>
-          </a>
+          </Link>
         </div>
       )}
 

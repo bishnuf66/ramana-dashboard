@@ -1,4 +1,4 @@
-import { motion, useAnimation } from "framer-motion";
+import { motion, useAnimation, easeOut } from "framer-motion";
 import { useEffect, useRef } from "react";
 import ExploreProducts from "../compoenents/non-authenticated/ExploreProducts";
 import HomeBanner from "../compoenents/non-authenticated/HomeBanner";
@@ -45,7 +45,7 @@ function AnimatedSection({ children }: any) {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut",
+        ease: easeOut,
       },
     },
   };
