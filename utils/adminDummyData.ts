@@ -1,0 +1,306 @@
+import {
+  AdminProduct,
+  AdminCategory,
+  AdminOrder,
+  AdminStats,
+} from "../types/admin";
+
+export const adminCategories: AdminCategory[] = [
+  {
+    id: 1,
+    name: "Wedding Bouquets",
+    slug: "wedding-bouquets",
+    description: "Elegant and romantic bouquets perfect for your special day",
+    image:
+      "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    product_count: 8,
+    status: "active",
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-20T15:30:00Z",
+  },
+  {
+    id: 2,
+    name: "Birthday Flowers",
+    slug: "birthday-flowers",
+    description: "Bright and cheerful arrangements to celebrate life's moments",
+    image:
+      "https://images.unsplash.com/photo-1574684891174-df6b02ab38d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    product_count: 6,
+    status: "active",
+    created_at: "2024-01-10T09:00:00Z",
+    updated_at: "2024-01-18T14:20:00Z",
+  },
+  {
+    id: 3,
+    name: "Romantic Roses",
+    slug: "romantic-roses",
+    description: "Classic roses for expressing love and affection",
+    image:
+      "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    product_count: 5,
+    status: "active",
+    created_at: "2024-01-08T11:30:00Z",
+    updated_at: "2024-01-22T16:45:00Z",
+  },
+  {
+    id: 4,
+    name: "Seasonal Arrangements",
+    slug: "seasonal-arrangements",
+    description: "Beautiful seasonal flowers that capture nature's beauty",
+    image:
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    product_count: 4,
+    status: "active",
+    created_at: "2024-01-12T13:15:00Z",
+    updated_at: "2024-01-19T10:30:00Z",
+  },
+  {
+    id: 5,
+    name: "Corporate Gifts",
+    slug: "corporate-gifts",
+    description: "Professional arrangements for business occasions",
+    image:
+      "https://images.unsplash.com/photo-1487070183336-b863922373d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
+    product_count: 3,
+    status: "inactive",
+    created_at: "2024-01-05T08:45:00Z",
+    updated_at: "2024-01-21T12:15:00Z",
+  },
+];
+
+export const adminProducts: AdminProduct[] = [
+  {
+    id: 1,
+    title: "Classic Red Roses Bridal Bouquet",
+    slug: "classic-red-roses-bridal-bouquet",
+    description:
+      "An elegant handcrafted bouquet featuring premium red roses, perfect for romantic occasions and weddings. Each rose is carefully selected and arranged with delicate baby's breath and lush greenery to create a timeless and sophisticated look.",
+    short_description:
+      "Elegant handcrafted bouquet of premium red roses, perfect for romantic occasions.",
+    price: 4500,
+    discount_price: 4200,
+    cover_image:
+      "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
+    category_id: 1,
+    category: adminCategories[0],
+    tags: ["roses", "red", "wedding", "romantic", "premium"],
+    in_stock: true,
+    stock_quantity: 15,
+    rating: 4.9,
+    review_count: 24,
+    features: [
+      "Hand-selected premium red roses",
+      "Complemented with baby's breath",
+      "Fresh eucalyptus greenery",
+      "Elegant satin ribbon wrap",
+      "Same-day delivery available",
+    ],
+    dimensions: "30cm height x 25cm width",
+    weight: "800g",
+    care_instructions:
+      "Keep in cool water, trim stems daily, avoid direct sunlight",
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-20T15:30:00Z",
+    status: "active",
+  },
+  {
+    id: 2,
+    title: "Garden Pink Roses Arrangement",
+    slug: "garden-pink-roses-arrangement",
+    description:
+      "Beautiful pink roses arranged with delicate greenery for a soft, romantic touch. This charming bouquet combines various shades of pink roses with seasonal foliage to create a garden-fresh appearance.",
+    short_description:
+      "Beautiful pink roses arranged with delicate greenery for a soft, romantic touch.",
+    price: 3200,
+    discount_price: 2950,
+    cover_image:
+      "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1487070183336-b863922373d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
+    category_id: 3,
+    category: adminCategories[2],
+    tags: ["roses", "pink", "garden", "romantic", "soft"],
+    in_stock: true,
+    stock_quantity: 12,
+    rating: 4.8,
+    review_count: 18,
+    features: [
+      "Multiple shades of pink roses",
+      "Garden-style arrangement",
+      "Seasonal foliage included",
+      "Rustic burlap wrap",
+      "Perfect for anniversaries",
+    ],
+    dimensions: "28cm height x 22cm width",
+    weight: "650g",
+    care_instructions: "Change water every 2 days, keep in cool location",
+    created_at: "2024-01-10T09:00:00Z",
+    updated_at: "2024-01-18T14:20:00Z",
+    status: "active",
+  },
+  {
+    id: 3,
+    title: "Rainbow Mix Celebration Bouquet",
+    slug: "rainbow-mix-celebration-bouquet",
+    description:
+      "Vibrant mixed flower bouquet with roses, lilies, and seasonal blooms. This joyful arrangement features a rainbow of colors including bright yellows, oranges, pinks, and purples to celebrate life's special moments.",
+    short_description:
+      "Vibrant mixed flower bouquet with roses, lilies, and seasonal blooms.",
+    price: 3800,
+    discount_price: 3500,
+    cover_image:
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1574684891174-df6b02ab38d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
+    category_id: 2,
+    category: adminCategories[1],
+    tags: ["mixed", "colorful", "birthday", "celebration", "vibrant"],
+    in_stock: false,
+    stock_quantity: 0,
+    rating: 5.0,
+    review_count: 32,
+    features: [
+      "Rainbow of vibrant colors",
+      "Mix of roses and lilies",
+      "Seasonal accent flowers",
+      "Cheerful presentation",
+      "Perfect for celebrations",
+    ],
+    dimensions: "35cm height x 30cm width",
+    weight: "900g",
+    care_instructions:
+      "Trim stems at angle, use flower food, replace water regularly",
+    created_at: "2024-01-08T11:30:00Z",
+    updated_at: "2024-01-22T16:45:00Z",
+    status: "active",
+  },
+];
+
+export const adminOrders: AdminOrder[] = [
+  {
+    id: 1,
+    order_number: "ORD-2024-001",
+    customer_name: "Priya Sharma",
+    customer_email: "priya.sharma@email.com",
+    customer_phone: "+977-9841234567",
+    total_amount: 4200,
+    status: "confirmed",
+    payment_status: "paid",
+    payment_method: "online",
+    delivery_address: "Thamel, Kathmandu, Nepal",
+    delivery_date: "2024-01-25T14:00:00Z",
+    notes: "Please deliver before 2 PM for wedding ceremony",
+    items: [
+      {
+        id: 1,
+        product_id: 1,
+        product_name: "Classic Red Roses Bridal Bouquet",
+        product_image:
+          "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+        quantity: 1,
+        unit_price: 4200,
+        total_price: 4200,
+      },
+    ],
+    created_at: "2024-01-23T10:30:00Z",
+    updated_at: "2024-01-23T11:15:00Z",
+  },
+  {
+    id: 2,
+    order_number: "ORD-2024-002",
+    customer_name: "Arjun Thapa",
+    customer_email: "arjun.thapa@email.com",
+    customer_phone: "+977-9851234567",
+    total_amount: 6450,
+    status: "processing",
+    payment_status: "paid",
+    payment_method: "card",
+    delivery_address: "Patan Durbar Square, Lalitpur, Nepal",
+    delivery_date: "2024-01-26T16:00:00Z",
+    notes: "Birthday surprise - please include birthday card",
+    items: [
+      {
+        id: 2,
+        product_id: 2,
+        product_name: "Garden Pink Roses Arrangement",
+        product_image:
+          "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+        quantity: 2,
+        unit_price: 2950,
+        total_price: 5900,
+      },
+      {
+        id: 3,
+        product_id: 3,
+        product_name: "Rainbow Mix Celebration Bouquet",
+        product_image:
+          "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+        quantity: 1,
+        unit_price: 3500,
+        total_price: 3500,
+      },
+    ],
+    created_at: "2024-01-22T15:45:00Z",
+    updated_at: "2024-01-23T09:20:00Z",
+  },
+  {
+    id: 3,
+    order_number: "ORD-2024-003",
+    customer_name: "Sita Poudel",
+    customer_email: "sita.poudel@email.com",
+    customer_phone: "+977-9861234567",
+    total_amount: 2950,
+    status: "pending",
+    payment_status: "pending",
+    payment_method: "cash",
+    delivery_address: "Bhaktapur Durbar Square, Bhaktapur, Nepal",
+    notes: "Cash on delivery",
+    items: [
+      {
+        id: 4,
+        product_id: 2,
+        product_name: "Garden Pink Roses Arrangement",
+        product_image:
+          "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+        quantity: 1,
+        unit_price: 2950,
+        total_price: 2950,
+      },
+    ],
+    created_at: "2024-01-24T08:15:00Z",
+    updated_at: "2024-01-24T08:15:00Z",
+  },
+];
+
+export const adminStats: AdminStats = {
+  totalProducts: 26,
+  totalOrders: 45,
+  totalRevenue: 187500,
+  totalCustomers: 38,
+  recentOrders: adminOrders.slice(0, 5),
+  topProducts: adminProducts.slice(0, 3),
+  monthlyRevenue: [
+    { month: "Jan", revenue: 45000 },
+    { month: "Feb", revenue: 52000 },
+    { month: "Mar", revenue: 48000 },
+    { month: "Apr", revenue: 61000 },
+    { month: "May", revenue: 55000 },
+    { month: "Jun", revenue: 67000 },
+  ],
+  ordersByStatus: [
+    { status: "Pending", count: 8 },
+    { status: "Confirmed", count: 12 },
+    { status: "Processing", count: 15 },
+    { status: "Delivered", count: 18 },
+    { status: "Cancelled", count: 2 },
+  ],
+};
