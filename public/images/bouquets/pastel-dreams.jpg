@@ -1,0 +1,63 @@
+<!-- Pastel Dreams Bouquet -->
+<svg width="400" height="500" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="pastel1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffeaa7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fab1a0;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="pastel2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#fd79a8;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#fdcb6e;stop-opacity:0.7" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="500" fill="#fef5e7"/>
+  
+  <!-- Bouquet Wrapper -->
+  <path d="M 150 350 Q 200 380 250 350 L 250 450 Q 200 470 150 450 Z" fill="#e17055" opacity="0.6"/>
+  
+  <!-- Stems -->
+  <rect x="195" y="300" width="6" height="120" fill="#81ecec" opacity="0.8"/>
+  <rect x="185" y="310" width="5" height="110" fill="#81ecec" opacity="0.8"/>
+  <rect x="205" y="305" width="5" height="115" fill="#81ecec" opacity="0.8"/>
+  
+  <!-- Pastel Flowers -->
+  <g transform="translate(200,200)">
+    <!-- Center - Soft Peach -->
+    <circle cx="0" cy="0" r="35" fill="url(#pastel1)"/>
+    <circle cx="0" cy="0" r="25" fill="#fab1a0" opacity="0.6"/>
+    <circle cx="0" cy="0" r="15" fill="#fff" opacity="0.8"/>
+    
+    <!-- Lavender Flowers -->
+    <circle cx="-45" cy="25" r="32" fill="#a29bfe" opacity="0.7"/>
+    <circle cx="30" cy="-35" r="33" fill="#6c5ce7" opacity="0.6"/>
+    
+    <!-- Soft Pink -->
+    <circle cx="50" cy="20" r="30" fill="url(#pastel2)"/>
+    <circle cx="0" cy="60" r="29" fill="#fd79a8" opacity="0.5"/>
+    
+    <!-- Mint Green -->
+    <circle cx="-25" cy="-40" r="28" fill="#81ecec" opacity="0.8"/>
+    <circle cx="65" cy="-10" r="27" fill="#00b894" opacity="0.5"/>
+    
+    <!-- Cream/Ivory -->
+    <circle cx="-60" cy="-15" r="25" fill="#fff" opacity="0.9"/>
+    
+    <!-- Soft petals overlay -->
+    <circle cx="-45" cy="25" r="20" fill="#fff" opacity="0.3"/>
+    <circle cx="50" cy="20" r="18" fill="#fff" opacity="0.3"/>
+    <circle cx="30" cy="-35" r="21" fill="#fff" opacity="0.3"/>
+  </g>
+  
+  <!-- Soft Green Leaves -->
+  <ellipse cx="140" cy="250" rx="15" ry="25" fill="#81ecec" opacity="0.8" transform="rotate(-20)"/>
+  <ellipse cx="260" cy="245" rx="12" ry="22" fill="#00b894" opacity="0.6" transform="rotate(25)"/>
+  <ellipse cx="170" cy="280" rx="10" ry="18" fill="#81ecec" opacity="0.7" transform="rotate(-45)"/>
+  <ellipse cx="230" cy="275" rx="11" ry="19" fill="#00b894" opacity="0.5" transform="rotate(30)"/>
+  
+  <!-- Soft Ribbon -->
+  <ellipse cx="200" cy="350" rx="45" ry="10" fill="#fab1a0" opacity="0.6"/>
+  <path d="M 155 350 Q 145 340 135 350 Q 145 360 155 350" fill="#fab1a0" opacity="0.6"/>
+  <path d="M 245 350 Q 255 340 265 350 Q 255 360 245 350" fill="#fab1a0" opacity="0.6"/>
+</svg>

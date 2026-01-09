@@ -7,29 +7,29 @@ import Image from "next/image";
 const testimonials = [
   {
     id: 1,
-    name: "Sarah Johnson",
+    name: "Priya Sharma",
     role: "Wedding Planner",
     content:
-      "Bloom & Blossom created the most stunning arrangements for my client&apos;s wedding. The attention to detail and quality is unmatched. Highly recommended!",
-    image: "/images/delivery-man.jpg",
+      "Ramana created the most stunning bouquets for my client's wedding in Kathmandu. The attention to detail and quality is unmatched. Highly recommended!",
+    image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&q=80",
     rating: 5,
   },
   {
     id: 2,
-    name: "Michael Chen",
+    name: "Arjun Thapa",
     role: "Event Organizer",
     content:
-      "I&apos;ve been working with them for over a year now. Every arrangement is a masterpiece. Their team truly understands the art of floral design.",
-    image: "/images/delivery-man.jpg",
+      "I've been working with Ramana for over a year now. Every bouquet is a masterpiece. He truly understands the art of floral design and Nepali traditions.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&q=80",
     rating: 5,
   },
   {
     id: 3,
-    name: "Emily Rodriguez",
+    name: "Sita Poudel",
     role: "Happy Customer",
     content:
-      "The flowers arrived fresh and beautiful, exactly as shown. The packaging was elegant and the arrangement lasted for weeks. Worth every penny!",
-    image: "/images/delivery-man.jpg",
+      "The flowers arrived fresh and beautiful, exactly as shown. The packaging was elegant and the arrangement lasted for weeks. Worth every rupee!",
+    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&q=80",
     rating: 5,
   },
 ];
@@ -75,11 +75,10 @@ export default function PremiumTestimonials() {
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-5 h-5 ${
-                      i < testimonial.rating
-                        ? "text-yellow-400 fill-current"
-                        : "text-gray-300"
-                    }`}
+                    className={`w-5 h-5 ${i < testimonial.rating
+                      ? "text-yellow-400 fill-current"
+                      : "text-gray-300"
+                      }`}
                   />
                 ))}
               </div>

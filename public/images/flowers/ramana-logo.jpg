@@ -1,0 +1,33 @@
+<!-- SVG Logo Placeholder for Ramana Handmade Bouquets -->
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="logoGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c44569;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6c5ce7;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#logoGrad)" stroke="#fff" stroke-width="4"/>
+  
+  <!-- Flower Petals -->
+  <g transform="translate(100,100)">
+    <!-- Center flower -->
+    <circle cx="0" cy="0" r="15" fill="#fff" opacity="0.9"/>
+    
+    <!-- Petals around center -->
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(0)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(45)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(90)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(135)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(225)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(270)"/>
+    <ellipse cx="0" cy="-25" rx="8" ry="20" fill="#fff" opacity="0.8" transform="rotate(315)"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="160" text-anchor="middle" font-family="serif" font-size="18" font-weight="bold" fill="#fff">RAMANA</text>
+  <text x="100" y="180" text-anchor="middle" font-family="serif" font-size="10" fill="#fff" opacity="0.9">Handmade Bouquets</text>
+</svg>

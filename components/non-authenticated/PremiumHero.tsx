@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default function PremiumHero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden gradient-premium">
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden gradient-premium bg-gradient-to-br from-rose-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Decorative Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-rose-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
@@ -28,11 +28,11 @@ export default function PremiumHero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-lg"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-lg"
             >
               <Sparkles className="w-4 h-4 text-rose-500" />
-              <span className="text-sm font-medium text-gray-700">
-                Premium Handcrafted Arrangements
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Hand Made by Ramana - Kathmandu Valley
               </span>
             </motion.div>
 
@@ -42,7 +42,7 @@ export default function PremiumHero() {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight"
             >
-              <span className="text-gray-900">Blooms That</span>
+              <span className="text-gray-900 dark:text-white">Blooms That</span>
               <br />
               <span className="text-gradient">Speak Your Heart</span>
             </motion.h1>
@@ -51,7 +51,7 @@ export default function PremiumHero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-xl text-gray-600 leading-relaxed max-w-xl"
+              className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl"
             >
               Discover our exquisite collection of handcrafted flowers and
               accessories. Each arrangement is carefully curated to bring beauty
@@ -71,7 +71,7 @@ export default function PremiumHero() {
                 Shop Now
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <button className="px-8 py-4 rounded-full font-semibold text-gray-700 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:border-green-500 transition-all duration-300 transform hover:scale-105">
+              <button className="px-8 py-4 rounded-full font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-400 transition-all duration-300 transform hover:scale-105">
                 Learn More
               </button>
             </motion.div>
@@ -85,15 +85,15 @@ export default function PremiumHero() {
             >
               <div>
                 <div className="text-3xl font-bold text-green-600">500+</div>
-                <div className="text-sm text-gray-600">Happy Customers</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Happy Customers</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-rose-600">1000+</div>
-                <div className="text-sm text-gray-600">Arrangements</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Arrangements</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-green-600">4.9★</div>
-                <div className="text-sm text-gray-600">Average Rating</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Average Rating</div>
               </div>
             </motion.div>
           </motion.div>
@@ -108,7 +108,7 @@ export default function PremiumHero() {
             <div className="relative z-10">
               <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 <Image
-                  src="/images/home-banner.jpg"
+                  src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
                   alt="Premium Flower Arrangement"
                   width={400}
                   height={400}
@@ -120,10 +120,10 @@ export default function PremiumHero() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 1, type: "spring", stiffness: 200 }}
-                className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-6 glass"
+                className="absolute -bottom-6 -left-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 glass"
               >
                 <div className="text-2xl font-bold text-green-600">50%</div>
-                <div className="text-sm text-gray-600">First Order</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">First Order</div>
               </motion.div>
             </div>
           </motion.div>

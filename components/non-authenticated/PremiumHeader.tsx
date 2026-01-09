@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useCart } from "../context/CartContext";
 import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
 import LoginModal from "./LoginModal";
 import { motion, AnimatePresence } from "framer-motion";
+import Logo from "../global/Logo";
+import ThemeToggle from "../global/ThemeToggle";
 
 export default function PremiumHeader() {
   const { getTotalItems } = useCart();
@@ -31,11 +32,10 @@ export default function PremiumHeader() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? "bg-white/95 backdrop-blur-md shadow-lg"
-            : "bg-transparent"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg"
+          : "bg-transparent"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -46,20 +46,18 @@ export default function PremiumHeader() {
                 transition={{ duration: 0.5 }}
                 className="relative"
               >
-                <Image
-                  src="/images/fruit-store-logo.jpg"
-                  alt="Logo"
+                <Logo
                   width={48}
                   height={48}
-                  className="h-12 w-12 rounded-full object-cover ring-2 ring-green-200 group-hover:ring-green-500 transition-all"
+                  className="h-12 w-12 rounded-full ring-2 ring-green-200 dark:ring-green-600 group-hover:ring-green-500 transition-all"
                 />
               </motion.div>
               <div>
-                <div className="text-xl font-bold text-gray-900">
-                  Bloom & Blossom
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  Ramana
                 </div>
-                <div className="text-xs text-gray-500">
-                  Premium Floral Arrangements
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Hand Made by Ramana
                 </div>
               </div>
             </Link>
@@ -68,31 +66,31 @@ export default function PremiumHeader() {
             <nav className="hidden md:flex items-center gap-8">
               <Link
                 href="/"
-                className="text-gray-700 hover:text-green-600 font-medium transition-colors relative group"
+                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
               >
                 Home
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
               </Link>
               <Link
                 href="#products"
-                className="text-gray-700 hover:text-green-600 font-medium transition-colors relative group"
+                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
               >
                 Products
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
               </Link>
               <Link
                 href="#about"
-                className="text-gray-700 hover:text-green-600 font-medium transition-colors relative group"
+                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
               >
                 About
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
               </Link>
               <Link
                 href="#contact"
-                className="text-gray-700 hover:text-green-600 font-medium transition-colors relative group"
+                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
               >
                 Contact
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
               </Link>
             </nav>
 
@@ -100,21 +98,24 @@ export default function PremiumHeader() {
             <div className="flex items-center gap-4">
               {/* Search */}
               <div className="hidden lg:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search flowers..."
+                  placeholder="Search bouquets..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-64 rounded-full border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-white/80 backdrop-blur-sm"
+                  className="pl-10 pr-4 py-2 w-64 rounded-full border border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 outline-none transition-all bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-100"
                 />
               </div>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Favorites */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 text-gray-700 hover:text-rose-500 transition-colors relative"
+                className="p-2 text-gray-700 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors relative"
               >
                 <Heart className="w-6 h-6" />
               </motion.button>
@@ -124,7 +125,7 @@ export default function PremiumHeader() {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="relative p-2 text-gray-700 hover:text-green-600 transition-colors"
+                  className="relative p-2 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                 >
                   <ShoppingCart className="w-6 h-6" />
                   {items > 0 && (
@@ -153,7 +154,7 @@ export default function PremiumHeader() {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 text-gray-700"
+                className="md:hidden p-2 text-gray-700 dark:text-gray-300"
               >
                 {isMobileMenuOpen ? (
                   <X className="w-6 h-6" />
@@ -172,33 +173,33 @@ export default function PremiumHeader() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white border-t border-gray-200"
+              className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
             >
               <nav className="px-4 py-4 space-y-4">
                 <Link
                   href="/"
-                  className="block text-gray-700 hover:text-green-600 font-medium py-2"
+                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Home
                 </Link>
                 <Link
                   href="#products"
-                  className="block text-gray-700 hover:text-green-600 font-medium py-2"
+                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Products
                 </Link>
                 <Link
                   href="#about"
-                  className="block text-gray-700 hover:text-green-600 font-medium py-2"
+                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   About
                 </Link>
                 <Link
                   href="#contact"
-                  className="block text-gray-700 hover:text-green-600 font-medium py-2"
+                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Contact

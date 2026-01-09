@@ -7,6 +7,7 @@ import ExploreProducts from "../non-authenticated/ExploreProducts";
 import PremiumTestimonials from "../non-authenticated/PremiumTestimonials";
 import PremiumFeatures from "../non-authenticated/PremiumFeatures";
 import PremiumCTA from "../non-authenticated/PremiumCTA";
+import ContactSection from "../non-authenticated/ContactSection";
 
 // Custom hook for scroll animations
 function useScrollAnimation() {
@@ -100,8 +101,13 @@ export default function PremiumHomepage() {
         <PremiumTestimonials />
       </AnimatedSection>
 
-      {/* CTA Section */}
+      {/* Contact Section */}
       <AnimatedSection delay={0.4}>
+        <ContactSection />
+      </AnimatedSection>
+
+      {/* CTA Section */}
+      <AnimatedSection delay={0.5}>
         <PremiumCTA />
       </AnimatedSection>
     </div>

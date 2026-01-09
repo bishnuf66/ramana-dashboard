@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import LoginModal from "../non-authenticated/LoginModal";
 import {
   Heart,
@@ -14,6 +13,7 @@ import {
   House,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import Logo from "./Logo";
 
 function MobileHeader() {
   const { getTotalItems } = useCart();
@@ -40,12 +40,10 @@ function MobileHeader() {
       <div className="flex items-center justify-between px-6 py-2 bg-white text-black">
         <div className="flex items-center">
           <Link href="/">
-            <Image
-              className="h-12 w-12"
-              src={"/images/fruit-store-logo.jpg"}
-              alt="header-image"
+            <Logo
               width={48}
               height={48}
+              className="h-12 w-12 rounded-full"
             />
           </Link>
         </div>
@@ -81,12 +79,10 @@ function MobileHeader() {
           </div>
           <div className="flex items-center">
             <Link href="/">
-              <Image
-                className="h-12 w-12"
-                src={"/images/fruit-store-logo.jpg"}
-                alt="header-image"
+              <Logo
                 width={48}
                 height={48}
+                className="h-12 w-12 rounded-full"
               />
             </Link>
           </div>

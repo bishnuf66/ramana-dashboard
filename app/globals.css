@@ -24,6 +24,13 @@
   --gold: #fbbf24;
 }
 
+/* Dark mode variables */
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 17, 24, 39;
+  --background-end-rgb: 31, 41, 55;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -47,6 +54,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Premium Flower Shop Styles */
@@ -71,12 +79,83 @@ body {
   background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #f0fdf4 100%);
 }
 
+.dark .gradient-rose {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 50%, #1f2937 100%);
+}
+
 .gradient-green {
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
 }
 
+.dark .gradient-green {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #4b5563 100%);
+}
+
 .gradient-premium {
   background: linear-gradient(135deg, #fffef7 0%, #fdf2f8 50%, #f0fdf4 100%);
+}
+
+.dark .gradient-premium {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+}
+
+/* Glass Morphism Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dark .glass {
+  background: rgba(31, 41, 55, 0.7);
+  border: 1px solid rgba(75, 85, 99, 0.18);
+}
+
+/* Premium Button Styles */
+.btn-premium {
+  @apply px-8 py-4 rounded-full font-semibold text-white transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
+  background: linear-gradient(135deg, var(--green-600) 0%, var(--green-700) 100%);
+}
+
+.btn-premium:hover {
+  background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+}
+
+/* Card Hover Effects */
+.card-hover {
+  @apply transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
+}
+
+/* Text Gradients */
+.text-gradient {
+  background: linear-gradient(135deg, var(--green-600) 0%, var(--rose-600) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--green-500) 0%, var(--rose-500) 100%);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--green-600) 0%, var(--rose-600) 100%);
 }
 
 /* Smooth Animations */
@@ -121,56 +200,6 @@ body {
 
 .animate-slide-in-right {
   animation: slideInRight 0.6s ease-out;
-}
-
-/* Glass Morphism Effect */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-/* Premium Button Styles */
-.btn-premium {
-  @apply px-8 py-4 rounded-full font-semibold text-white transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
-  background: linear-gradient(135deg, var(--green-600) 0%, var(--green-700) 100%);
-}
-
-.btn-premium:hover {
-  background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
-  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
-}
-
-/* Card Hover Effects */
-.card-hover {
-  @apply transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
-}
-
-/* Text Gradients */
-.text-gradient {
-  background: linear-gradient(135deg, var(--green-600) 0%, var(--rose-600) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--cream);
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, var(--green-500) 0%, var(--rose-500) 100%);
-  border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, var(--green-600) 0%, var(--rose-600) 100%);
 }
 
 /* Blob Animation */

@@ -1,0 +1,94 @@
+<!-- Bouquet Basket -->
+<svg width="300" height="350" viewBox="0 0 300 350" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="basket" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#deb887;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b7355;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="300" height="350" fill="#f5f5dc"/>
+  
+  <!-- Wicker Basket -->
+  <g transform="translate(150,250)">
+    <!-- Basket body -->
+    <ellipse cx="0" cy="0" rx="80" ry="30" fill="url(#basket)"/>
+    <rect x="-80" y="-40" width="160" height="40" fill="url(#basket)"/>
+    <ellipse cx="0" cy="-40" rx="80" ry="30" fill="#deb887"/>
+    
+    <!-- Wicker pattern -->
+    <line x1="-70" y1="-35" x2="70" y2="-35" stroke="#8b7355" stroke-width="2"/>
+    <line x1="-70" y1="-25" x2="70" y2="-25" stroke="#8b7355" stroke-width="2"/>
+    <line x1="-70" y1="-15" x2="70" y2="-15" stroke="#8b7355" stroke-width="2"/>
+    <line x1="-70" y1="-5" x2="70" y2="-5" stroke="#8b7355" stroke-width="2"/>
+    
+    <!-- Vertical weave -->
+    <line x1="-60" y1="-40" x2="-60" y2="0" stroke="#a0522d" stroke-width="1"/>
+    <line x1="-30" y1="-40" x2="-30" y2="0" stroke="#a0522d" stroke-width="1"/>
+    <line x1="0" y1="-40" x2="0" y2="0" stroke="#a0522d" stroke-width="1"/>
+    <line x1="30" y1="-40" x2="30" y2="0" stroke="#a0522d" stroke-width="1"/>
+    <line x1="60" y1="-40" x2="60" y2="0" stroke="#a0522d" stroke-width="1"/>
+    
+    <!-- Handle -->
+    <ellipse cx="-60" cy="-50" rx="8" ry="15" fill="#8b7355"/>
+    <ellipse cx="60" cy="-50" rx="8" ry="15" fill="#8b7355"/>
+    <path d="M -60 -65 Q 0 -80 60 -65" stroke="#8b7355" stroke-width="6" fill="none"/>
+  </g>
+  
+  <!-- Bouquets in basket -->
+  <g transform="translate(150,180)">
+    <!-- Center bouquet -->
+    <g transform="translate(0,-20)">
+      <rect x="-2" y="20" width="4" height="40" fill="#6b8e23"/>
+      <circle cx="0" cy="0" r="15" fill="#ff6b9d"/>
+      <circle cx="-8" cy="-5" r="10" fill="#fd79a8"/>
+      <circle cx="8" cy="-3" r="12" fill="#ff7675"/>
+      <circle cx="0" cy="12" r="9" fill="#ffd700"/>
+    </g>
+    
+    <!-- Left bouquet -->
+    <g transform="translate(-40,-15)">
+      <rect x="-2" y="15" width="4" height="35" fill="#6b8e23"/>
+      <circle cx="0" cy="0" r="12" fill="#a29bfe"/>
+      <circle cx="-6" cy="-3" r="8" fill="#6c5ce7"/>
+      <circle cx="6" cy="-2" r="10" fill="#fd79a8"/>
+    </g>
+    
+    <!-- Right bouquet -->
+    <g transform="translate(40,-10)">
+      <rect x="-2" y="10" width="4" height="30" fill="#6b8e23"/>
+      <circle cx="0" cy="0" r="13" fill="#ffd700"/>
+      <circle cx="-7" cy="-4" r="9" fill="#ff7675"/>
+      <circle cx="7" cy="-1" r="11" fill="#00b894"/>
+    </g>
+    
+    <!-- Back bouquets (smaller) -->
+    <g transform="translate(-20,-25)">
+      <rect x="-1" y="15" width="2" height="25" fill="#6b8e23"/>
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <circle cx="-4" cy="-2" r="6" fill="#ff9ff3"/>
+    </g>
+    
+    <g transform="translate(25,-22)">
+      <rect x="-1" y="12" width="2" height="22" fill="#6b8e23"/>
+      <circle cx="0" cy="0" r="9" fill="#48dbfb"/>
+      <circle cx="4" cy="-1" r="7" fill="#0abde3"/>
+    </g>
+  </g>
+  
+  <!-- Leaves and greenery -->
+  <ellipse cx="100" cy="200" rx="8" ry="15" fill="#00b894" transform="rotate(-30)"/>
+  <ellipse cx="200" cy="195" rx="6" ry="12" fill="#00b894" transform="rotate(25)"/>
+  <ellipse cx="120" cy="220" rx="5" ry="10" fill="#55a3ff" transform="rotate(-45)"/>
+  <ellipse cx="180" cy="215" rx="7" ry="13" fill="#00b894" transform="rotate(30)"/>
+  
+  <!-- Scattered petals -->
+  <circle cx="80" cy="280" r="3" fill="#ff6b9d" opacity="0.7"/>
+  <circle cx="220" cy="275" r="2" fill="#ffd700" opacity="0.7"/>
+  <circle cx="110" cy="300" r="2.5" fill="#a29bfe" opacity="0.7"/>
+  <circle cx="190" cy="295" r="2" fill="#fd79a8" opacity="0.7"/>
+  
+  <!-- Text -->
+  <text x="150" y="330" text-anchor="middle" font-family="serif" font-size="16" font-weight="bold" fill="#8b4513">Premium Bouquet Collection</text>
+</svg>

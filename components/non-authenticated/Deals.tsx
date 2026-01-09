@@ -50,21 +50,21 @@ function Deals() {
     <div className="w-full h-full text-black grid grid-cols-1 md:grid-cols-2 space-y-3 md:space-y-0 md:space-x-3 p-3">
       <DealCard
         title="Free Delivery"
-        description="Lorem ipsum dolor, sit amet consectetur adipisicing"
-        buttonText="Shop Now"
+        description="Free delivery for all bouquet orders above NPR 2000 in Kathmandu Valley"
+        buttonText="Order Now"
         bgColor="bg-[#42872F]"
         titleBgColor="bg-[#FFCC00]"
         buttonBgColor="bg-[#FFCC00]"
-        imageSrc="/images/delivery-man.jpg"
+        imageSrc="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80"
       />
       <DealCard
-        title="Organic Fruits"
-        description="Lorem ipsum dolor, sit amet consectetur adipisicing"
+        title="Premium Bouquets"
+        description="Handcrafted bouquets made with love by Ramana using fresh flowers"
         buttonText="Shop Now"
         bgColor="bg-[#FFCC00]"
         titleBgColor="bg-[#42872F]"
         buttonBgColor="bg-[#42872F] "
-        imageSrc="/images/fruit-basket.jpg"
+        imageSrc="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80"
       />
     </div>
   );

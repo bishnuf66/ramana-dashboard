@@ -1,17 +1,15 @@
 import { Phone, Mail, MapPin } from "lucide-react";
-import Image from "next/image";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
-    <footer className=" py-8 px-4 md:px-8">
+    <footer className="py-8 px-4 md:px-8 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
       <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
-        <div className="w-40 h-40  ">
-          <Image
-            src="/images/fruit-store-logo.jpg"
-            alt="Fruit Store Logo"
+        <div className="w-40 h-40">
+          <Logo
             width={160}
             height={160}
-            className="object-cover "
+            className="w-40 h-40 rounded-full"
           />
         </div>
 
@@ -19,13 +17,13 @@ export default function Footer() {
           <h2 className="text-lg font-bold mb-4">ABOUT US</h2>
           <div className="space-y-2">
             <p className="flex items-center">
-              <Phone className="mr-2 h-4 w-4" /> +9812354678
+              <Phone className="mr-2 h-4 w-4" /> +977 98192747199
             </p>
             <p className="flex items-center">
-              <Mail className="mr-2 h-4 w-4" /> contact@gmail.com
+              <Mail className="mr-2 h-4 w-4" /> ramanatheeng65@gmail.com
             </p>
             <p className="flex items-center">
-              <MapPin className="mr-2 h-4 w-4" /> Kathmandu, Nepal
+              <MapPin className="mr-2 h-4 w-4" /> Kathmandu Valley, Nepal
             </p>
           </div>
         </div>
@@ -103,7 +101,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="mt-8 text-center text-sm">
-        <p>Copyright © 2025 Bishnu Bishowkarma. All rights reserved.</p>
+        <p>Copyright © 2025 Ramana Handmade Bouquets. All rights reserved.</p>
       </div>
     </footer>
   );

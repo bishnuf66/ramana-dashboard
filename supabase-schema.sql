@@ -1,3 +1,31 @@
+-- Create categories table
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create subcategories table
+CREATE TABLE IF NOT EXISTS subcategories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(category_id, slug)
+);
+
 -- Create products table
 CREATE TABLE IF NOT EXISTS products (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -8,8 +36,14 @@ CREATE TABLE IF NOT EXISTS products (
   cover_image TEXT NOT NULL,
   gallery_images JSONB DEFAULT '[]'::jsonb,
   rating DECIMAL(2, 1) DEFAULT 5.0 CHECK (rating >= 1 AND rating <= 5),
-  category TEXT NOT NULL CHECK (category IN ('flowers', 'accessories', 'fruits')),
+  category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+  subcategory_id UUID REFERENCES subcategories(id) ON DELETE SET NULL,
   stock INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT false,
+  is_handmade BOOLEAN DEFAULT true,
+  materials TEXT[], -- Array of materials used
+  care_instructions TEXT,
+  size_info TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

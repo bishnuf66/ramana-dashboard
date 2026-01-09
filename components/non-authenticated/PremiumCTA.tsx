@@ -40,11 +40,11 @@ export default function PremiumCTA() {
             </motion.div>
 
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              Get 50% Off Your First Order
+              Ready to Create Something Beautiful?
             </h2>
             <p className="text-xl md:text-2xl mb-8 text-green-100 max-w-2xl mx-auto">
-              Subscribe to our newsletter and receive exclusive discounts on
-              premium floral arrangements
+              Contact Ramana today for your custom handmade bouquet.
+              Call +977 98192747199 or message us on WhatsApp!
             </p>
 
             <motion.div
@@ -52,21 +52,28 @@ export default function PremiumCTA() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 w-full px-6 py-4 rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/50"
-              />
-              <motion.button
+              <motion.a
+                href="tel:+9779819274719"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-full sm:w-auto px-8 py-4 bg-white text-green-600 rounded-full font-bold flex items-center gap-2 hover:bg-green-50 transition-colors shadow-lg"
+                className="px-8 py-4 bg-white text-green-600 rounded-full font-bold flex items-center gap-2 hover:bg-green-50 transition-colors shadow-lg"
               >
-                Subscribe
+                Call Now
                 <ArrowRight className="w-5 h-5" />
-              </motion.button>
+              </motion.a>
+              <motion.a
+                href="https://wa.me/9779819274719"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-green-500 text-white rounded-full font-bold flex items-center gap-2 hover:bg-green-400 transition-colors shadow-lg"
+              >
+                WhatsApp
+                <ArrowRight className="w-5 h-5" />
+              </motion.a>
             </motion.div>
           </div>
         </motion.div>

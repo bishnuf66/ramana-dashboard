@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import LoginModal from "../non-authenticated/LoginModal";
 import { Heart, Search, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import Logo from "./Logo";
 
 function Header() {
   const { getTotalItems } = useCart();
@@ -26,15 +26,13 @@ function Header() {
 
   return (
     <div>
-      <div className="flex  flex-row items-center justify-between px-6 py-1 bg-white text-black">
+      <div className="flex flex-row items-center justify-between px-6 py-1 bg-white dark:bg-gray-900 text-black dark:text-white transition-colors">
         <div className="flex items-center gap-20">
           <Link href="/">
-            <Image
-              className="h-12 w-12"
-              src={"/images/fruit-store-logo.jpg"}
-              alt="header-image"
+            <Logo
               width={48}
               height={48}
+              className="h-12 w-12 rounded-full"
             />
           </Link>
           {/* Search Bar */}
@@ -44,10 +42,10 @@ function Header() {
           >
             <input
               type="text"
-              placeholder="Search for fruits..."
+              placeholder="Search for bouquets..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full p-2 border border-gray-300 "
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
             <span className="bg-[#42872F] w-10 h-10 flex items-center justify-center">
               {" "}
