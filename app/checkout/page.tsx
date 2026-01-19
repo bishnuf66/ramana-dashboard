@@ -93,16 +93,12 @@ export default function CheckoutPage() {
         status: "pending" as const,
       };
 
-      const { data, error } = await supabase
-        .from("orders")
-        .insert(orderPayload)
-        .select("id")
-        .single();
+      const { error } = await supabase.from("orders").insert(orderPayload);
 
       if (error) throw error;
 
       clearCart();
-      router.push(`/order-success?orderId=${data.id}`);
+      router.push(`/order-success`);
     } catch (error: any) {
       console.error("Order create error:", error);
       toast.error(error?.message || "Failed to place order");
