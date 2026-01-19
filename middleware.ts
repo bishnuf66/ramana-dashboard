@@ -18,21 +18,47 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
           response = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
   // Refresh session if expired - required for Server Components
   await supabase.auth.getUser();
+
+  // Get current session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const { pathname } = request.nextUrl;
+
+  // Protect admin routes
+  if (pathname.startsWith("/admin") && !session) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Redirect authenticated users away from login page
+  if (pathname === "/login" && session) {
+    const { data: adminData } = await supabase
+      .from("admin_users")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    if (adminData) {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
 
   return response;
 }
