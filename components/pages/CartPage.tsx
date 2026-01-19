@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import { Trash } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import Image from "next/image";
-import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const CartPage: React.FC = () => {
+  const router = useRouter();
   const {
     cart,
     increaseQuantity,
@@ -23,7 +24,7 @@ const CartPage: React.FC = () => {
   // Function to sort cart items based on selected criteria and order
   const handleSort = (
     criteria: "name" | "price" | "quantity",
-    order: "asc" | "desc"
+    order: "asc" | "desc",
   ) => {
     setSortBy(criteria);
     setSortOrder(order);
@@ -43,7 +44,8 @@ const CartPage: React.FC = () => {
   });
 
   const handleCheckout = () => {
-    toast.info("Please login to checkout");
+    if (cart.length === 0) return;
+    router.push("/checkout");
   };
 
   return (
@@ -63,7 +65,7 @@ const CartPage: React.FC = () => {
                   const [criteria, order] = e.target.value.split("-");
                   handleSort(
                     criteria as "name" | "price" | "quantity",
-                    order as "asc" | "desc"
+                    order as "asc" | "desc",
                   );
                 }}
                 value={`${sortBy}-${sortOrder}`}
