@@ -63,7 +63,7 @@ VALUES ('user-uuid-here', 'admin@example.com', 'admin');
    npm run dev
    ```
 
-2. Navigate to `/admin/login`
+2. Navigate to `/login`
 3. Log in with the admin credentials you created
 
 ## Admin Panel Features

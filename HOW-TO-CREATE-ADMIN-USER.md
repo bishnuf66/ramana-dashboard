@@ -63,7 +63,7 @@ If you already have a user and want to make them admin:
 ## Verify Your Admin User
 
 1. Start your Next.js app: `npm run dev`
-2. Navigate to: `http://localhost:3000/admin/login`
+2. Navigate to: `http://localhost:3000/login`
 3. Log in with the email and password you created
 4. You should be redirected to the admin dashboard
 

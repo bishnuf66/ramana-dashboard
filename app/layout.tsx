@@ -43,7 +43,7 @@ export default function RootLayout({
         <ThemeProvider>
           <FaviconSwitcher />
           <PremiumHeader />
-          <main>{children}</main>
+          <main className="pt-20 min-h-screen">{children}</main>
           <PremiumFooter />
           <FloatingContact />
           <ToastContainer

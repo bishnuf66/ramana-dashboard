@@ -67,7 +67,7 @@ export default function NotFound() {
           </Link>
 
           <Link
-            href="/admin/dashboard"
+            href="/dashboard"
             className="inline-flex items-center gap-2 px-8 py-3 bg-white text-gray-700 font-medium rounded-full border-2 border-gray-200 hover:border-rose-300 hover:shadow-md transform hover:scale-105 transition-all duration-300"
           >
             <ArrowLeft className="w-5 h-5" />

@@ -32,7 +32,7 @@ export default function AuthCallback() {
             .single();
 
           if (adminData) {
-            router.push("/admin/dashboard");
+            router.push("/dashboard");
           } else {
             router.push("/");
           }

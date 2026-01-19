@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
 
     try {
       await signInAdmin(formData.email, formData.password);
-      router.push("/admin/dashboard");
+      router.push("/dashboard");
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/admin/dashboard");
+      router.push("/dashboard");
       router.refresh();
     } catch (error) {
       console.error("Google login error:", error);

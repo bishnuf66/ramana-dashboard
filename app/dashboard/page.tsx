@@ -7,6 +7,9 @@ import { signOutAdmin } from "@/lib/supabase/auth";
 import {
   Package,
   ShoppingCart,
+  Users,
+  DollarSign,
+  TrendingUp,
   Plus,
   LogOut,
   Edit,
@@ -17,7 +20,6 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import AdminLayout from "../../../components/admin/AdminLayout";
 
 interface Product {
   id: string;
@@ -47,7 +49,9 @@ interface Order {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
+  const [activeTab, setActiveTab] = useState<
+    "analytics" | "products" | "orders"
+  >("analytics");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +159,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await signOutAdmin();
-      router.push("/admin/login");
+      router.push("/login");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
@@ -164,21 +168,158 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-xl text-gray-900 dark:text-white">
-            Loading...
-          </div>
-        </div>
-      </AdminLayout>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-xl text-gray-900 dark:text-white">Loading...</div>
+      </div>
     );
   }
 
+  const currency = (value: number) => {
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(value);
+    } catch {
+      return `$${value.toFixed(2)}`;
+    }
+  };
+
+  const customersCount = new Set(
+    orders
+      .map((o) => o.customer_email)
+      .filter((v): v is string => typeof v === "string" && v.length > 0),
+  ).size;
+
+  const totalOrders = orders.length;
+  const deliveredOrders = orders.filter((o) => o.status === "delivered");
+  const deliveredRevenue = deliveredOrders.reduce(
+    (sum, o) => sum + (Number(o.total_amount) || 0),
+    0,
+  );
+  const allRevenue = orders.reduce(
+    (sum, o) => sum + (Number(o.total_amount) || 0),
+    0,
+  );
+  const averageOrderValue = totalOrders > 0 ? allRevenue / totalOrders : 0;
+
+  const days = 14;
+  const today = new Date();
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+
+  const salesByDate = new Map<string, number>();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    salesByDate.set(key, 0);
+  }
+
+  for (const o of deliveredOrders) {
+    const d = new Date(o.created_at);
+    d.setHours(0, 0, 0, 0);
+    if (d < start) continue;
+    const key = d.toISOString().slice(0, 10);
+    if (!salesByDate.has(key)) continue;
+    salesByDate.set(
+      key,
+      (salesByDate.get(key) || 0) + (Number(o.total_amount) || 0),
+    );
+  }
+
+  const salesSeries = Array.from(salesByDate.entries()).map(
+    ([date, value]) => ({
+      date,
+      value,
+    }),
+  );
+  const maxSales = Math.max(1, ...salesSeries.map((p) => p.value));
+
+  const statusCounts = orders.reduce(
+    (acc, o) => {
+      acc[o.status] = (acc[o.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<Order["status"], number>,
+  );
+  const statusTotal = Math.max(1, totalOrders);
+  const statusItems: Array<{
+    key: Order["status"];
+    label: string;
+    value: number;
+    color: string;
+  }> = [
+    {
+      key: "pending",
+      label: "Pending",
+      value: statusCounts.pending || 0,
+      color: "#F59E0B",
+    },
+    {
+      key: "processing",
+      label: "Processing",
+      value: statusCounts.processing || 0,
+      color: "#3B82F6",
+    },
+    {
+      key: "shipped",
+      label: "Shipped",
+      value: statusCounts.shipped || 0,
+      color: "#8B5CF6",
+    },
+    {
+      key: "delivered",
+      label: "Delivered",
+      value: statusCounts.delivered || 0,
+      color: "#10B981",
+    },
+    {
+      key: "cancelled",
+      label: "Cancelled",
+      value: statusCounts.cancelled || 0,
+      color: "#EF4444",
+    },
+  ];
+
+  const donut = (() => {
+    const r = 44;
+    const c = 2 * Math.PI * r;
+    let offset = 0;
+    const segments = statusItems
+      .filter((s) => s.value > 0)
+      .map((s) => {
+        const len = (s.value / statusTotal) * c;
+        const seg = {
+          color: s.color,
+          dasharray: `${len} ${c - len}`,
+          dashoffset: -offset,
+        };
+        offset += len;
+        return seg;
+      });
+    return { r, c, segments };
+  })();
+
   return (
-    <AdminLayout>
+    <div>
       <div className="space-y-4 sm:space-y-6">
         {/* Tabs */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`px-4 sm:px-6 py-3 font-semibold transition ${
+              activeTab === "analytics"
+                ? "border-b-2 border-green-500 text-green-600"
+                : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+            }`}
+          >
+            <div className="flex items-center gap-2 text-sm sm:text-base">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+              Analytics
+            </div>
+          </button>
           <button
             onClick={() => setActiveTab("products")}
             className={`px-4 sm:px-6 py-3 font-semibold transition ${
@@ -208,6 +349,261 @@ export default function AdminDashboard() {
         </div>
 
         {/* Content */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Delivered Sales
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {currency(deliveredRevenue)}
+                    </div>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {deliveredOrders.length} delivered orders
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Total Orders
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {totalOrders}
+                    </div>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Avg order: {currency(averageOrderValue)}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Customers
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {customersCount}
+                    </div>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Unique customer emails (from orders)
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Products
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {products.length}
+                    </div>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <Package className="h-5 w-5 text-yellow-700 dark:text-yellow-300" />
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Inventory items
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Sales (last {days} days)
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Delivered orders only
+                    </p>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    Peak: {currency(maxSales)}
+                  </div>
+                </div>
+
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-[520px]">
+                    <div className="flex items-end gap-2 h-40">
+                      {salesSeries.map((p) => {
+                        const height = Math.round((p.value / maxSales) * 140);
+                        return (
+                          <div
+                            key={p.date}
+                            className="flex-1 flex flex-col items-center justify-end"
+                          >
+                            <div
+                              title={`${p.date}: ${currency(p.value)}`}
+                              className="w-full rounded-md bg-green-500/80 dark:bg-green-400/80"
+                              style={{ height: `${Math.max(2, height)}px` }}
+                            />
+                            <div className="mt-2 text-[10px] text-gray-500 dark:text-gray-400">
+                              {p.date.slice(5)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Order Status
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Breakdown of all orders
+                </p>
+
+                <div className="flex items-center gap-6">
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <g transform="translate(60,60)">
+                      <circle
+                        r={donut.r}
+                        fill="transparent"
+                        stroke="#E5E7EB"
+                        strokeWidth="14"
+                      />
+                      {donut.segments.map((s, idx) => (
+                        <circle
+                          key={idx}
+                          r={donut.r}
+                          fill="transparent"
+                          stroke={s.color}
+                          strokeWidth="14"
+                          strokeDasharray={s.dasharray}
+                          strokeDashoffset={s.dashoffset}
+                          transform="rotate(-90)"
+                        />
+                      ))}
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-gray-900 dark:fill-white"
+                        style={{ fontSize: "14px", fontWeight: 700 }}
+                      >
+                        {totalOrders}
+                      </text>
+                      <text
+                        y="18"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-gray-500 dark:fill-gray-400"
+                        style={{ fontSize: "10px" }}
+                      >
+                        orders
+                      </text>
+                    </g>
+                  </svg>
+
+                  <div className="space-y-2">
+                    {statusItems.map((s) => (
+                      <div
+                        key={s.key}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        <span className="text-gray-700 dark:text-gray-300 w-24">
+                          {s.label}
+                        </span>
+                        <span className="text-gray-900 dark:text-white font-semibold">
+                          {s.value}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          ({Math.round((s.value / statusTotal) * 100)}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Recent Orders
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Latest 8 orders
+                </p>
+              </div>
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {orders.slice(0, 8).map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-4 flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {order.customer_name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {order.customer_email}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(order.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
+                        {currency(Number(order.total_amount) || 0)}
+                      </div>
+                      <div
+                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          order.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : order.status === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status === "shipped"
+                                ? "bg-purple-100 text-purple-800"
+                                : order.status === "delivered"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {order.status}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {orders.length === 0 && (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    No orders yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === "products" && (
           <div>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-4">
@@ -215,7 +611,7 @@ export default function AdminDashboard() {
                 Product Management
               </h2>
               <Link
-                href="/admin/products/new"
+                href="/products/new"
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm sm:text-base"
               >
                 <Plus className="h-4 w-4" />
@@ -298,7 +694,7 @@ export default function AdminDashboard() {
                               <Eye className="h-4 w-4" />
                             </button>
                             <Link
-                              href={`/admin/products/${product.id}/edit`}
+                              href={`/products/${product.id}/edit`}
                               className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               <Edit className="h-4 w-4" />
@@ -367,7 +763,7 @@ export default function AdminDashboard() {
                             <Eye className="h-4 w-4" />
                           </button>
                           <Link
-                            href={`/admin/products/${product.id}/edit`}
+                            href={`/products/${product.id}/edit`}
                             className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
                           >
                             <Edit className="h-4 w-4" />
@@ -715,7 +1111,7 @@ export default function AdminDashboard() {
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Link
-                      href={`/admin/products/${selectedProduct.id}/edit`}
+                      href={`/products/${selectedProduct.id}/edit`}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
                     >
                       <Edit className="h-4 w-4" />
@@ -738,6 +1134,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </div>
   );
 }
