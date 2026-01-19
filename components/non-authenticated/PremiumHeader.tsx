@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
-import { Menu, X, User, ChevronDown, Bell } from "lucide-react";
+import {
+  Menu,
+  X,
+  User,
+  ChevronDown,
+  Bell,
+  ShoppingBag,
+  Heart,
+  Search,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../global/Logo";
 import ThemeToggle from "../global/ThemeToggle";
@@ -20,6 +29,10 @@ export default function PremiumHeader() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState(0);
+  const [wishlistItems, setWishlistItems] = useState(0);
 
   useLayoutEffect(() => {
     setIsClient(true);
@@ -76,6 +89,31 @@ export default function PremiumHeader() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Load cart and wishlist items
+  useEffect(() => {
+    const loadCartItems = () => {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartItems(cart.length);
+    };
+
+    const loadWishlistItems = () => {
+      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+      setWishlistItems(wishlist.length);
+    };
+
+    loadCartItems();
+    loadWishlistItems();
+
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      loadCartItems();
+      loadWishlistItems();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -86,6 +124,22 @@ export default function PremiumHeader() {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
+  const navigationItems = [
+    { href: "/", label: "Home", icon: null },
+    { href: "/products", label: "Products", icon: null },
+    { href: "/about", label: "About", icon: null },
+    { href: "/contact", label: "Contact", icon: null },
+  ];
+
   return (
     <>
       <motion.header
@@ -94,7 +148,7 @@ export default function PremiumHeader() {
         transition={{ duration: 0.5 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg"
+            ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200/20 dark:border-gray-700/20"
             : "bg-transparent"
         }`}
       >
@@ -118,32 +172,96 @@ export default function PremiumHeader() {
                   Ramana
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Hand Made by Ramana
+                  Hand Made with Love
                 </div>
               </div>
             </Link>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                  Dashboard
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage products and orders
-                </p>
-              </div>
-            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-8">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
+                >
+                  {item.label}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all"></span>
+                </Link>
+              ))}
+            </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+
+                <AnimatePresence>
+                  {isSearchOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                    >
+                      <form onSubmit={handleSearch} className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Search className="w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search products..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-500"
+                            autoFocus
+                          />
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Wishlist */}
+              <Link
+                href="/wishlist"
+                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              >
+                <Heart className="w-5 h-5" />
+                {wishlistItems > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {wishlistItems > 99 ? "99+" : wishlistItems}
+                  </span>
+                )}
+              </Link>
+
+              {/* Cart */}
+              <Link
+                href="/cart"
+                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {cartItems > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {cartItems > 99 ? "99+" : cartItems}
+                  </span>
+                )}
+              </Link>
+
               {/* Theme Toggle */}
               <ThemeToggle />
-              <div className="flex items-center gap-4">
-                {/* Notifications */}
-                <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
-              </div>
+
+              {/* Notifications */}
+              <button className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              </button>
 
               {/* Profile / Login */}
               {user ? (
@@ -162,10 +280,12 @@ export default function PremiumHeader() {
                         alt="Profile"
                         width={24}
                         height={24}
-                        className="w-6 h-6 rounded-full"
+                        className="w-6 h-6 rounded-full ring-2 ring-white/20"
                       />
                     ) : (
-                      <User className="w-4 h-4" />
+                      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </div>
                     )}
                     <span className="max-w-32 truncate">
                       {userProfile?.raw_user_meta_data?.full_name ||
@@ -174,7 +294,11 @@ export default function PremiumHeader() {
                         user.email?.split("@")[0] ||
                         "User"}
                     </span>
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        isProfileDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </motion.button>
 
                   {/* Profile Dropdown */}
@@ -184,18 +308,35 @@ export default function PremiumHeader() {
                         initial={{ opacity: 0, scale: 0.95, y: -10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                        className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
                       >
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {userProfile?.raw_user_meta_data?.full_name ||
-                              user.user_metadata?.full_name ||
-                              user.user_metadata?.display_name ||
-                              "User"}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                            {user.email}
-                          </p>
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-3">
+                            {userProfile?.raw_user_meta_data?.avatar_url ? (
+                              <Image
+                                src={userProfile.raw_user_meta_data.avatar_url}
+                                alt="Profile"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {userProfile?.raw_user_meta_data?.full_name ||
+                                  user.user_metadata?.full_name ||
+                                  user.user_metadata?.display_name ||
+                                  "User"}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                         <div className="py-2">
                           <Link
@@ -205,9 +346,24 @@ export default function PremiumHeader() {
                           >
                             Dashboard
                           </Link>
+                          <Link
+                            href="/profile"
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            Profile Settings
+                          </Link>
+                          <Link
+                            href="/orders"
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            My Orders
+                          </Link>
+                          <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                           <button
                             onClick={handleLogout}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           >
                             Logout
                           </button>
@@ -217,15 +373,21 @@ export default function PremiumHeader() {
                   </AnimatePresence>
                 </div>
               ) : (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push("/login")}
-                  className="hidden md:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
-                >
-                  <User className="w-4 h-4" />
-                  Login
-                </motion.button>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/login"
+                    className="hidden md:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <User className="w-4 h-4" />
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="hidden md:flex items-center gap-2 px-6 py-2 border-2 border-green-600 text-green-600 dark:text-green-400 rounded-full font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
               )}
 
               {/* Mobile Menu Button */}
@@ -253,79 +415,133 @@ export default function PremiumHeader() {
               className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
             >
               <nav className="px-4 py-4 space-y-4">
-                <Link
-                  href="/"
-                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="#products"
-                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Products
-                </Link>
-                <Link
-                  href="#about"
-                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <Link
-                  href="#contact"
-                  className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Contact
-                </Link>
+                {navigationItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                {/* Mobile Actions */}
+                <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <Link
+                    href="/wishlist"
+                    className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Heart className="w-5 h-5" />
+                    {wishlistItems > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {wishlistItems}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    href="/cart"
+                    className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    {cartItems > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
+                        {cartItems}
+                      </span>
+                    )}
+                  </Link>
+                </div>
 
                 {/* Mobile Profile/Login */}
                 {user ? (
                   <>
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                      <div className="px-4 py-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {userProfile?.raw_user_meta_data?.full_name ||
-                            user.user_metadata?.full_name ||
-                            user.user_metadata?.display_name ||
-                            "User"}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {user.email}
-                        </p>
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          {userProfile?.raw_user_meta_data?.avatar_url ? (
+                            <Image
+                              src={userProfile.raw_user_meta_data.avatar_url}
+                              alt="Profile"
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {userProfile?.raw_user_meta_data?.full_name ||
+                                user.user_metadata?.full_name ||
+                                user.user_metadata?.display_name ||
+                                "User"}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <Link
-                        href="/dashboard"
-                        className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Dashboard
-                      </Link>
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        Logout
-                      </button>
+                      <div className="space-y-2">
+                        <Link
+                          href="/dashboard"
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Profile Settings
+                        </Link>
+                        <Link
+                          href="/orders"
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          My Orders
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <button
-                    onClick={() => {
-                      router.push("/login");
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold"
-                  >
-                    <User className="w-4 h-4" />
-                    Login
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        router.push("/login");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg"
+                    >
+                      <User className="w-4 h-4" />
+                      Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        router.push("/register");
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 border-2 border-green-600 text-green-600 dark:text-green-400 rounded-full font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
                 )}
               </nav>
             </motion.div>
