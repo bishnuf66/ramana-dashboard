@@ -484,7 +484,6 @@ export default function ProductPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          {JSON.stringify(product)}
           <ProductReviews
             productId={product.id.toString()}
             productName={product.name}

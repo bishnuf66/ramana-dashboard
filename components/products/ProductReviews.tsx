@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ThumbsUp, Camera, X, Upload, User } from "lucide-react";
+import {
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Camera,
+  X,
+  Upload,
+  User,
+} from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
@@ -27,6 +35,9 @@ export default function ProductReviews({
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState<ReviewFilters>({});
   const [userReview, setUserReview] = useState<ProductReview | null>(null);
+  const [userInteractions, setUserInteractions] = useState<
+    Record<string, "like" | "dislike" | null>
+  >({});
 
   // Review form state
   const [reviewForm, setReviewForm] = useState<ReviewFormData>({
@@ -96,7 +107,9 @@ export default function ProductReviews({
         comment: review.comment || "",
         reviewImages: review.review_images || [],
         isVerified: review.is_verified,
-        helpfulCount: review.helpful_count,
+        helpfulCount: review.helpful_count || 0,
+        likeCount: review.like_count || 0,
+        dislikeCount: review.dislike_count || 0,
         createdAt: review.created_at,
         updatedAt: review.updated_at,
       }));
@@ -226,35 +239,130 @@ export default function ProductReviews({
     }
   };
 
-  const handleHelpfulClick = async (reviewId: string) => {
+  const handleLikeClick = async (reviewId: string) => {
     try {
-      const { error } = await supabase.rpc("increment_helpful_count", {
-        review_id: reviewId,
-      });
+      const currentInteraction = userInteractions[reviewId];
+      const newInteraction = currentInteraction === "like" ? null : "like";
 
-      if (error) {
-        // Fallback: update helpful count directly
-        const currentReview = reviews.find((r) => r.id === reviewId);
-        if (currentReview) {
-          await supabase
-            .from("product_reviews")
-            .update({ helpful_count: currentReview.helpfulCount + 1 })
-            .eq("id", reviewId);
+      // Update user interactions state
+      setUserInteractions((prev) => ({
+        ...prev,
+        [reviewId]: newInteraction,
+      }));
+
+      // Update review counts in database
+      const currentReview = reviews.find((r) => r.id === reviewId);
+      if (currentReview) {
+        const likeCount = currentReview.likeCount || 0;
+        const dislikeCount = currentReview.dislikeCount || 0;
+
+        let newLikeCount = likeCount;
+        let newDislikeCount = dislikeCount;
+
+        if (currentInteraction === "like") {
+          // User is removing their like
+          newLikeCount = likeCount - 1;
+        } else if (currentInteraction === "dislike") {
+          // User is switching from dislike to like
+          newDislikeCount = dislikeCount - 1;
+          newLikeCount = likeCount + 1;
+        } else {
+          // User is adding a new like
+          newLikeCount = likeCount + 1;
         }
+
+        const { error } = await supabase
+          .from("product_reviews")
+          .update({
+            like_count: newLikeCount,
+            dislike_count: newDislikeCount,
+          })
+          .eq("id", reviewId);
+
+        if (error) throw error;
+
+        // Update local state
+        setReviews((prev) =>
+          prev.map((review) =>
+            review.id === reviewId
+              ? {
+                  ...review,
+                  likeCount: newLikeCount,
+                  dislikeCount: newDislikeCount,
+                }
+              : review,
+          ),
+        );
       }
 
-      setReviews((prev) =>
-        prev.map((review) =>
-          review.id === reviewId
-            ? { ...review, helpfulCount: review.helpfulCount + 1 }
-            : review,
-        ),
-      );
-
-      toast.success("Marked as helpful!");
+      toast.success(newInteraction ? "Liked!" : "Like removed!");
     } catch (error) {
-      console.error("Error marking helpful:", error);
-      toast.error("Failed to mark as helpful");
+      console.error("Error liking review:", error);
+      toast.error("Failed to like review");
+    }
+  };
+
+  const handleDislikeClick = async (reviewId: string) => {
+    try {
+      const currentInteraction = userInteractions[reviewId];
+      const newInteraction =
+        currentInteraction === "dislike" ? null : "dislike";
+
+      // Update user interactions state
+      setUserInteractions((prev) => ({
+        ...prev,
+        [reviewId]: newInteraction,
+      }));
+
+      // Update review counts in database
+      const currentReview = reviews.find((r) => r.id === reviewId);
+      if (currentReview) {
+        const likeCount = currentReview.likeCount || 0;
+        const dislikeCount = currentReview.dislikeCount || 0;
+
+        let newLikeCount = likeCount;
+        let newDislikeCount = dislikeCount;
+
+        if (currentInteraction === "dislike") {
+          // User is removing their dislike
+          newDislikeCount = dislikeCount - 1;
+        } else if (currentInteraction === "like") {
+          // User is switching from like to dislike
+          newLikeCount = likeCount - 1;
+          newDislikeCount = dislikeCount + 1;
+        } else {
+          // User is adding a new dislike
+          newDislikeCount = dislikeCount + 1;
+        }
+
+        const { error } = await supabase
+          .from("product_reviews")
+          .update({
+            like_count: newLikeCount,
+            dislike_count: newDislikeCount,
+          })
+          .eq("id", reviewId);
+
+        if (error) throw error;
+
+        // Update local state
+        setReviews((prev) =>
+          prev.map((review) =>
+            review.id === reviewId
+              ? {
+                  ...review,
+                  likeCount: newLikeCount,
+                  dislikeCount: newDislikeCount,
+                }
+              : review,
+          ),
+        );
+      }
+
+      toast.success(newInteraction ? "Disliked!" : "Dislike removed!");
+    } catch (error) {
+      console.error("Error disliking review:", error);
+      toast.error("Failed to dislike review");
     }
   };
 
@@ -560,11 +668,26 @@ export default function ProductReviews({
 
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleHelpfulClick(review.id)}
-                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-600 transition-colors"
+                  onClick={() => handleLikeClick(review.id)}
+                  className={`flex items-center gap-1 text-sm transition-colors ${
+                    userInteractions[review.id] === "like"
+                      ? "text-green-600"
+                      : "text-gray-500 hover:text-green-600"
+                  }`}
                 >
                   <ThumbsUp className="w-4 h-4" />
-                  Helpful ({review.helpfulCount})
+                  {review.likeCount || 0}
+                </button>
+                <button
+                  onClick={() => handleDislikeClick(review.id)}
+                  className={`flex items-center gap-1 text-sm transition-colors ${
+                    userInteractions[review.id] === "dislike"
+                      ? "text-red-600"
+                      : "text-gray-500 hover:text-red-600"
+                  }`}
+                >
+                  <ThumbsDown className="w-4 h-4" />
+                  {review.dislikeCount || 0}
                 </button>
               </div>
             </motion.div>

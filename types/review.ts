@@ -9,6 +9,8 @@ export interface ProductReview {
   reviewImages: string[];
   isVerified: boolean;
   helpfulCount: number;
+  likeCount: number;
+  dislikeCount: number;
   createdAt: string;
   updatedAt: string;
 }

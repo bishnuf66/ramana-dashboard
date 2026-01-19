@@ -14,6 +14,9 @@ import {
   Edit,
   LogOut,
   RefreshCw,
+  Trash2,
+  Save,
+  X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
@@ -64,6 +67,13 @@ export default function UserDashboard() {
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingReview, setEditingReview] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ rating: number; comment: string }>(
+    {
+      rating: 0,
+      comment: "",
+    },
+  );
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     full_name: "",
@@ -197,6 +207,66 @@ export default function UserDashboard() {
       console.error("Logout error:", error);
       toast.error("Failed to logout");
     }
+  };
+
+  const handleEditReview = (review: UserReview) => {
+    setEditingReview(review.id);
+    setEditForm({
+      rating: review.rating,
+      comment: review.comment,
+    });
+  };
+
+  const handleSaveReview = async (reviewId: string) => {
+    try {
+      const { error } = await supabase
+        .from("product_reviews")
+        .update({
+          rating: editForm.rating,
+          comment: editForm.comment,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reviewId);
+
+      if (error) throw error;
+
+      toast.success("Review updated successfully!");
+      setEditingReview(null);
+      loadUserData();
+    } catch (error) {
+      console.error("Error updating review:", error);
+      toast.error("Failed to update review");
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this review? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("product_reviews")
+        .delete()
+        .eq("id", reviewId);
+
+      if (error) throw error;
+
+      toast.success("Review deleted successfully!");
+      loadUserData();
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      toast.error("Failed to delete review");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReview(null);
+    setEditForm({ rating: 0, comment: "" });
   };
 
   if (loading) {
@@ -520,49 +590,145 @@ export default function UserDashboard() {
                         key={review.id}
                         className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                       >
-                        <div className="flex gap-4">
-                          <div className="relative w-20 h-20 flex-shrink-0">
-                            <Image
-                              src={review.productImage}
-                              alt={review.productName}
-                              fill
-                              className="object-cover rounded"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                              {review.productName}
-                            </h4>
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`w-4 h-4 ${
-                                      i < review.rating
-                                        ? "text-yellow-400 fill-current"
-                                        : "text-gray-300"
-                                    }`}
-                                  />
+                        {editingReview === review.id ? (
+                          // Edit Mode
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                Edit Review for {review.productName}
+                              </h4>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveReview(review.id)}
+                                  className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                                >
+                                  <Save className="w-4 h-4" />
+                                  Save
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Rating
+                              </label>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <button
+                                    key={star}
+                                    type="button"
+                                    onClick={() =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        rating: star,
+                                      }))
+                                    }
+                                    className={`${star <= editForm.rating ? "text-yellow-400" : "text-gray-300"}`}
+                                  >
+                                    <Star
+                                      className={`w-5 h-5 ${star <= editForm.rating ? "fill-current" : ""}`}
+                                    />
+                                  </button>
                                 ))}
                               </div>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {new Date(
-                                  review.createdAt,
-                                ).toLocaleDateString()}
-                              </span>
                             </div>
-                            <p className="text-gray-700 dark:text-gray-300 mb-2">
-                              {review.comment}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                              <span>{review.helpfulCount} helpful</span>
-                              {review.reviewImages.length > 0 && (
-                                <span>{review.reviewImages.length} images</span>
-                              )}
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Review
+                              </label>
+                              <textarea
+                                value={editForm.comment}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    comment: e.target.value,
+                                  }))
+                                }
+                                rows={4}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              />
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          // Display Mode
+                          <>
+                            <div className="flex gap-4">
+                              <div className="relative w-20 h-20 flex-shrink-0">
+                                <Image
+                                  src={review.productImage}
+                                  alt={review.productName}
+                                  fill
+                                  className="object-cover rounded"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                                      {review.productName}
+                                    </h4>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <div className="flex">
+                                        {[...Array(5)].map((_, i) => (
+                                          <Star
+                                            key={i}
+                                            className={`w-4 h-4 ${
+                                              i < review.rating
+                                                ? "text-yellow-400 fill-current"
+                                                : "text-gray-300"
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                                        {new Date(
+                                          review.createdAt,
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleEditReview(review)}
+                                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                      title="Edit review"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteReview(review.id)
+                                      }
+                                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      title="Delete review"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-gray-700 dark:text-gray-300 mb-2">
+                                  {review.comment}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <span>{review.helpfulCount} helpful</span>
+                                  {review.reviewImages.length > 0 && (
+                                    <span>
+                                      {review.reviewImages.length} images
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
