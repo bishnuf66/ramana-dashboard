@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -15,9 +15,60 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { getProductBySlug, getSimilarProducts } from "../../../utils/dummyData";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
 import { useCart } from "../../../components/context/CartContext";
 import ProductCard from "../../../components/products/ProductCard";
+import ProductReviews from "../../../components/products/ProductReviews";
+import { Product } from "../../../types/product";
+
+// Database Product interface
+interface DbProduct {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  discount_price: number | null;
+  cover_image: string;
+  gallery_images: { url: string; title: string }[] | null;
+  rating: number;
+  category: "flowers" | "accessories" | "fruits";
+  stock: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Convert database product to frontend product format
+const convertDbProduct = (dbProduct: DbProduct): Product => ({
+  id: parseInt(dbProduct.id),
+  name: dbProduct.title,
+  slug: dbProduct.id, // Using ID as slug for now
+  description: dbProduct.description || "",
+  shortDescription: dbProduct.description
+    ? dbProduct.description.substring(0, 100) + "..."
+    : "",
+  price: dbProduct.price,
+  discountPrice: dbProduct.discount_price || undefined,
+  images: dbProduct.gallery_images?.map((img) => img.url) || [],
+  mainImage: dbProduct.cover_image,
+  category: {
+    id: 1, // Default ID
+    name:
+      dbProduct.category.charAt(0).toUpperCase() + dbProduct.category.slice(1),
+    slug: dbProduct.category,
+    description: `${dbProduct.category} products`,
+    image: dbProduct.cover_image,
+    productCount: 0,
+  },
+  tags: [dbProduct.category],
+  inStock: dbProduct.stock > 0,
+  stockQuantity: dbProduct.stock,
+  rating: dbProduct.rating,
+  reviewCount: 0, // Default value
+  features: [], // Default value
+  createdAt: dbProduct.created_at,
+  updatedAt: dbProduct.updated_at,
+});
 
 export default function ProductPage() {
   const params = useParams();
@@ -25,8 +76,69 @@ export default function ProductPage() {
   const { addToCart } = useCart();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const product = getProductBySlug(params.slug as string);
+  // Fetch product by slug (using ID as slug for now)
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+
+        // For now, we'll use the slug as the product ID
+        // In a real app, you might want to add a slug field to the database
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", params.slug as string)
+          .single();
+
+        if (error || !data) {
+          console.error("Error fetching product:", error);
+          return;
+        }
+
+        const convertedProduct = convertDbProduct(data as DbProduct);
+        setProduct(convertedProduct);
+
+        // Fetch similar products (same category)
+        const { data: similarData, error: similarError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("category", data.category)
+          .neq("id", data.id)
+          .limit(4);
+
+        if (!similarError && similarData) {
+          const convertedSimilar = (similarData as DbProduct[]).map(
+            convertDbProduct,
+          );
+          setSimilarProducts(convertedSimilar);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        toast.error("Failed to load product");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.slug) {
+      fetchProduct();
+    }
+  }, [params.slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -46,10 +158,9 @@ export default function ProductPage() {
     );
   }
 
-  const similarProducts = getSimilarProducts(product);
   const discountPercentage = product.discountPrice
     ? Math.round(
-        ((product.price - product.discountPrice) / product.price) * 100
+        ((product.price - product.discountPrice) / product.price) * 100,
       )
     : 0;
 
@@ -366,6 +477,18 @@ export default function ProductPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Product Reviews */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <ProductReviews
+            productId={product.id.toString()}
+            productName={product.name}
+          />
+        </motion.div>
       </div>
     </div>
   );

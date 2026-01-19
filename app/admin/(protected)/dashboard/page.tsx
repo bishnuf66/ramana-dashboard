@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { signOutAdmin } from "@/lib/supabase/auth";
-import AdminLayout from "../../../../components/admin/AdminLayout";
 import {
   Package,
   ShoppingCart,
@@ -13,10 +12,12 @@ import {
   Edit,
   Trash2,
   Eye,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import AdminLayout from "../../../../components/admin/AdminLayout";
 
 interface Product {
   id: string;
@@ -50,6 +51,8 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -91,6 +94,16 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setShowProductModal(false);
+    setSelectedProduct(null);
+  };
+
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
@@ -123,7 +136,7 @@ export default function AdminDashboard() {
 
   const handleUpdateOrderStatus = async (
     id: string,
-    status: Order["status"]
+    status: Order["status"],
   ) => {
     try {
       const { error } = await supabase
@@ -153,7 +166,9 @@ export default function AdminDashboard() {
     return (
       <AdminLayout>
         <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-xl text-gray-900 dark:text-white">Loading...</div>
+          <div className="text-xl text-gray-900 dark:text-white">
+            Loading...
+          </div>
         </div>
       </AdminLayout>
     );
@@ -161,10 +176,10 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -173,38 +188,39 @@ export default function AdminDashboard() {
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">Out</span>
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab("products")}
-            className={`px-6 py-3 font-semibold transition ${
+            className={`px-4 sm:px-6 py-3 font-semibold transition ${
               activeTab === "products"
                 ? "border-b-2 border-green-500 text-green-600"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-sm sm:text-base">
+              <Package className="h-4 w-4 sm:h-5 sm:w-5" />
               Products ({products.length})
             </div>
           </button>
           <button
             onClick={() => setActiveTab("orders")}
-            className={`px-6 py-3 font-semibold transition ${
+            className={`px-4 sm:px-6 py-3 font-semibold transition ${
               activeTab === "orders"
                 ? "border-b-2 border-green-500 text-green-600"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
             }`}
           >
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-sm sm:text-base">
+              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               Orders ({orders.length})
             </div>
           </button>
@@ -213,101 +229,181 @@ export default function AdminDashboard() {
         {/* Content */}
         {activeTab === "products" && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                 Product Management
               </h2>
               <Link
                 href="/admin/products/new"
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm sm:text-base"
               >
-                <Plus className="h-5 w-5" />
-                Add New Product
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add New Product</span>
+                <span className="sm:hidden">Add Product</span>
               </Link>
             </div>
 
+            {/* Products Table - Responsive */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Image
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Desktop Table */}
+              <div className="hidden lg:block">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Image
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Category
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Stock
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {products.map((product) => (
+                      <tr key={product.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Image
+                            src={product.cover_image || "/placeholder.jpg"}
+                            alt={product.title}
+                            width={64}
+                            height={64}
+                            className="h-16 w-16 object-cover rounded"
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {product.title}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                            {product.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            {product.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            ${product.price}
+                          </div>
+                          {product.discount_price && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                              ${product.discount_price}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {product.stock}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewProduct(product)}
+                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <Link
+                              href={`/admin/products/${product.id}/edit`}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Cards */}
+              <div className="lg:hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {products.map((product) => (
-                    <tr key={product.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <div key={product.id} className="p-4 space-y-3">
+                      <div className="flex gap-3">
                         <Image
                           src={product.cover_image || "/placeholder.jpg"}
                           alt={product.title}
                           width={64}
                           height={64}
-                          className="h-16 w-16 object-cover rounded"
+                          className="h-16 w-16 object-cover rounded flex-shrink-0"
                         />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {product.title}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {product.description}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-white">
-                          ${product.price}
-                        </div>
-                        {product.discount_price && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                            ${product.discount_price}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {product.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {product.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                              {product.category}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Stock: {product.stock}
+                            </span>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {product.stock}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            ${product.discount_price || product.price}
+                          </div>
+                          {product.discount_price && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 line-through">
+                              ${product.price}
+                            </div>
+                          )}
+                        </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => handleViewProduct(product)}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
                           <Link
                             href={`/admin/products/${product.id}/edit`}
-                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
                           >
                             <Edit className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
+
               {products.length === 0 && (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   No products found. Add your first product!
@@ -319,70 +415,153 @@ export default function AdminDashboard() {
 
         {activeTab === "orders" && (
           <div>
-            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-900 dark:text-white">
               Order Management
             </h2>
 
+            {/* Orders Table - Responsive */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Order ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Desktop Table */}
+              <div className="hidden lg:block">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Order ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {orders.map((order) => (
+                      <tr key={order.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          #{order.id.slice(0, 8)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {order.customer_name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {order.customer_email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          ${order.total_amount.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleUpdateOrderStatus(
+                                order.id,
+                                e.target.value as Order["status"],
+                              )
+                            }
+                            className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
+                              order.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : order.status === "processing"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : order.status === "shipped"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : order.status === "delivered"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => {
+                              alert(
+                                `Order Details:\n\nCustomer: ${
+                                  order.customer_name
+                                }\nEmail: ${order.customer_email}\nAddress: ${
+                                  order.shipping_address
+                                }\nItems: ${JSON.stringify(order.items, null, 2)}`,
+                              );
+                            }}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Cards */}
+              <div className="lg:hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {orders.map((order) => (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        #{order.id.slice(0, 8)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {order.customer_name}
+                    <div key={order.id} className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                            #{order.id.slice(0, 8)}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {order.customer_name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {order.customer_email}
+                          </p>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {order.customer_email}
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            ${order.total_amount.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        ${order.total_amount.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+
+                      <div className="flex justify-between items-center">
                         <select
                           value={order.status}
                           onChange={(e) =>
                             handleUpdateOrderStatus(
                               order.id,
-                              e.target.value as Order["status"]
+                              e.target.value as Order["status"],
                             )
                           }
                           className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
                             order.status === "pending"
                               ? "bg-yellow-100 text-yellow-800"
                               : order.status === "processing"
-                              ? "bg-blue-100 text-blue-800"
-                              : order.status === "shipped"
-                              ? "bg-purple-100 text-purple-800"
-                              : order.status === "delivered"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.status === "shipped"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : order.status === "delivered"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
                           }`}
                         >
                           <option value="pending">Pending</option>
@@ -391,11 +570,7 @@ export default function AdminDashboard() {
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+
                         <button
                           onClick={() => {
                             alert(
@@ -403,18 +578,19 @@ export default function AdminDashboard() {
                                 order.customer_name
                               }\nEmail: ${order.customer_email}\nAddress: ${
                                 order.shipping_address
-                              }\nItems: ${JSON.stringify(order.items, null, 2)}`
+                              }\nItems: ${JSON.stringify(order.items, null, 2)}`,
                             );
                           }}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
+
               {orders.length === 0 && (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   No orders found.
@@ -424,6 +600,163 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Product View Modal */}
+      {showProductModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {selectedProduct.title}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs sm:text-sm">
+                      {selectedProduct.category}
+                    </span>
+                    <span>Stock: {selectedProduct.stock}</span>
+                    <span>Rating: ⭐ {selectedProduct.rating}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseProductModal}
+                  className="self-end sm:self-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Product Images */}
+                <div className="space-y-4">
+                  <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                    <Image
+                      src={selectedProduct.cover_image}
+                      alt={selectedProduct.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  {selectedProduct.gallery_images &&
+                    selectedProduct.gallery_images.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {selectedProduct.gallery_images.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative w-full h-16 sm:h-20 rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
+                          >
+                            <Image
+                              src={image}
+                              alt={`Gallery ${index + 1}`}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Product Details */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Description
+                    </h3>
+                    <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                      {selectedProduct.description ||
+                        "No description available"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Pricing
+                    </h3>
+                    <div className="space-y-1">
+                      <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                        $
+                        {selectedProduct.discount_price ||
+                          selectedProduct.price}
+                      </div>
+                      {selectedProduct.discount_price && (
+                        <div className="text-sm sm:text-lg text-gray-500 dark:text-gray-400 line-through">
+                          ${selectedProduct.price}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Product Information
+                    </h3>
+                    <dl className="space-y-2 text-sm sm:text-base">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          Category:
+                        </dt>
+                        <dd className="text-gray-900 dark:text-white capitalize">
+                          {selectedProduct.category}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          Stock:
+                        </dt>
+                        <dd className="text-gray-900 dark:text-white">
+                          {selectedProduct.stock} units
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          Rating:
+                        </dt>
+                        <dd className="text-gray-900 dark:text-white">
+                          ⭐ {selectedProduct.rating}/5
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          Created:
+                        </dt>
+                        <dd className="text-gray-900 dark:text-white">
+                          {new Date(
+                            selectedProduct.created_at,
+                          ).toLocaleDateString()}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Link
+                      href={`/admin/products/${selectedProduct.id}/edit`}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Product
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleCloseProductModal();
+                        handleDeleteProduct(selectedProduct.id);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Product
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

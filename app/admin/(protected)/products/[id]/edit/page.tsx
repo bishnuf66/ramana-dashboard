@@ -3,31 +3,62 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import {
+  uploadImage,
+  generateImagePath,
+  deleteImages,
+} from "@/lib/supabase/storage";
+import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import MDEditor from "@uiw/react-md-editor";
 import AdminLayout from "../../../../../../components/admin/AdminLayout";
 
-type DbProduct = {
+interface Product {
   id: string;
   title: string;
   description: string | null;
   price: number;
   discount_price: number | null;
   cover_image: string;
-  gallery_images: (string | { url: string; title?: string })[] | null;
+  gallery_images: { url: string; title: string }[] | null;
   rating: number;
-  category: string | null;
+  category: "flowers" | "accessories" | "fruits";
   stock: number;
-};
+  created_at: string;
+  updated_at: string;
+}
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [product, setProduct] = useState<DbProduct | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Image states
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [galleryTitles, setGalleryTitles] = useState<string[]>([]);
+  const [removedGalleryImages, setRemovedGalleryImages] = useState<string[]>(
+    [],
+  );
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    price: "",
+    discount_price: "",
+    rating: "5",
+    category: "flowers" as "flowers" | "accessories" | "fruits",
+    stock: "",
+  });
 
   useEffect(() => {
-    const load = async () => {
+    const loadProduct = async () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
@@ -36,22 +67,169 @@ export default function EditProductPage() {
 
       if (error) {
         toast.error("Product not found");
-        router.push("/admin/products");
+        router.push("/admin/dashboard");
         return;
       }
 
-      setProduct(data as DbProduct);
+      const productData = data as Product;
+      setProduct(productData);
+
+      // Set form data
+      setFormData({
+        title: productData.title,
+        description: productData.description || "",
+        price: productData.price.toString(),
+        discount_price: productData.discount_price?.toString() || "",
+        rating: productData.rating.toString(),
+        category: productData.category,
+        stock: productData.stock.toString(),
+      });
+
+      // Set gallery images
+      if (productData.gallery_images) {
+        setGalleryTitles(productData.gallery_images.map((img) => img.title));
+      }
+
       setLoading(false);
     };
 
-    load();
+    loadProduct();
   }, [params.id, router]);
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGalleryImagesChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(e.target.files || []);
+    setGalleryFiles([...galleryFiles, ...files]);
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGalleryPreviews((prev) => [...prev, reader.result as string]);
+        setGalleryTitles((prev) => [...prev, file.name]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeGalleryImage = (index: number, isExisting: boolean = false) => {
+    if (isExisting && product?.gallery_images) {
+      // Mark existing image for removal
+      const imageToRemove = product.gallery_images[index];
+      setRemovedGalleryImages([...removedGalleryImages, imageToRemove.url]);
+    } else {
+      // Remove new image
+      setGalleryFiles(galleryFiles.filter((_, i) => i !== index));
+      setGalleryPreviews(galleryPreviews.filter((_, i) => i !== index));
+      setGalleryTitles(galleryTitles.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+
+    setSaving(true);
+    setUploading(true);
+
+    try {
+      let newCoverImageUrl = product.cover_image;
+      const imagesToDelete: string[] = [];
+
+      // Upload new cover image if provided
+      if (coverImageFile) {
+        // Mark old cover image for deletion
+        imagesToDelete.push(product.cover_image);
+
+        const coverImagePath = generateImagePath(
+          product.id,
+          coverImageFile.name,
+          "cover",
+        );
+        newCoverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+      }
+
+      // Upload new gallery images
+      const newGalleryUrls: { url: string; title: string }[] = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        const galleryPath = generateImagePath(
+          product.id,
+          galleryFiles[i].name,
+          "gallery",
+        );
+        const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+        newGalleryUrls.push({
+          url: galleryUrl,
+          title: galleryTitles[i] || "",
+        });
+      }
+
+      // Combine existing gallery images (minus removed ones) with new ones
+      let finalGalleryImages = product.gallery_images || [];
+      if (removedGalleryImages.length > 0) {
+        finalGalleryImages = finalGalleryImages.filter(
+          (img) => !removedGalleryImages.includes(img.url),
+        );
+      }
+      finalGalleryImages = [...finalGalleryImages, ...newGalleryUrls];
+
+      // Delete removed images from storage
+      const allImagesToDelete = [...removedGalleryImages, ...imagesToDelete];
+      if (allImagesToDelete.length > 0) {
+        deleteImages(allImagesToDelete).catch(console.error);
+      }
+
+      setUploading(false);
+
+      // Update product
+      const { error } = await supabase
+        .from("products")
+        .update({
+          title: formData.title,
+          description: formData.description || null,
+          price: parseFloat(formData.price),
+          discount_price: formData.discount_price
+            ? parseFloat(formData.discount_price)
+            : null,
+          cover_image: newCoverImageUrl,
+          gallery_images:
+            finalGalleryImages.length > 0 ? finalGalleryImages : null,
+          rating: parseFloat(formData.rating),
+          category: formData.category,
+          stock: parseInt(formData.stock) || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", product.id);
+
+      if (error) throw error;
+
+      toast.success("Product updated successfully!");
+      router.push("/admin/dashboard");
+    } catch (error: any) {
+      setUploading(false);
+      toast.error("Failed to update product: " + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
       <AdminLayout>
         <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-lg text-gray-900 dark:text-white">
+          <div className="text-xl text-gray-900 dark:text-white">
             Loading product...
           </div>
         </div>
@@ -65,97 +243,348 @@ export default function EditProductPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
-          <div className="flex items-center justify-between">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+          <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Edit Product
             </h1>
             <button
-              onClick={() => router.push("/admin/products")}
-              className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white"
+              onClick={() => router.back()}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
             >
-              Back to Products
+              <X className="h-6 w-6" />
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Title</div>
-                <div className="font-semibold text-gray-900 dark:text-white">
-                  {product.title}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Product Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  required
+                />
               </div>
+
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Price</div>
-                <div className="text-gray-900 dark:text-white">
-                  NPR {(product.discount_price || product.price).toLocaleString()}
-                  {product.discount_price && (
-                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 line-through">
-                      NPR {product.price.toLocaleString()}
-                    </span>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Category *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      category: e.target.value as any,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  required
+                >
+                  <option value="flowers">Flowers</option>
+                  <option value="accessories">Accessories</option>
+                  <option value="fruits">Fruits</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Price ($) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Discount Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.discount_price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, discount_price: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Rating (1-5) *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  step="0.1"
+                  value={formData.rating}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rating: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Stock *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.stock}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stock: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Cover Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Cover Image
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg bg-white dark:bg-gray-900">
+                <div className="space-y-1 text-center">
+                  {coverImagePreview || product.cover_image ? (
+                    <div className="relative inline-block">
+                      <Image
+                        src={coverImagePreview || product.cover_image}
+                        alt="Cover preview"
+                        width={192}
+                        height={192}
+                        className="h-48 w-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverImageFile(null);
+                          setCoverImagePreview("");
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-600 dark:text-gray-300">
+                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                          <span>Upload a file</span>
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleCoverImageChange}
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
+                    </>
                   )}
                 </div>
               </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Stock</div>
-                <div className="text-gray-900 dark:text-white">{product.stock} units</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Category</div>
-                <div className="text-gray-900 dark:text-white">
-                  {product.category || "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Rating</div>
-                <div className="text-gray-900 dark:text-white">{product.rating}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Description</div>
-                <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                  {product.description || "—"}
+            </div>
+
+            {/* Gallery Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Gallery Images
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg bg-white dark:bg-gray-900">
+                <div className="space-y-1 text-center w-full">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600 dark:text-gray-300 justify-center">
+                    <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                      <span>Upload files</span>
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        multiple
+                        onChange={handleGalleryImagesChange}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    PNG, JPG, GIF up to 10MB each
+                  </p>
+
+                  {/* Existing Gallery Images */}
+                  {product.gallery_images &&
+                    product.gallery_images.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                          Current Gallery Images:
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {product.gallery_images.map((image, index) => (
+                            <div
+                              key={index}
+                              className="relative flex gap-3 items-start"
+                            >
+                              <div className="relative h-24 w-24 rounded-lg overflow-hidden">
+                                <Image
+                                  src={image.url}
+                                  alt={`Gallery ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <input
+                                  type="text"
+                                  value={image.title}
+                                  onChange={(e) => {
+                                    const updatedGallery = [
+                                      ...(product.gallery_images || []),
+                                    ];
+                                    updatedGallery[index] = {
+                                      ...image,
+                                      title: e.target.value,
+                                    };
+                                    setProduct({
+                                      ...product,
+                                      gallery_images: updatedGallery,
+                                    });
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                  placeholder="Title / caption"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeGalleryImage(index, true)
+                                  }
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* New Gallery Images */}
+                  {galleryPreviews.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                        New Gallery Images:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {galleryPreviews.map((preview, index) => (
+                          <div
+                            key={index}
+                            className="relative flex gap-3 items-start"
+                          >
+                            <div className="relative h-24 w-24 rounded-lg overflow-hidden">
+                              <Image
+                                src={preview}
+                                alt={`Gallery ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <input
+                                type="text"
+                                value={galleryTitles[index] || ""}
+                                onChange={(e) => {
+                                  const next = [...galleryTitles];
+                                  next[index] = e.target.value;
+                                  setGalleryTitles(next);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                placeholder="Title / caption"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeGalleryImage(index, false)}
+                                className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                <Image
-                  src={product.cover_image}
-                  alt={product.title}
-                  fill
-                  className="object-cover"
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Description
+              </label>
+              <div className="dark:text-white">
+                <MDEditor
+                  value={formData.description || ""}
+                  onChange={(value) => {
+                    setFormData({ ...formData, description: value || "" });
+                  }}
+                  height={200}
+                  preview="edit"
+                  hideToolbar={false}
+                  visibleDragbar={false}
                 />
               </div>
-              {product.gallery_images && product.gallery_images.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {product.gallery_images.map((entry, i) => {
-                    const url = typeof entry === "string" ? entry : entry.url;
-                    const title = typeof entry === "string" ? "" : entry.title || "";
-                    return (
-                      <div
-                        key={i}
-                        className="relative w-full h-28 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700"
-                      >
-                        <Image src={url} alt={`Gallery ${i + 1}`} fill className="object-cover" />
-                        {title ? (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1">
-                            {title}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
-          </div>
 
-          <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-4 text-sm text-gray-600 dark:text-gray-300">
-            Editing is not wired up yet. To change this product, update it directly in Supabase or extend this page to add form fields and call `supabase.from("products").update(...)`.
-          </div>
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                disabled={saving || uploading}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading
+                  ? "Uploading images..."
+                  : saving
+                    ? "Updating..."
+                    : "Update Product"}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </AdminLayout>

@@ -31,7 +31,7 @@ export default function ProductCard({
 
   const discountPercentage = product.discountPrice
     ? Math.round(
-        ((product.price - product.discountPrice) / product.price) * 100
+        ((product.price - product.discountPrice) / product.price) * 100,
       )
     : 0;
 
@@ -224,7 +224,7 @@ export default function ProductCard({
 
         {/* Actions */}
         <div className="flex gap-2">
-          <Link href={`/products/${product.slug}`} className="flex-1">
+          <Link href={`/products/${product.id}`} className="flex-1">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
