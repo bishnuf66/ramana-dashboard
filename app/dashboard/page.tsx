@@ -175,9 +175,14 @@ export default function AdminDashboard() {
     status: Order["status"],
   ) => {
     try {
+      const updatePayload: Database["public"]["Tables"]["orders"]["Update"] = {
+        status,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from("orders")
-        .update({ status, updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq("id", id);
 
       if (error) throw error;
@@ -331,6 +336,59 @@ export default function AdminDashboard() {
       color: "#EF4444",
     },
   ];
+
+  type CustomerSummary = {
+    customer_email: string;
+    customer_name: string;
+    customer_phone: string | null;
+    orders_count: number;
+    total_spent: number;
+    last_order_at: string;
+  };
+
+  const customers: CustomerSummary[] = Array.from(
+    orders
+      .filter(
+        (o) =>
+          typeof o.customer_email === "string" && o.customer_email.length > 0,
+      )
+      .reduce((map, o) => {
+        const email = o.customer_email as string;
+        const current = map.get(email);
+        const totalAmount = Number(o.total_amount) || 0;
+        const createdAt = o.created_at || new Date().toISOString();
+
+        if (!current) {
+          map.set(email, {
+            customer_email: email,
+            customer_name: o.customer_name || "Unknown",
+            customer_phone: o.customer_phone || null,
+            orders_count: 1,
+            total_spent: totalAmount,
+            last_order_at: createdAt,
+          });
+          return map;
+        }
+
+        const lastOrderAt =
+          new Date(createdAt) > new Date(current.last_order_at)
+            ? createdAt
+            : current.last_order_at;
+
+        map.set(email, {
+          ...current,
+          customer_name: current.customer_name || o.customer_name || "Unknown",
+          customer_phone: current.customer_phone || o.customer_phone || null,
+          orders_count: current.orders_count + 1,
+          total_spent: current.total_spent + totalAmount,
+          last_order_at: lastOrderAt,
+        });
+
+        return map;
+      }, new Map<string, CustomerSummary>()),
+  )
+    .map(([, v]) => v)
+    .sort((a, b) => b.orders_count - a.orders_count);
 
   const donut = {
     r: 44,
@@ -848,14 +906,89 @@ export default function AdminDashboard() {
             )}
 
             {activeSection === "customers" && (
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Customer Management
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Customer management features coming soon
-                </p>
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                      Customers
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {customers.length} customers
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                  {customers.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No customers found
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Customers will appear here once orders are placed.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Email
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Phone
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Orders
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Total Spent
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Last Order
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                          {customers.map((c) => (
+                            <tr
+                              key={c.customer_email}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {c.customer_name}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                {c.customer_email}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                {c.customer_phone || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                  {c.orders_count}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                {currency(c.total_spent)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                {new Date(c.last_order_at).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
