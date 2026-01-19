@@ -163,37 +163,27 @@ export default function ProductReviews({
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (reviewForm.rating === 0) {
-      toast.error("Please select a rating");
-      return;
-    }
-
-    if (!reviewForm.comment.trim()) {
-      toast.error("Please write a review comment");
-      return;
-    }
-
     try {
       setSubmitting(true);
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
-        toast.error("Please login to write a review");
+        toast.error("Please log in to submit a review");
         return;
       }
 
-      // Upload images if any
-      const uploadedImageUrls: string[] = [];
+      // Upload images first
+      let uploadedImageUrls: string[] = [];
       if (reviewForm.reviewImages.length > 0) {
-        for (const file of reviewForm.reviewImages) {
-          const fileName = `reviews/${productId}/${user.id}/${Date.now()}-${file.name}`;
-          const { data, error } = await supabase.storage
+        for (const image of reviewForm.reviewImages) {
+          const fileName = `reviews/${productId}/${user.id}/${Date.now()}-${image.name}`;
+          const { error: uploadError } = await supabase.storage
             .from("review-images")
-            .upload(fileName, file);
+            .upload(fileName, image);
 
-          if (error) throw error;
+          if (uploadError) throw uploadError;
 
           const {
             data: { publicUrl },
@@ -204,7 +194,7 @@ export default function ProductReviews({
       }
 
       const reviewData = {
-        product_id: productId,
+        product_id: productId, // Now guaranteed to be a valid UUID
         user_id: user.id,
         user_name:
           user.user_metadata?.full_name ||

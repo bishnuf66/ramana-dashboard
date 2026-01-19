@@ -40,7 +40,7 @@ interface DbProduct {
 
 // Convert database product to frontend product format
 const convertDbProduct = (dbProduct: DbProduct): Product => ({
-  id: parseInt(dbProduct.id),
+  id: dbProduct.id,
   name: dbProduct.title,
   slug: dbProduct.id, // Using ID as slug for now
   description: dbProduct.description || "",
@@ -484,6 +484,7 @@ export default function ProductPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
+          {JSON.stringify(product)}
           <ProductReviews
             productId={product.id.toString()}
             productName={product.name}
