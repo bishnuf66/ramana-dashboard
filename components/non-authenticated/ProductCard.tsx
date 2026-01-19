@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
 import SingleProductModal from "./SingleProductModal";
 import Image from "next/image";
-import { toast } from "react-toastify";
 
 interface ProductProps {
   product: {
@@ -21,13 +21,22 @@ interface ProductProps {
 
 const ProductCard: React.FC<ProductProps> = ({ product }) => {
   const { addToCart, cart } = useCart();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const cartItem = cart.find((item) => item.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
 
   const handleFavorite = (product: any) => {
-    toast.info(`${product.title} added to favorite`);
+    toggleFavorite({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.image,
+      rating: product.rating,
+      category: "",
+      addedAt: new Date().toISOString(),
+    });
   };
 
   return (
@@ -52,7 +61,9 @@ const ProductCard: React.FC<ProductProps> = ({ product }) => {
             }}
             className="absolute top-2 right-2 bg-white p-1 rounded-full shadow-md"
           >
-            <Heart className="h-5 w-5 " />
+            <Heart
+              className={`h-5 w-5 ${isFavorite(product.id) ? "fill-red-500" : ""}`}
+            />
           </button>
         </div>
 

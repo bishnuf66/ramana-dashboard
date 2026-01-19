@@ -47,7 +47,9 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [synced, setSynced] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_, session) => {
       setUserId(session?.user?.id ?? null);
       setSynced(false);
@@ -56,10 +58,10 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("favorites", JSON.stringify(favorites));
-    }
-  }, [favorites]);
+    if (typeof window === "undefined") return;
+    if (userId) return;
+    localStorage.setItem("favorites", JSON.stringify(favorites));
+  }, [favorites, userId]);
 
   useEffect(() => {
     if (!userId || !synced) return;
@@ -74,16 +76,19 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   }, [favorites, userId, synced]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (!userId) {
+      const localFavs: FavoriteProduct[] =
+        JSON.parse(localStorage.getItem("favorites") || "[]") || [];
+      setFavorites(localFavs);
       setSynced(true);
       return;
     }
 
     const sync = async () => {
       const localFavs: FavoriteProduct[] =
-        (typeof window !== "undefined" &&
-          JSON.parse(localStorage.getItem("favorites") || "[]")) ||
-        [];
+        JSON.parse(localStorage.getItem("favorites") || "[]") || [];
 
       const { data: remoteRow, error } = await supabase
         .from("user_favorites")
@@ -98,52 +103,22 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
       }
 
       const remoteFavs: FavoriteProduct[] = remoteRow?.items || [];
-      const same =
-        JSON.stringify(localFavs ?? []) === JSON.stringify(remoteFavs ?? []);
-
-      if (!remoteRow) {
-        setFavorites(localFavs);
-        setSynced(true);
-        await supabase.from("user_favorites").upsert({
-          user_id: userId,
-          items: localFavs,
-          updated_at: new Date().toISOString(),
-        });
-        return;
-      }
-
-      if (same) {
-        setFavorites(remoteFavs);
-        setSynced(true);
-        return;
-      }
-
-      const choice =
-        typeof window !== "undefined"
-          ? window.prompt(
-              "Your favorites differ between this device and your account.\nType one: 'db' (use account), 'local' (use this device), or 'merge'.",
-              "merge",
-            )
-          : "merge";
-
-      let resolved = remoteFavs;
-      if (choice === "local") {
-        resolved = localFavs;
-      } else if (choice === "merge") {
-        const map = new Map<string | number, FavoriteProduct>();
-        [...remoteFavs, ...localFavs].forEach((fav) => {
-          map.set(fav.id, fav);
-        });
-        resolved = Array.from(map.values());
-      }
+      const map = new Map<string | number, FavoriteProduct>();
+      [...remoteFavs, ...localFavs].forEach((fav) => {
+        map.set(fav.id, fav);
+      });
+      const resolved = Array.from(map.values());
 
       setFavorites(resolved);
       setSynced(true);
+
       await supabase.from("user_favorites").upsert({
         user_id: userId,
         items: resolved,
         updated_at: new Date().toISOString(),
       });
+
+      localStorage.removeItem("favorites");
     };
 
     sync();
@@ -158,7 +133,11 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         toast.info("Product already in favorites");
         return prevFavorites;
       }
-      return [...prevFavorites, product];
+      const withAddedAt: FavoriteProduct = {
+        ...product,
+        addedAt: product.addedAt || new Date().toISOString(),
+      };
+      return [...prevFavorites, withAddedAt];
     });
     toast.success(`${product.title} added to favorites`);
   }, []);
@@ -187,7 +166,11 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Add to favorites
         toast.success("Product added to favorites");
-        return [...prevFavorites, product];
+        const withAddedAt: FavoriteProduct = {
+          ...product,
+          addedAt: product.addedAt || new Date().toISOString(),
+        };
+        return [...prevFavorites, withAddedAt];
       }
     });
   }, []);

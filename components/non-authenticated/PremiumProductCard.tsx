@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { Heart, ShoppingCart, Star, Sparkles } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import PremiumProductModal from './PremiumProductModal';
-import { toast } from 'react-toastify';
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { Heart, ShoppingCart, Star, Sparkles } from "lucide-react";
+import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
+import PremiumProductModal from "./PremiumProductModal";
 
 interface ProductProps {
   product: {
@@ -22,17 +22,24 @@ interface ProductProps {
 
 const PremiumProductCard: React.FC<ProductProps> = ({ product, index = 0 }) => {
   const { addToCart, cart } = useCart();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   const cartItem = cart.find((item) => item.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
-    toast.success(`${product.title} ${isFavorite ? 'removed from' : 'added to'} favorites`);
+    toggleFavorite({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.image,
+      rating: product.rating,
+      category: "",
+      addedAt: new Date().toISOString(),
+    });
   };
 
   return (
@@ -61,12 +68,14 @@ const PremiumProductCard: React.FC<ProductProps> = ({ product, index = 0 }) => {
           whileTap={{ scale: 0.9 }}
           onClick={handleFavorite}
           className={`absolute top-4 right-4 z-10 p-2 rounded-full shadow-lg transition-all duration-300 ${
-            isFavorite
-              ? 'bg-rose-500 text-white'
-              : 'bg-white text-gray-600 hover:bg-rose-50'
+            isFavorite(product.id)
+              ? "bg-rose-500 text-white"
+              : "bg-white text-gray-600 hover:bg-rose-50"
           }`}
         >
-          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          <Heart
+            className={`w-5 h-5 ${isFavorite(product.id) ? "fill-current" : ""}`}
+          />
         </motion.button>
 
         {/* Image Container */}
@@ -98,7 +107,9 @@ const PremiumProductCard: React.FC<ProductProps> = ({ product, index = 0 }) => {
 
           {/* Description */}
           {product.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+            <p className="text-sm text-gray-600 line-clamp-2">
+              {product.description}
+            </p>
           )}
 
           {/* Rating */}
@@ -109,8 +120,8 @@ const PremiumProductCard: React.FC<ProductProps> = ({ product, index = 0 }) => {
                   key={i}
                   className={`w-4 h-4 ${
                     i < Math.floor(product.rating)
-                      ? 'text-yellow-400 fill-current'
-                      : 'text-gray-300'
+                      ? "text-yellow-400 fill-current"
+                      : "text-gray-300"
                   }`}
                 />
               ))}
@@ -170,4 +181,3 @@ const PremiumProductCard: React.FC<ProductProps> = ({ product, index = 0 }) => {
 };
 
 export default PremiumProductCard;
-

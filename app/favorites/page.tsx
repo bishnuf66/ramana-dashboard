@@ -4,17 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Heart, Search } from "lucide-react";
 import { useFavorites } from "@/components/context/FavoritesContext";
-import { useProduct } from "@/components/context/ProductContext";
 import { motion } from "framer-motion";
 
 export default function FavoritesPage() {
-  const {
-    favorites,
-    addToFavorites,
-    removeFromFavorites,
-    clearFavorites,
-    setProduct,
-  } = useFavorites();
+  const { favorites, removeFromFavorites, clearFavorites } = useFavorites();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "price" | "addedDate">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -52,7 +45,7 @@ export default function FavoritesPage() {
         </div>
 
         {/* Search and Sort */}
-        <div className="mb-6 flex flex gap-4">
+        <div className="mb-6 flex gap-4">
           <div className="flex-1">
             <input
               type="text"
@@ -127,11 +120,7 @@ export default function FavoritesPage() {
                         {favorite.title}
                       </h3>
                       <button
-                        onClick={() => {
-                          setProduct(favorite);
-                          // Navigate to product page with product context
-                          window.location.href = `/products/${favorite.id}`;
-                        }}
+                        onClick={() => removeFromFavorites(favorite.id)}
                         className="text-red-500 hover:text-red-600 p-2 rounded-lg transition-colors"
                       >
                         Remove

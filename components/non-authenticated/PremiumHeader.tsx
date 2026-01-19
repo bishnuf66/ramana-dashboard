@@ -202,7 +202,7 @@ export default function PremiumHeader() {
                 className="p-2 text-gray-700 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors relative"
               >
                 <Heart
-                  className={`w-6 h-6 ${isFavorite(1) ? "fill-red-500" : ""}`}
+                  className={`w-6 h-6 ${favorites.length > 0 ? "fill-red-500" : ""}`}
                 />
                 {favorites.length > 0 &&
                   (isClient ? (

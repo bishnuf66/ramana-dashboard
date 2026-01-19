@@ -7,6 +7,7 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useRef,
 } from "react";
 import { toast } from "react-toastify";
 import { supabase } from "@/lib/supabase/client";
@@ -37,10 +38,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   });
   const [userId, setUserId] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track auth changes
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_, session) => {
       setUserId(session?.user?.id ?? null);
       setSynced(false); // re-sync on login/logout
@@ -51,35 +55,49 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cart", JSON.stringify(cart));
-    }
-  }, [cart]);
+    if (typeof window === "undefined") return;
+    if (userId) return;
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart, userId]);
 
   // Persist to Supabase when logged in
   useEffect(() => {
     if (!userId || !synced) return;
-    (async () => {
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
+    }
+
+    persistTimeoutRef.current = setTimeout(async () => {
       const { error } = await supabase.from("user_cart").upsert({
         user_id: userId,
         items: cart,
         updated_at: new Date().toISOString(),
       });
       if (error) console.error("cart persist error", error);
-    })();
+    }, 500);
+
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+    };
   }, [cart, userId, synced]);
 
   // Initial sync between local and remote on login
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (!userId) {
+      const localCart: ProductType[] =
+        JSON.parse(localStorage.getItem("cart") || "[]") || [];
+      setCart(localCart);
       setSynced(true);
       return;
     }
+
     const sync = async () => {
       const localCart: ProductType[] =
-        (typeof window !== "undefined" &&
-          JSON.parse(localStorage.getItem("cart") || "[]")) ||
-        [];
+        JSON.parse(localStorage.getItem("cart") || "[]") || [];
 
       const { data: remoteRow, error } = await supabase
         .from("user_cart")
@@ -95,65 +113,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const remoteCart: ProductType[] = remoteRow?.items || [];
 
-      const same =
-        JSON.stringify(localCart ?? []) === JSON.stringify(remoteCart ?? []);
-
-      if (!remoteRow) {
-        setCart(localCart);
-        setSynced(true);
-        await supabase
-          .from("user_cart")
-          .upsert({
-            user_id: userId,
-            items: localCart,
-            updated_at: new Date().toISOString(),
+      const map = new Map<string | number, ProductType>();
+      [...remoteCart, ...localCart].forEach((item) => {
+        const existing = map.get(item.id);
+        if (existing) {
+          map.set(item.id, {
+            ...existing,
+            quantity: existing.quantity + item.quantity,
           });
-        return;
-      }
-
-      if (same) {
-        setCart(remoteCart);
-        setSynced(true);
-        return;
-      }
-
-      // Ask user: db / local / merge
-      const choice =
-        typeof window !== "undefined"
-          ? window.prompt(
-              "Your cart differs between this device and your account.\nType one: 'db' (use account), 'local' (use this device), or 'merge'.",
-              "merge",
-            )
-          : "merge";
-
-      let resolved = remoteCart;
-      if (choice === "local") {
-        resolved = localCart;
-      } else if (choice === "merge") {
-        const map = new Map<string | number, ProductType>();
-        [...remoteCart, ...localCart].forEach((item) => {
-          const existing = map.get(item.id);
-          if (existing) {
-            map.set(item.id, {
-              ...existing,
-              quantity: existing.quantity + item.quantity,
-            });
-          } else {
-            map.set(item.id, item);
-          }
-        });
-        resolved = Array.from(map.values());
-      }
+        } else {
+          map.set(item.id, item);
+        }
+      });
+      const resolved = Array.from(map.values());
 
       setCart(resolved);
       setSynced(true);
-      await supabase
-        .from("user_cart")
-        .upsert({
-          user_id: userId,
-          items: resolved,
-          updated_at: new Date().toISOString(),
-        });
+
+      await supabase.from("user_cart").upsert({
+        user_id: userId,
+        items: resolved,
+        updated_at: new Date().toISOString(),
+      });
+
+      localStorage.removeItem("cart");
     };
 
     sync();
@@ -166,7 +149,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return prevCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + product.quantity }
-            : item
+            : item,
         );
       }
       return [...prevCart, product];
@@ -177,8 +160,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const increaseQuantity = useCallback((id: number | string) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
     );
     toast.success("Quantity increased");
   }, []);
@@ -187,9 +170,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     setCart((prevCart) =>
       prevCart
         .map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+          item.id === id ? { ...item, quantity: item.quantity - 1 } : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0),
     );
     toast.success("Quantity decreased");
   }, []);
@@ -232,7 +215,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       clearCart,
       getTotalPrice,
       getTotalItems,
-    ]
+    ],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
