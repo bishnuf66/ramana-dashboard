@@ -2,7 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["images.unsplash.com", "ylebrbbexlxrqqbjhxvc.supabase.co"],
+    // remotePatterns is preferred over domains in Next 15+
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ylebrbbexlxrqqbjhxvc.supabase.co",
+        pathname: "/storage/**",
+      },
+    ],
     unoptimized: false,
   },
 };

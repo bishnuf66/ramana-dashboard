@@ -2,15 +2,20 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
-import { useCart } from "../context/CartContext";
 import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
 import LoginModal from "./LoginModal";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../global/Logo";
 import ThemeToggle from "../global/ThemeToggle";
+import { useCart } from "../context/CartContext";
+import { useFavorites } from "@/components/context/FavoritesContext";
+import { useProduct } from "@/components/context/ProductContext";
+import { toast } from "react-toastify";
 
 export default function PremiumHeader() {
   const { getTotalItems } = useCart();
+  const { favorites, addToFavorites, removeFromFavorites, isFavorite } =
+    useFavorites();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -121,9 +126,29 @@ export default function PremiumHeader() {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  // Navigate to favorites page
+                  window.location.href = "/favorites";
+                }}
                 className="p-2 text-gray-700 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors relative"
               >
-                <Heart className="w-6 h-6" />
+                <Heart
+                  className={`w-6 h-6 ${isFavorite(1) ? "fill-red-500" : ""}`}
+                />
+                {favorites.length > 0 &&
+                  (isClient ? (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
+                    >
+                      {favorites.length}
+                    </motion.span>
+                  ) : (
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                      {favorites.length}
+                    </span>
+                  ))}
               </motion.button>
 
               {/* Cart */}
@@ -134,22 +159,15 @@ export default function PremiumHeader() {
                   className="relative p-2 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                 >
                   <ShoppingCart className="w-6 h-6" />
-                  {items > 0 && (
-                    <>
-                      {isClient ? (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
-                        >
-                          {items}
-                        </motion.span>
-                      ) : (
-                        <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
-                          {items}
-                        </span>
-                      )}
-                    </>
+                  {/* Only render the badge on the client to avoid SSR/client mismatch */}
+                  {isClient && items > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
+                    >
+                      {items}
+                    </motion.span>
                   )}
                 </motion.button>
               </Link>

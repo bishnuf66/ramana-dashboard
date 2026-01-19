@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CartProvider } from "@/components/context/CartContext";
 import { ThemeProvider } from "@/components/context/ThemeContext";
+import { FavoritesProvider } from "@/components/context/FavoritesContext";
 import PremiumHeader from "@/components/non-authenticated/PremiumHeader";
 import PremiumFooter from "@/components/global/PremiumFooter";
 import FloatingContact from "@/components/global/FloatingContact";
@@ -43,15 +44,17 @@ export default function RootLayout({
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
         <ThemeProvider>
           <CartProvider>
-            <FaviconSwitcher />
-            <PremiumHeader />
-            <main className="pt-20">{children}</main>
-            <PremiumFooter />
-            <FloatingContact />
-            <ToastContainer
-              theme="colored"
-              toastClassName="dark:bg-gray-800 dark:text-white"
-            />
+            <FavoritesProvider>
+              <FaviconSwitcher />
+              <PremiumHeader />
+              <main className="pt-20">{children}</main>
+              <PremiumFooter />
+              <FloatingContact />
+              <ToastContainer
+                theme="colored"
+                toastClassName="dark:bg-gray-800 dark:text-white"
+              />
+            </FavoritesProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

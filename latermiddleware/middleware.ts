@@ -39,14 +39,54 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
   const { pathname } = request.nextUrl;
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminLogin = pathname === "/admin/login";
 
-  // Protect admin routes
-  if (pathname.startsWith("/admin") && !session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // Debug: show cookie names and whether tokens are present (no values)
+  const cookieNames = request.cookies.getAll().map((c) => c.name);
+  console.log("[middleware] cookies seen", {
+    count: cookieNames.length,
+    names: cookieNames,
+    hasAccess: cookieNames.some((n) => n.includes("access-token")),
+    hasRefresh: cookieNames.some((n) => n.includes("refresh-token")),
+  });
+
+  // Debug: session presence
+  console.log("[middleware] session check", {
+    pathname,
+    hasSession: !!session,
+    userId: session?.user.id,
+  });
+
+  // Protect admin routes except the admin login page
+  if (isAdminRoute && !isAdminLogin) {
+    if (!session) {
+      console.log("[middleware] no session on admin route", { pathname });
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+
+    // Require the user to exist in admin_users
+    const { data: adminData, error: adminError } = await supabase
+      .from("admin_users")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    console.log("[middleware] admin check", {
+      pathname,
+      userId: session.user.id,
+      adminFound: !!adminData,
+      adminError,
+    });
+
+    if (!adminData) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
-  // Redirect authenticated users away from login page
-  if (pathname === "/login" && session) {
+  // If already authenticated, keep them away from public login screens
+  const isPublicLogin = pathname === "/login" || isAdminLogin;
+  if (isPublicLogin && session) {
     const { data: adminData } = await supabase
       .from("admin_users")
       .select("*")

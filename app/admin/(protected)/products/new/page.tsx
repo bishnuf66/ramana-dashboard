@@ -7,6 +7,7 @@ import { uploadImage, generateImagePath } from "@/lib/supabase/storage";
 import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import AdminLayout from "../../../../../components/admin/AdminLayout";
 
 export default function NewProductPage() {
     const router = useRouter();
@@ -16,6 +17,7 @@ export default function NewProductPage() {
     const [coverImagePreview, setCoverImagePreview] = useState<string>("");
     const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+    const [galleryTitles, setGalleryTitles] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -49,6 +51,7 @@ export default function NewProductPage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setGalleryPreviews((prev) => [...prev, reader.result as string]);
+                setGalleryTitles((prev) => [...prev, file.name]);
             };
             reader.readAsDataURL(file);
         });
@@ -57,6 +60,7 @@ export default function NewProductPage() {
     const removeGalleryImage = (index: number) => {
         setGalleryFiles(galleryFiles.filter((_, i) => i !== index));
         setGalleryPreviews(galleryPreviews.filter((_, i) => i !== index));
+        setGalleryTitles(galleryTitles.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -106,7 +110,13 @@ export default function NewProductPage() {
                         ? parseFloat(formData.discount_price)
                         : null,
                     cover_image: coverImageUrl,
-                    gallery_images: galleryUrls.length > 0 ? galleryUrls : null,
+                    gallery_images:
+                        galleryUrls.length > 0
+                            ? galleryUrls.map((url, idx) => ({
+                                url,
+                                title: galleryTitles[idx] || "",
+                            }))
+                            : null,
                     rating: parseFloat(formData.rating),
                     category: formData.category,
                     stock: parseInt(formData.stock) || 0,
@@ -128,16 +138,16 @@ export default function NewProductPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow p-8">
+        <AdminLayout>
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
                     <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             Add New Product
                         </h1>
                         <button
                             onClick={() => router.back()}
-                            className="text-gray-500 hover:text-gray-700"
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                         >
                             <X className="h-6 w-6" />
                         </button>
@@ -146,7 +156,7 @@ export default function NewProductPage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Product Title *
                                 </label>
                                 <input
@@ -155,13 +165,13 @@ export default function NewProductPage() {
                                     onChange={(e) =>
                                         setFormData({ ...formData, title: e.target.value })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Category *
                                 </label>
                                 <select
@@ -172,7 +182,7 @@ export default function NewProductPage() {
                                             category: e.target.value as any,
                                         })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 >
                                     <option value="flowers">Flowers</option>
@@ -182,7 +192,7 @@ export default function NewProductPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Price ($) *
                                 </label>
                                 <input
@@ -192,13 +202,13 @@ export default function NewProductPage() {
                                     onChange={(e) =>
                                         setFormData({ ...formData, price: e.target.value })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Discount Price ($)
                                 </label>
                                 <input
@@ -208,12 +218,12 @@ export default function NewProductPage() {
                                     onChange={(e) =>
                                         setFormData({ ...formData, discount_price: e.target.value })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Rating (1-5) *
                                 </label>
                                 <input
@@ -225,13 +235,13 @@ export default function NewProductPage() {
                                     onChange={(e) =>
                                         setFormData({ ...formData, rating: e.target.value })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     Stock *
                                 </label>
                                 <input
@@ -241,7 +251,7 @@ export default function NewProductPage() {
                                     onChange={(e) =>
                                         setFormData({ ...formData, stock: e.target.value })
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     required
                                 />
                             </div>
@@ -249,10 +259,10 @@ export default function NewProductPage() {
 
                         {/* Cover Image */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                 Cover Image *
                             </label>
-                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg bg-white dark:bg-gray-900">
                                 <div className="space-y-1 text-center">
                                     {coverImagePreview ? (
                                         <div className="relative inline-block">
@@ -277,8 +287,8 @@ export default function NewProductPage() {
                                     ) : (
                                         <>
                                             <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                            <div className="flex text-sm text-gray-600">
-                                                <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                                            <div className="flex text-sm text-gray-600 dark:text-gray-300">
+                                                <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
                                                     <span>Upload a file</span>
                                                     <input
                                                         type="file"
@@ -290,7 +300,7 @@ export default function NewProductPage() {
                                                 </label>
                                                 <p className="pl-1">or drag and drop</p>
                                             </div>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                                 PNG, JPG, GIF up to 10MB
                                             </p>
                                         </>
@@ -301,14 +311,14 @@ export default function NewProductPage() {
 
                         {/* Gallery Images */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                 Gallery Images (Optional)
                             </label>
-                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg bg-white dark:bg-gray-900">
                                 <div className="space-y-1 text-center w-full">
                                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600 justify-center">
-                                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                                    <div className="flex text-sm text-gray-600 dark:text-gray-300 justify-center">
+                                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
                                             <span>Upload files</span>
                                             <input
                                                 type="file"
@@ -320,28 +330,43 @@ export default function NewProductPage() {
                                         </label>
                                         <p className="pl-1">or drag and drop</p>
                                     </div>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
                                         PNG, JPG, GIF up to 10MB each
                                     </p>
 
                                     {galleryPreviews.length > 0 && (
-                                        <div className="mt-4 grid grid-cols-4 gap-4">
+                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {galleryPreviews.map((preview, index) => (
-                                                <div key={index} className="relative">
-                                                    <Image
-                                                        src={preview}
-                                                        alt={`Gallery ${index + 1}`}
-                                                        width={96}
-                                                        height={96}
-                                                        className="h-24 w-24 object-cover rounded-lg"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeGalleryImage(index)}
-                                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                                                    >
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </button>
+                                                <div key={index} className="relative flex gap-3 items-start">
+                                                    <div className="relative h-24 w-24 rounded-lg overflow-hidden">
+                                                        <Image
+                                                            src={preview}
+                                                            alt={`Gallery ${index + 1}`}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            value={galleryTitles[index] || ""}
+                                                            onChange={(e) => {
+                                                                const next = [...galleryTitles];
+                                                                next[index] = e.target.value;
+                                                                setGalleryTitles(next);
+                                                            }}
+                                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                                            placeholder="Title / caption"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeGalleryImage(index)}
+                                                            className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                            Remove
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -351,7 +376,7 @@ export default function NewProductPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                 Description
                             </label>
                             <textarea
@@ -360,7 +385,7 @@ export default function NewProductPage() {
                                     setFormData({ ...formData, description: e.target.value })
                                 }
                                 rows={4}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Product description..."
                             />
                         </div>
@@ -380,7 +405,7 @@ export default function NewProductPage() {
                             <button
                                 type="button"
                                 onClick={() => router.back()}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+                                className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                             >
                                 Cancel
                             </button>
@@ -388,6 +413,6 @@ export default function NewProductPage() {
                     </form>
                 </div>
             </div>
-        </div>
+        </AdminLayout>
     );
 }

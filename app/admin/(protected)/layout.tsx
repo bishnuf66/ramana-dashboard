@@ -12,13 +12,20 @@ export default function ProtectedAdminLayout({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        console.log('[admin layout] getUser result', { user, userError });
 
         if (userError || !user) {
+          setError(userError?.message || "Not authenticated");
           router.push('/admin/login');
           return;
         }
@@ -30,14 +37,19 @@ export default function ProtectedAdminLayout({
           .eq('id', user.id)
           .single();
 
+        console.log('[admin layout] admin_users lookup', { adminData, adminError });
+
         if (adminError || !adminData) {
+          setError(adminError?.message || "Not an admin user");
           router.push('/admin/login');
           return;
         }
 
         setIsAuthorized(true);
+        setError(null);
       } catch (error) {
         console.error('Auth check error:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
         router.push('/admin/login');
       } finally {
         setLoading(false);
@@ -71,7 +83,18 @@ export default function ProtectedAdminLayout({
   }
 
   if (!isAuthorized) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <div className="text-lg font-semibold">Checking admin access...</div>
+          {error ? (
+            <div className="text-sm text-red-600">Error: {error}</div>
+          ) : (
+            <div className="text-sm text-gray-600">Redirecting to login</div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

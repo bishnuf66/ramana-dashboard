@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -16,35 +16,76 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import AdminLayout from "../../../../components/admin/AdminLayout";
-import {
-  adminProducts,
-  adminCategories,
-} from "../../../../utils/adminDummyData";
-import { AdminProduct } from "../../../../types/admin";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
+
+type DbProduct = {
+  id: string;
+  title: string;
+  slug?: string | null;
+  description: string | null;
+  price: number;
+  discount_price: number | null;
+  cover_image: string;
+  gallery_images: (string | { url: string; title?: string })[] | null;
+  rating: number;
+  category: string | null;
+  stock: number;
+  created_at: string;
+};
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState<AdminProduct[]>(adminProducts);
+  const [products, setProducts] = useState<DbProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<AdminProduct | null>(
+  const [productToDelete, setProductToDelete] = useState<DbProduct | null>(
     null
   );
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to load products: " + error.message);
+      } else {
+        setProducts(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, []);
 
   // Filter products based on search and filters
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" ||
-      product.category_id.toString() === selectedCategory;
-    const matchesStatus =
-      selectedStatus === "all" || product.status === selectedStatus;
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch =
+        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (product.category || "").toLowerCase() === selectedCategory.toLowerCase();
+      const stockStatus = product.stock > 0 ? "in_stock" : "out_of_stock";
+      const matchesStatus =
+        selectedStatus === "all" || selectedStatus === stockStatus;
 
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [products, searchTerm, selectedCategory, selectedStatus]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => p.category && set.add(p.category));
+    return Array.from(set);
+  }, [products]);
 
   const handleDeleteProduct = (product: AdminProduct) => {
     setProductToDelete(product);
@@ -59,23 +100,10 @@ const ProductsPage = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "inactive":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-      case "draft":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-    }
-  };
-
-  const getStockColor = (quantity: number) => {
-    if (quantity > 10)
+  const getStatusColor = (stock: number) => {
+    if (stock > 10)
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    if (quantity > 0)
+    if (stock > 0)
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
   };
@@ -131,9 +159,9 @@ const ProductsPage = () => {
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="all">All Categories</option>
-              {adminCategories.map((category) => (
-                <option key={category.id} value={category.id.toString()}>
-                  {category.name}
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
                 </option>
               ))}
             </select>
@@ -144,16 +172,15 @@ const ProductsPage = () => {
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="draft">Draft</option>
+              <option value="all">All Stock</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
             </select>
 
             {/* Results Count */}
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
               <Package className="w-4 h-4 mr-2" />
-              {filteredProducts.length} products found
+              {loading ? "Loading..." : `${filteredProducts.length} products found`}
             </div>
           </div>
         </motion.div>
@@ -220,15 +247,13 @@ const ProductsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {product.category?.name}
+                        {product.category || "—"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">
                         NPR{" "}
-                        {(
-                          product.discount_price || product.price
-                        ).toLocaleString()}
+                        {(product.discount_price || product.price).toLocaleString()}
                         {product.discount_price && (
                           <div className="text-xs text-gray-500 line-through">
                             NPR {product.price.toLocaleString()}
@@ -238,36 +263,24 @@ const ProductsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStockColor(
-                          product.stock_quantity
-                        )}`}
-                      >
-                        {product.stock_quantity} units
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          product.status
+                          product.stock
                         )}`}
                       >
-                        {product.status}
+                        {product.stock} units
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1 text-sm">
                         <span className="text-yellow-500">★</span>
                         <span className="text-gray-900 dark:text-white">
-                          {product.rating}
-                        </span>
-                        <span className="text-gray-500 dark:text-gray-400">
-                          ({product.review_count})
+                          {product.rating?.toFixed(1)}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
-                        <Link href={`/products/${product.slug}`}>
+                        <Link href={`/products/${product.slug || product.id}`}>
                           <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1">
                             <Eye className="w-4 h-4" />
                           </button>
@@ -291,7 +304,7 @@ const ProductsPage = () => {
             </table>
           </div>
 
-          {filteredProducts.length === 0 && (
+          {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-12">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
