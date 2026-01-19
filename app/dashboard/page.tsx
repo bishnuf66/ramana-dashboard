@@ -25,6 +25,7 @@ import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import ReviewManager from "@/components/admin/ReviewManager";
+import type { Database } from "@/types/database.types";
 
 interface Product {
   id: string;
@@ -180,7 +181,7 @@ export default function AdminDashboard() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("orders")
         .update(updatePayload)
         .eq("id", id);
