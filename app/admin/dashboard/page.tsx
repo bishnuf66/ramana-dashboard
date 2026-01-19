@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import AdminLayout from "../../../../components/admin/AdminLayout";
+import AdminLayout from "../../../components/admin/AdminLayout";
 
 interface Product {
   id: string;
@@ -177,25 +177,6 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-              Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage products and orders
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-            <span className="sm:hidden">Out</span>
-          </button>
-        </div>
-
         {/* Tabs */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 border-b border-gray-200 dark:border-gray-700">
           <button

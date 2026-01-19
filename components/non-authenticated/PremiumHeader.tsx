@@ -2,37 +2,20 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
-import {
-  Heart,
-  Search,
-  ShoppingCart,
-  Menu,
-  X,
-  User,
-  ChevronDown,
-} from "lucide-react";
-import LoginModal from "./LoginModal";
+import { Menu, X, User, ChevronDown, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../global/Logo";
 import ThemeToggle from "../global/ThemeToggle";
-import { useCart } from "../context/CartContext";
-import { useFavorites } from "@/components/context/FavoritesContext";
-import { useProduct } from "@/components/context/ProductContext";
-import { toast } from "react-toastify";
+
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function PremiumHeader() {
-  const { getTotalItems } = useCart();
-  const { favorites, addToFavorites, removeFromFavorites, isFavorite } =
-    useFavorites();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -103,8 +86,6 @@ export default function PremiumHeader() {
     }
   };
 
-  const items = getTotalItems();
-
   return (
     <>
       <motion.header
@@ -141,105 +122,28 @@ export default function PremiumHeader() {
                 </div>
               </div>
             </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
-              <Link
-                href="/"
-                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
-              >
-                Home
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
-              </Link>
-              <Link
-                href="/products"
-                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
-              >
-                Products
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
-              </Link>
-              <Link
-                href="#about"
-                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
-              >
-                About
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
-              </Link>
-              <Link
-                href="#contact"
-                className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
-              >
-                Contact
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 group-hover:w-full transition-all duration-300" />
-              </Link>
-            </nav>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  Dashboard
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage products and orders
+                </p>
+              </div>
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-4">
-              {/* Search */}
-              <div className="hidden lg:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search bouquets..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-64 rounded-full border border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 outline-none transition-all bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-100"
-                />
-              </div>
-
               {/* Theme Toggle */}
               <ThemeToggle />
-
-              {/* Favorites */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => {
-                  // Navigate to favorites page
-                  window.location.href = "/favorites";
-                }}
-                className="p-2 text-gray-700 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors relative"
-              >
-                <Heart
-                  className={`w-6 h-6 ${favorites.length > 0 ? "fill-red-500" : ""}`}
-                />
-                {favorites.length > 0 &&
-                  (isClient ? (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
-                    >
-                      {favorites.length}
-                    </motion.span>
-                  ) : (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
-                      {favorites.length}
-                    </span>
-                  ))}
-              </motion.button>
-
-              {/* Cart */}
-              <Link href="/cart">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="relative p-2 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                >
-                  <ShoppingCart className="w-6 h-6" />
-                  {/* Only render the badge on the client to avoid SSR/client mismatch */}
-                  {isClient && items > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
-                    >
-                      {items}
-                    </motion.span>
-                  )}
-                </motion.button>
-              </Link>
+              <div className="flex items-center gap-4">
+                {/* Notifications */}
+                <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+              </div>
 
               {/* Profile / Login */}
               {user ? (
@@ -316,7 +220,7 @@ export default function PremiumHeader() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsLoginModalOpen(true)}
+                  onClick={() => router.push("/login")}
                   className="hidden md:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
                   <User className="w-4 h-4" />
@@ -414,7 +318,7 @@ export default function PremiumHeader() {
                 ) : (
                   <button
                     onClick={() => {
-                      setIsLoginModalOpen(true);
+                      router.push("/login");
                       setIsMobileMenuOpen(false);
                     }}
                     className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold"
@@ -428,11 +332,6 @@ export default function PremiumHeader() {
           )}
         </AnimatePresence>
       </motion.header>
-
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-      />
     </>
   );
 }

@@ -1,8 +1,5 @@
-import PremiumHomepage from "@/components/pages/PremiumHomepage";
+import AdminDashboard from "./admin/dashboard/page";
 
 export default function Home() {
-  return <PremiumHomepage />;
+  return <AdminDashboard />;
 }
-
-
-

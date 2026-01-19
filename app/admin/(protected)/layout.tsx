@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProtectedAdminLayout({
   children,
@@ -22,35 +22,38 @@ export default function ProtectedAdminLayout({
           error: userError,
         } = await supabase.auth.getUser();
 
-        console.log('[admin layout] getUser result', { user, userError });
+        console.log("[admin layout] getUser result", { user, userError });
 
         if (userError || !user) {
           setError(userError?.message || "Not authenticated");
-          router.push('/admin/login');
+          router.push("/admin/login");
           return;
         }
 
         // Check if user is admin by querying admin_users table
         const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('id', user.id)
+          .from("admin_users")
+          .select("*")
+          .eq("id", user.id)
           .single();
 
-        console.log('[admin layout] admin_users lookup', { adminData, adminError });
+        console.log("[admin layout] admin_users lookup", {
+          adminData,
+          adminError,
+        });
 
         if (adminError || !adminData) {
           setError(adminError?.message || "Not an admin user");
-          router.push('/admin/login');
+          router.push("/admin/login");
           return;
         }
 
         setIsAuthorized(true);
         setError(null);
       } catch (error) {
-        console.error('Auth check error:', error);
-        setError(error instanceof Error ? error.message : 'Unknown error');
-        router.push('/admin/login');
+        console.error("Auth check error:", error);
+        setError(error instanceof Error ? error.message : "Unknown error");
+        router.push("/admin/login");
       } finally {
         setLoading(false);
       }
@@ -59,11 +62,13 @@ export default function ProtectedAdminLayout({
     checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
         setIsAuthorized(false);
-        router.push('/admin/login');
-      } else if (event === 'SIGNED_IN' && session) {
+        router.push("/admin/login");
+      } else if (event === "SIGNED_IN" && session) {
         // Re-check auth when signed in
         checkAuth();
       }
@@ -99,4 +104,3 @@ export default function ProtectedAdminLayout({
 
   return <>{children}</>;
 }
-
