@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import ReviewManager from "@/components/admin/ReviewManager";
 
 interface Product {
   id: string;
@@ -69,7 +70,7 @@ export interface OrderItem {
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<
-    "analytics" | "products" | "orders" | "customers" | "settings"
+    "analytics" | "products" | "orders" | "customers" | "reviews" | "settings"
   >("analytics");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -354,7 +355,13 @@ export default function AdminDashboard() {
   };
 
   const handleSectionChange = (
-    section: "analytics" | "products" | "orders" | "customers" | "settings",
+    section:
+      | "analytics"
+      | "products"
+      | "orders"
+      | "customers"
+      | "reviews"
+      | "settings",
   ) => {
     setActiveSection(section);
   };
@@ -851,6 +858,8 @@ export default function AdminDashboard() {
                 </p>
               </div>
             )}
+
+            {activeSection === "reviews" && <ReviewManager />}
 
             {activeSection === "settings" && (
               <div className="text-center py-12">

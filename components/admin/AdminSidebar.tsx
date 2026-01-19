@@ -11,13 +11,26 @@ import {
   LogOut,
   Menu,
   X,
+  Star,
 } from "lucide-react";
 import { useState } from "react";
 
 interface AdminSidebarProps {
-  activeSection: "analytics" | "products" | "orders" | "customers" | "settings";
+  activeSection:
+    | "analytics"
+    | "products"
+    | "orders"
+    | "customers"
+    | "reviews"
+    | "settings";
   onSectionChange: (
-    section: "analytics" | "products" | "orders" | "customers" | "settings",
+    section:
+      | "analytics"
+      | "products"
+      | "orders"
+      | "customers"
+      | "reviews"
+      | "settings",
   ) => void;
 }
 
@@ -30,7 +43,13 @@ export default function AdminSidebar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems: Array<{
-    id: "analytics" | "products" | "orders" | "customers" | "settings";
+    id:
+      | "analytics"
+      | "products"
+      | "orders"
+      | "customers"
+      | "reviews"
+      | "settings";
     label: string;
     icon: any;
     description: string;
@@ -58,6 +77,12 @@ export default function AdminSidebar({
       label: "Customers",
       icon: Users,
       description: "Customer database",
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+      icon: Star,
+      description: "Review management",
     },
     {
       id: "settings",
