@@ -90,6 +90,17 @@ export const signOutAdmin = async () => {
   }
 };
 
+export const signOut = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    toast.success("Logged out successfully");
+  } catch (error: any) {
+    toast.error(error.message || "Logout failed");
+    throw error;
+  }
+};
+
 export const getCurrentAdmin = async () => {
   try {
     const {
