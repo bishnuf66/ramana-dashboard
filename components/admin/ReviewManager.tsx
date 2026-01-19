@@ -15,6 +15,13 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { supabase } from "@/lib/supabase/client";
+import type { Database } from "@/types/database.types";
+
+type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+type ProductReviewWithProduct = ProductReviewRow & {
+  products: Pick<ProductRow, "id" | "title" | "cover_image"> | null;
+};
 
 interface Review {
   id: string;
@@ -94,25 +101,28 @@ export default function ReviewManager() {
       }
 
       // Transform data to match expected format
-      const transformedReviews = data.map((review: any) => ({
-        id: review.id,
-        product_id: review.product_id,
-        product_name: review.products?.title || `Product ${review.product_id}`,
-        product_image:
-          review.products?.cover_image || "/api/placeholder/100/100",
-        user_id: review.user_id,
-        user_name: review.user_name,
-        user_email: review.user_email,
-        rating: review.rating,
-        title: "Review", // Since your table uses 'comment' instead of 'title'
-        content: review.comment || "",
-        helpful_count: review.helpful_count || 0,
-        not_helpful_count: review.dislike_count || 0,
-        verified_purchase: review.is_verified || false,
-        status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
-        created_at: review.created_at,
-        updated_at: review.updated_at,
-      }));
+      const transformedReviews = (data as ProductReviewWithProduct[]).map(
+        (review): Review => ({
+          id: review.id,
+          product_id: review.product_id,
+          product_name:
+            review.products?.title || `Product ${review.product_id}`,
+          product_image:
+            review.products?.cover_image || "/api/placeholder/100/100",
+          user_id: review.user_id,
+          user_name: review.user_name,
+          user_email: review.user_email,
+          rating: review.rating,
+          title: "Review", // Since your table uses 'comment' instead of 'title'
+          content: review.comment || "",
+          helpful_count: review.helpful_count || 0,
+          not_helpful_count: review.dislike_count || 0,
+          verified_purchase: review.is_verified || false,
+          status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
+          created_at: review.created_at || new Date().toISOString(),
+          updated_at: review.updated_at || undefined,
+        }),
+      );
 
       // Apply client-side search filter (since it's text-based)
       let filteredReviews = transformedReviews;
@@ -138,30 +148,6 @@ export default function ReviewManager() {
     } catch (error) {
       console.error("Error fetching reviews:", error);
       toast.error("Failed to fetch reviews from database");
-
-      // Apply filters to mock data
-      let filteredMockReviews = mockReviews;
-      if (statusFilter !== "all") {
-        filteredMockReviews = filteredMockReviews.filter(
-          (r: Review) => r.status === statusFilter,
-        );
-      }
-      if (ratingFilter) {
-        filteredMockReviews = filteredMockReviews.filter(
-          (r: Review) => r.rating === ratingFilter,
-        );
-      }
-      if (searchQuery) {
-        filteredMockReviews = filteredMockReviews.filter(
-          (r: Review) =>
-            r.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.content.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
-      }
-
-      setReviews(filteredMockReviews);
     } finally {
       setLoading(false);
     }
@@ -169,23 +155,21 @@ export default function ReviewManager() {
 
   const handleStatusUpdate = async (
     reviewId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "pending" | "rejected",
   ) => {
     try {
       // Update is_verified column instead of status
       const isVerified = status === "approved";
 
-      const { error } = await supabase
-        .from("product_reviews")
-        .update({
-          is_verified: isVerified,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", reviewId);
+      const response = await fetch("/api/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId, is_verified: isVerified }),
+      });
 
-      if (error) {
-        console.error("Database update error:", error);
-        throw new Error("Failed to update review status in database");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || "Failed to update review status");
       }
 
       // Update local state
@@ -194,13 +178,17 @@ export default function ReviewManager() {
           r.id === reviewId
             ? {
                 ...r,
-                status: isVerified ? "approved" : "rejected",
+                verified_purchase: isVerified,
+                status: isVerified ? "approved" : "pending",
                 updated_at: new Date().toISOString(),
               }
             : r,
         ),
       );
       toast.success(`Review ${status} successfully`);
+
+      // Ensure UI stays in sync with DB (and join fields)
+      fetchReviews();
     } catch (error) {
       console.error("Error updating review status:", error);
       toast.error("Failed to update review status");
@@ -464,6 +452,18 @@ export default function ReviewManager() {
                               <XCircle className="w-4 h-4" />
                             </button>
                           </>
+                        )}
+
+                        {review.status === "approved" && (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(review.id, "pending")
+                            }
+                            className="p-1 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400"
+                            title="Unverify"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
                         )}
 
                         <button

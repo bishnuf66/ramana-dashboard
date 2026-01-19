@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -165,6 +165,52 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ reviews: filteredReviews });
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { reviewId, is_verified } = body as {
+      reviewId?: string;
+      is_verified?: boolean;
+    };
+
+    if (!reviewId || typeof is_verified !== "boolean") {
+      return NextResponse.json(
+        { error: "reviewId and is_verified are required" },
+        { status: 400 },
+      );
+    }
+
+    // Use service role key to bypass RLS for admin moderation.
+    const admin = createAdminClient();
+
+    const { data, error } = await admin
+      .from("product_reviews")
+      .update({
+        is_verified,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reviewId)
+      .select("id, is_verified, updated_at")
+      .single();
+
+    if (error) {
+      console.error("Admin review update error:", error);
+      return NextResponse.json(
+        { error: "Failed to update review verification" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ review: data });
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json(
