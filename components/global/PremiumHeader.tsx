@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, User, ChevronDown, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
-
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
 import { useRouter } from "next/navigation";
@@ -81,11 +80,6 @@ export default function PremiumHeader() {
     }
   };
 
-  const navigationItems = [
-    { href: "/", label: "Home", icon: null },
-    { href: "/products", label: "Products", icon: null },
-  ];
-
   return (
     <>
       <motion.header
@@ -98,7 +92,7 @@ export default function PremiumHeader() {
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
@@ -122,20 +116,6 @@ export default function PremiumHeader() {
                 </div>
               </div>
             </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium transition-colors relative group"
-                >
-                  {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all"></span>
-                </Link>
-              ))}
-            </nav>
 
             {/* Actions */}
             <div className="flex items-center gap-3">
@@ -302,17 +282,6 @@ export default function PremiumHeader() {
               className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
             >
               <nav className="px-4 py-4 space-y-4">
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="block text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-
                 {/* Mobile Profile/Login */}
                 {user ? (
                   <>

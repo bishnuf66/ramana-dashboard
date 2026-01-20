@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { signOutAdmin } from "@/lib/supabase/auth";
 import {
@@ -79,15 +79,16 @@ export interface OrderItem {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<
-    | "analytics"
-    | "products"
-    | "orders"
-    | "customers"
-    | "reviews"
-    | "blog"
-    | "settings"
-  >("analytics");
+  const searchParams = useSearchParams();
+  const activeSection =
+    (searchParams.get("section") as
+      | "analytics"
+      | "products"
+      | "orders"
+      | "customers"
+      | "reviews"
+      | "blog"
+      | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,7 @@ export default function AdminDashboard() {
     content_md: string;
     cover_image_url: string;
     published: boolean;
+    created_by: string;
   };
 
   type BlogRow = {
@@ -124,6 +126,7 @@ export default function AdminDashboard() {
     content_md: string;
     cover_image_url: string | null;
     published: boolean;
+    created_by: string | null;
     created_at: string | null;
     updated_at: string | null;
   };
@@ -136,6 +139,7 @@ export default function AdminDashboard() {
     content_md: "",
     cover_image_url: "",
     published: false,
+    created_by: "",
   });
   const [blogSaving, setBlogSaving] = useState(false);
   const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
@@ -212,8 +216,12 @@ export default function AdminDashboard() {
   };
 
   const handleSaveBlog = async () => {
-    if (!blogForm.title.trim() || !blogForm.slug.trim()) {
-      toast.error("Title and slug are required");
+    if (
+      !blogForm.title.trim() ||
+      !blogForm.slug.trim() ||
+      !blogForm.created_by.trim()
+    ) {
+      toast.error("Title, slug, and created by are required");
       return;
     }
 
@@ -226,6 +234,7 @@ export default function AdminDashboard() {
         content_md: blogForm.content_md || "",
         cover_image_url: blogForm.cover_image_url || null,
         published: blogForm.published,
+        created_by: blogForm.created_by.trim() || "Admin",
         updated_at: new Date().toISOString(),
       };
 
@@ -270,6 +279,7 @@ export default function AdminDashboard() {
       content_md: "",
       cover_image_url: "",
       published: false,
+      created_by: "",
     });
     setEditingBlogId(null);
   };
@@ -300,6 +310,7 @@ export default function AdminDashboard() {
       content_md: post.content_md,
       cover_image_url: post.cover_image_url || "",
       published: post.published,
+      created_by: post.created_by || "",
     });
     setEditingBlogId(post.id);
   };
@@ -639,26 +650,8 @@ export default function AdminDashboard() {
       }),
   };
 
-  const handleSectionChange = (
-    section:
-      | "analytics"
-      | "products"
-      | "orders"
-      | "customers"
-      | "reviews"
-      | "blog"
-      | "settings",
-  ) => {
-    setActiveSection(section);
-  };
-
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminSidebar
-        activeSection={activeSection}
-        onSectionChange={handleSectionChange}
-      />
-
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
@@ -1232,11 +1225,57 @@ export default function AdminDashboard() {
                       <input
                         type="text"
                         value={blogForm.title}
-                        onChange={(e) =>
-                          setBlogForm((f) => ({ ...f, title: e.target.value }))
-                        }
+                        onChange={(e) => {
+                          const title = e.target.value;
+                          const slug = title
+                            .toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, "")
+                            .replace(/\s+/g, "-")
+                            .replace(/-+/g, "-")
+                            .replace(/^-|-$/g, "");
+                          setBlogForm((f) => ({
+                            ...f,
+                            title: title,
+                            slug: blogForm.slug || slug,
+                          }));
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="Blog post title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Slug
+                      </label>
+                      <input
+                        type="text"
+                        value={blogForm.slug}
+                        onChange={(e) =>
+                          setBlogForm((f) => ({ ...f, slug: e.target.value }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="blog-post-slug"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        URL-friendly version of the title (auto-generated from
+                        title)
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Created By
+                      </label>
+                      <input
+                        type="text"
+                        value={blogForm.created_by}
+                        onChange={(e) =>
+                          setBlogForm((f) => ({
+                            ...f,
+                            created_by: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Author name"
                       />
                     </div>
                     <div>

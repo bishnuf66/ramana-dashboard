@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/context/ThemeContext";
 import PremiumHeader from "@/components/global/PremiumHeader";
+import AdminSidebar from "@/components/global/AdminSidebar";
 import PremiumFooter from "@/components/global/PremiumFooter";
 import FloatingContact from "@/components/global/FloatingContact";
 import FaviconSwitcher from "@/components/global/FaviconSwitcher";
@@ -43,7 +44,10 @@ export default function RootLayout({
         <ThemeProvider>
           <FaviconSwitcher />
           <PremiumHeader />
-          <main className="pt-20 min-h-screen">{children}</main>
+          <div className="flex pt-20 min-h-screen">
+            <AdminSidebar />
+            <main className="flex-1">{children}</main>
+          </div>
           <PremiumFooter />
           <FloatingContact />
           <ToastContainer
