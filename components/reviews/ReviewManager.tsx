@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import ActionButtons from "@/components/ui/ActionButtons";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
+import Image from "next/image";
 
 type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
@@ -54,11 +55,7 @@ export default function ReviewManager() {
   >("all");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [statusFilter, ratingFilter, searchQuery]); // Re-fetch when filters change
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -152,7 +149,11 @@ export default function ReviewManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, ratingFilter, searchQuery]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const handleStatusUpdate = async (
     reviewId: string,
@@ -369,9 +370,11 @@ export default function ReviewManager() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <img
+                        <Image
                           src={review.product_image}
                           alt={review.product_name}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-lg object-cover"
                         />
                         <div>
@@ -521,9 +524,11 @@ export default function ReviewManager() {
                 <div className="space-y-6">
                   {/* Product Info */}
                   <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <img
+                    <Image
                       src={selectedReview.product_image}
                       alt={selectedReview.product_name}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                     <div>

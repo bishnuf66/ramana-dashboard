@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { signOutAdmin } from "@/lib/supabase/auth";
@@ -80,7 +80,8 @@ export interface OrderItem {
   total_price: number;
 }
 
-export default function AdminDashboard() {
+// Wrapper component that uses useSearchParams
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeSection =
@@ -1455,5 +1456,20 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+// Main export that wraps the dashboard content in Suspense
+export default function AdminDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

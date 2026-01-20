@@ -6,6 +6,7 @@ import PremiumFooter from "@/components/global/PremiumFooter";
 import FloatingContact from "@/components/global/FloatingContact";
 import FaviconSwitcher from "@/components/global/FaviconSwitcher";
 import { ToastContainer } from "react-toastify";
+import { Suspense } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 
@@ -45,7 +46,13 @@ export default function RootLayout({
           <FaviconSwitcher />
           <PremiumHeader />
           <div className="flex pt-20 min-h-screen">
-            <AdminSidebar />
+            <Suspense
+              fallback={
+                <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
+              }
+            >
+              <AdminSidebar />
+            </Suspense>
             <main className="flex-1">{children}</main>
           </div>
           <PremiumFooter />

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { Category, CategoryFormData } from "@/types/category";
 import { generateSlug } from "@/lib/utils";
+import Image from "next/image";
 
 interface CategoryFormProps {
   categoryId?: string;
@@ -219,9 +220,11 @@ export default function CategoryForm({
 
           {imagePreview ? (
             <div className="relative">
-              <img
+              <Image
                 src={imagePreview}
                 alt="Category preview"
+                width={192}
+                height={192}
                 className="w-full h-48 object-cover rounded-lg"
               />
               <button

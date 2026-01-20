@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Star,
   ThumbsUp,
@@ -63,11 +63,7 @@ export default function ReviewSystem({
     content: "",
   });
 
-  useEffect(() => {
-    fetchReviews();
-  }, [productId, sortBy, filterRating]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -138,7 +134,11 @@ export default function ReviewSystem({
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId, sortBy, filterRating]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();

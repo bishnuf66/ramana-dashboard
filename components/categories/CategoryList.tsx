@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { Category } from "@/types/category";
 import ActionButtons from "@/components/ui/ActionButtons";
 import Link from "next/link";
+import Image from "next/image";
 
 interface CategoryListProps {
   onEdit?: (category: Category) => void;
@@ -158,12 +159,13 @@ export default function CategoryList({
               {/* Category Image */}
               {category.picture ? (
                 <div className="relative h-48 overflow-hidden">
-                  <img
+                  <Image
                     src={category.picture}
                     alt={category.name}
+                    width={300}
+                    height={192}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
                 </div>
               ) : (
                 <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
