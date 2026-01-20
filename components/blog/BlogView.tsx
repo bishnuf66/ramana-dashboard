@@ -5,6 +5,7 @@ import { ArrowLeft, Edit, Trash2, Calendar, User, Eye } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import ActionButtons from "@/components/ui/ActionButtons";
 
 interface BlogPost {
   id: string;
@@ -167,23 +168,13 @@ export default function BlogView({
 
           {/* Action Buttons */}
           {showActions && (
-            <div className="flex gap-2">
-              <Link
-                href={`/blog/${blog.id}/edit`}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm transition-colors"
-              >
-                <Edit className="h-4 w-4" />
-                Edit
-              </Link>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-sm transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
+            <ActionButtons
+              id={blog.id}
+              type="blog"
+              style="pills"
+              onDelete={handleDelete}
+              showView={false}
+            />
           )}
         </div>
 

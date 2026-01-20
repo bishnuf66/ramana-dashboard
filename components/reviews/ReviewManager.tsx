@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import ActionButtons from "@/components/ui/ActionButtons";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
 
@@ -466,12 +467,13 @@ export default function ReviewManager() {
                           </button>
                         )}
 
-                        <button
-                          onClick={() => handleDeleteReview(review.id)}
-                          className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <ActionButtons
+                          id={review.id}
+                          type="review"
+                          onDelete={() => handleDeleteReview(review.id)}
+                          showView={false}
+                          showEdit={false}
+                        />
                       </div>
                     </td>
                   </motion.tr>

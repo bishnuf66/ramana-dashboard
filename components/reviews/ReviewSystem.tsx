@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import ActionButtons from "@/components/ui/ActionButtons";
 
 interface Review {
   id: string;
@@ -470,20 +471,13 @@ export default function ReviewSystem({
                 </div>
 
                 {userId === review.user_id && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => startEdit(review)}
-                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteReview(review.id)}
-                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <ActionButtons
+                    id={review.id}
+                    type="review"
+                    onEdit={() => startEdit(review)}
+                    onDelete={() => handleDeleteReview(review.id)}
+                    showView={false}
+                  />
                 )}
               </div>
             </motion.div>

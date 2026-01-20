@@ -1,6 +1,7 @@
 import { Order, OrderItem } from "@/app/dashboard/page";
 import { Eye } from "lucide-react";
 import React from "react";
+import ActionButtons from "@/components/ui/ActionButtons";
 
 function OrderTable({
   orders,
@@ -93,24 +94,13 @@ function OrderTable({
                     {new Date(order.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => {
-                        if (onViewOrder) {
-                          onViewOrder(order);
-                        } else {
-                          alert(
-                            `Order Details:\n\nCustomer: ${
-                              order.customer_name
-                            }\nEmail: ${order.customer_email}\nAddress: ${
-                              order.shipping_address
-                            }\nItems: ${JSON.stringify(order.items, null, 2)}`,
-                          );
-                        }
-                      }}
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <ActionButtons
+                      id={order.id}
+                      type="order"
+                      onView={() => (onViewOrder ? onViewOrder(order) : null)}
+                      showEdit={false}
+                      showDelete={false}
+                    />
                   </td>
                 </tr>
               ))}
@@ -173,24 +163,13 @@ function OrderTable({
                     <option value="cancelled">Cancelled</option>
                   </select>
 
-                  <button
-                    onClick={() => {
-                      if (onViewOrder) {
-                        onViewOrder(order);
-                      } else {
-                        alert(
-                          `Order Details:\n\nCustomer: ${
-                            order.customer_name
-                          }\nEmail: ${order.customer_email}\nAddress: ${
-                            order.shipping_address
-                          }\nItems: ${JSON.stringify(order.items, null, 2)}`,
-                        );
-                      }
-                    }}
-                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
+                  <ActionButtons
+                    id={order.id}
+                    type="order"
+                    onView={() => (onViewOrder ? onViewOrder(order) : null)}
+                    showEdit={false}
+                    showDelete={false}
+                  />
                 </div>
               </div>
             ))}

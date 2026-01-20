@@ -12,6 +12,7 @@ import {
   Tag,
   Package,
 } from "lucide-react";
+import ActionButtons from "@/components/ui/ActionButtons";
 import Image from "next/image";
 import { adminCategories } from "../../../../utils/adminDummyData";
 import { AdminCategory } from "../../../../types/admin";
@@ -206,20 +207,13 @@ const CategoriesPage = () => {
                   Created: {new Date(category.created_at).toLocaleDateString()}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteCategory(category)}
-                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                <ActionButtons
+                  id={category.id.toString()}
+                  type="category"
+                  onDelete={() => handleDeleteCategory(category)}
+                  showView={false}
+                  showEdit={false}
+                />
               </div>
             </div>
           </motion.div>

@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import ReviewManager from "@/components/reviews/ReviewManager";
+import ActionButtons from "@/components/ui/ActionButtons";
 import BlogList from "@/components/blog/BlogList";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
@@ -973,26 +974,14 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleViewProduct(product)}
-                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                                <Link
-                                  href={`/products/${product.id}/edit`}
-                                  className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Link>
-                                <button
-                                  onClick={() =>
+                                <ActionButtons
+                                  id={product.id}
+                                  type="product"
+                                  onView={() => handleViewProduct(product)}
+                                  onDelete={() =>
                                     handleDeleteProduct(product.id)
                                   }
-                                  className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                />
                               </div>
                             </td>
                           </tr>
@@ -1044,24 +1033,12 @@ export default function AdminDashboard() {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => handleViewProduct(product)}
-                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
-                              <Link
-                                href={`/products/${product.id}/edit`}
-                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteProduct(product.id)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              <ActionButtons
+                                id={product.id}
+                                type="product"
+                                onView={() => handleViewProduct(product)}
+                                onDelete={() => handleDeleteProduct(product.id)}
+                              />
                             </div>
                           </div>
                         </div>
@@ -1183,71 +1160,7 @@ export default function AdminDashboard() {
             {activeSection === "reviews" && <ReviewManager />}
 
             {activeSection === "blog" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                    Blog Manager
-                  </h2>
-                  <Link
-                    href="/blog/new"
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                  >
-                    Create New Blog
-                  </Link>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-                    Existing Posts
-                  </h3>
-                  {blogs.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      No posts yet.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {blogs.map((post) => (
-                        <div
-                          key={post.id}
-                          className="border border-gray-200 dark:border-gray-600 rounded p-3 flex justify-between items-start"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {post.title}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {post.published ? "Published" : "Draft"} •{" "}
-                              {new Date(
-                                post.created_at as string,
-                              ).toLocaleDateString()}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Link
-                              href={`/blog/${post.id}`}
-                              className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
-                            >
-                              View
-                            </Link>
-                            <Link
-                              href={`/blog/${post.id}/edit`}
-                              className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteBlog(post.id)}
-                              className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <BlogList onDelete={(id) => handleDeleteBlog(id)} />
             )}
 
             {activeSection === "settings" && (
