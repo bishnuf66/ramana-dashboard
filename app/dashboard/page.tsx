@@ -23,6 +23,7 @@ import OrderViewModal from "@/components/orders/OrderViewModal";
 import ReviewManager from "@/components/reviews/ReviewManager";
 import ActionButtons from "@/components/ui/ActionButtons";
 import BlogList from "@/components/blog/BlogList";
+import CategoryList from "@/components/categories/CategoryList";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
       | "customers"
       | "reviews"
       | "blog"
+      | "categories"
       | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -1162,6 +1164,8 @@ export default function AdminDashboard() {
             {activeSection === "blog" && (
               <BlogList onDelete={(id) => handleDeleteBlog(id)} />
             )}
+
+            {activeSection === "categories" && <CategoryList />}
 
             {activeSection === "settings" && (
               <div className="space-y-6">
