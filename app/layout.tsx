@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/context/ThemeContext";
-import PremiumHeader from "@/components/non-authenticated/PremiumHeader";
+import PremiumHeader from "@/components/global/PremiumHeader";
 import PremiumFooter from "@/components/global/PremiumFooter";
 import FloatingContact from "@/components/global/FloatingContact";
-import FaviconSwitcher from "@/components/FaviconSwitcher";
+import FaviconSwitcher from "@/components/global/FaviconSwitcher";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";

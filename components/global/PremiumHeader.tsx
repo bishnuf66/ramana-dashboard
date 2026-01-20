@@ -13,8 +13,8 @@ import {
   Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Logo from "../global/Logo";
-import ThemeToggle from "../global/ThemeToggle";
+import Logo from "./Logo";
+import ThemeToggle from "./ThemeToggle";
 
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";

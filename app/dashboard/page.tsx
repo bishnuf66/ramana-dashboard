@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { signOutAdmin } from "@/lib/supabase/auth";
@@ -23,8 +23,8 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
-import AdminSidebar from "@/components/admin/AdminSidebar";
-import ReviewManager from "@/components/admin/ReviewManager";
+import AdminSidebar from "@/components/global/AdminSidebar";
+import ReviewManager from "@/components/reviews/ReviewManager";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
@@ -34,6 +34,7 @@ import {
 } from "@/lib/supabase/storage";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+const blogEditor = MDEditor;
 
 interface Product {
   id: string;
@@ -79,7 +80,13 @@ export interface OrderItem {
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<
-    "analytics" | "products" | "orders" | "customers" | "reviews" | "settings"
+    | "analytics"
+    | "products"
+    | "orders"
+    | "customers"
+    | "reviews"
+    | "blog"
+    | "settings"
   >("analytics");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -122,7 +129,7 @@ export default function AdminDashboard() {
   };
 
   const [blogs, setBlogs] = useState<BlogRow[]>([]);
-  const [blogDraft, setBlogDraft] = useState<BlogDraft>({
+  const [blogForm, setBlogForm] = useState<BlogDraft>({
     title: "",
     slug: "",
     excerpt: "",
@@ -131,6 +138,7 @@ export default function AdminDashboard() {
     published: false,
   });
   const [blogSaving, setBlogSaving] = useState(false);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -143,6 +151,28 @@ export default function AdminDashboard() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeSection !== "blog") return;
+    const loadBlogs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("blogs" as any)
+          .select(
+            "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
+          )
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setBlogs((data as any) || []);
+      } catch (e: any) {
+        // blogs table may not exist yet; keep UI but show toast
+        toast.error(e?.message || "Failed to load blogs");
+        setBlogs([]);
+      }
+    };
+    loadBlogs();
+  }, [activeSection]);
 
   useEffect(() => {
     if (activeSection !== "settings") return;
@@ -160,45 +190,29 @@ export default function AdminDashboard() {
       } else {
         setAdminProfile(null);
       }
-
-      try {
-        const { data, error } = await supabase
-          .from("blogs" as any)
-          .select(
-            "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
-          )
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setBlogs((data as any) || []);
-      } catch (e: any) {
-        // blogs table may not exist yet; keep UI but show toast
-        toast.error(e?.message || "Failed to load blogs");
-        setBlogs([]);
-      }
     };
     loadSettings();
   }, [activeSection]);
 
   const uploadBlogCover = async (file: File) => {
-    const blogId = blogDraft.id || "draft";
+    const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "cover");
     const url = await uploadImageToBucket("blog-images", file, path);
-    setBlogDraft((prev) => ({ ...prev, cover_image_url: url }));
+    setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
   };
 
   const insertInlineImage = async (file: File) => {
-    const blogId = blogDraft.id || "draft";
+    const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "inline");
     const url = await uploadImageToBucket("blog-images", file, path);
-    setBlogDraft((prev) => ({
+    setBlogForm((prev) => ({
       ...prev,
       content_md: `${prev.content_md}\n\n![](${url})\n`,
     }));
   };
 
   const handleSaveBlog = async () => {
-    if (!blogDraft.title.trim() || !blogDraft.slug.trim()) {
+    if (!blogForm.title.trim() || !blogForm.slug.trim()) {
       toast.error("Title and slug are required");
       return;
     }
@@ -206,20 +220,20 @@ export default function AdminDashboard() {
     setBlogSaving(true);
     try {
       const payload = {
-        title: blogDraft.title.trim(),
-        slug: blogDraft.slug.trim(),
-        excerpt: blogDraft.excerpt.trim() || null,
-        content_md: blogDraft.content_md || "",
-        cover_image_url: blogDraft.cover_image_url || null,
-        published: blogDraft.published,
+        title: blogForm.title.trim(),
+        slug: blogForm.slug.trim(),
+        excerpt: blogForm.excerpt.trim() || null,
+        content_md: blogForm.content_md || "",
+        cover_image_url: blogForm.cover_image_url || null,
+        published: blogForm.published,
         updated_at: new Date().toISOString(),
       };
 
-      if (blogDraft.id) {
+      if (editingBlogId) {
         const { error } = await (supabase as any)
           .from("blogs")
           .update(payload)
-          .eq("id", blogDraft.id);
+          .eq("id", editingBlogId);
         if (error) throw error;
         toast.success("Blog updated");
       } else {
@@ -240,18 +254,68 @@ export default function AdminDashboard() {
       if (reloadError) throw reloadError;
       setBlogs(data || []);
 
-      setBlogDraft({
-        title: "",
-        slug: "",
-        excerpt: "",
-        content_md: "",
-        cover_image_url: "",
-        published: false,
-      });
+      resetBlogForm();
     } catch (e: any) {
       toast.error(e?.message || "Failed to save blog");
     } finally {
       setBlogSaving(false);
+    }
+  };
+
+  const resetBlogForm = () => {
+    setBlogForm({
+      title: "",
+      slug: "",
+      excerpt: "",
+      content_md: "",
+      cover_image_url: "",
+      published: false,
+    });
+    setEditingBlogId(null);
+  };
+
+  const handleBlogCoverImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) uploadBlogCover(file);
+  };
+
+  const handleBlogInlineImageUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) insertInlineImage(file);
+    };
+    input.click();
+  };
+
+  const startEditBlog = (post: BlogRow) => {
+    setBlogForm({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || "",
+      content_md: post.content_md,
+      cover_image_url: post.cover_image_url || "",
+      published: post.published,
+    });
+    setEditingBlogId(post.id);
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm("Delete this post?")) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("blogs")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Blog deleted");
+      setBlogs((prev) => prev.filter((b) => b.id !== id));
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete blog");
     }
   };
 
@@ -582,6 +646,7 @@ export default function AdminDashboard() {
       | "orders"
       | "customers"
       | "reviews"
+      | "blog"
       | "settings",
   ) => {
     setActiveSection(section);
@@ -597,16 +662,6 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Page Header */}
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-                {activeSection}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Manage your {activeSection}
-              </p>
-            </div>
-
             {/* Content */}
             {activeSection === "analytics" && (
               <div className="space-y-6">
@@ -1157,6 +1212,181 @@ export default function AdminDashboard() {
 
             {activeSection === "reviews" && <ReviewManager />}
 
+            {activeSection === "blog" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                    Blog Manager
+                  </h2>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+                    Create / Edit Blog Post
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={blogForm.title}
+                        onChange={(e) =>
+                          setBlogForm((f) => ({ ...f, title: e.target.value }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Blog post title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Excerpt
+                      </label>
+                      <textarea
+                        value={blogForm.excerpt}
+                        onChange={(e) =>
+                          setBlogForm((f) => ({
+                            ...f,
+                            excerpt: e.target.value,
+                          }))
+                        }
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Brief excerpt"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Cover Image
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBlogCoverImageUpload}
+                        className="w-full text-sm text-gray-700 dark:text-gray-300"
+                      />
+                      {blogForm.cover_image_url && (
+                        <img
+                          src={blogForm.cover_image_url}
+                          alt="Cover"
+                          className="mt-2 h-32 w-auto object-cover rounded"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Content (Markdown)
+                      </label>
+                      <div className="mb-2">
+                        <button
+                          onClick={handleBlogInlineImageUpload}
+                          className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                        >
+                          Insert Image
+                        </button>
+                      </div>
+                      {blogEditor &&
+                        React.createElement(blogEditor, {
+                          value: blogForm.content_md,
+                          onChange: (val: any) =>
+                            setBlogForm((f) => ({
+                              ...f,
+                              content_md: val || "",
+                            })),
+                          height: 400,
+                        })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="published"
+                        checked={blogForm.published}
+                        onChange={(e) =>
+                          setBlogForm((f) => ({
+                            ...f,
+                            published: e.target.checked,
+                          }))
+                        }
+                        className="rounded"
+                      />
+                      <label
+                        htmlFor="published"
+                        className="text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        Published
+                      </label>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveBlog}
+                        disabled={blogSaving}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {blogSaving
+                          ? "Saving..."
+                          : editingBlogId
+                            ? "Update"
+                            : "Save"}
+                      </button>
+                      <button
+                        onClick={resetBlogForm}
+                        className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+                    Existing Posts
+                  </h3>
+                  {blogs.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No posts yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {blogs.map((post) => (
+                        <div
+                          key={post.id}
+                          className="border border-gray-200 dark:border-gray-600 rounded p-3 flex justify-between items-start"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {post.title}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {post.published ? "Published" : "Draft"} •{" "}
+                              {new Date(
+                                post.created_at as string,
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditBlog(post)}
+                              className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBlog(post.id)}
+                              className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeSection === "settings" && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -1202,7 +1432,7 @@ export default function AdminDashboard() {
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {adminProfile.admin.created_at
                             ? new Date(
-                                adminProfile.admin.created_at,
+                                adminProfile.admin.created_at as string,
                               ).toLocaleString()
                             : "-"}
                         </div>
@@ -1218,209 +1448,37 @@ export default function AdminDashboard() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                      Blog
+                      System Info
                     </h3>
                   </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                        Existing posts
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Environment
                       </div>
-                      <div className="space-y-2 max-h-[420px] overflow-y-auto">
-                        {blogs.length === 0 ? (
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            No posts yet.
-                          </div>
-                        ) : (
-                          blogs.map((b) => (
-                            <button
-                              key={b.id}
-                              type="button"
-                              onClick={() =>
-                                setBlogDraft({
-                                  id: b.id,
-                                  title: b.title,
-                                  slug: b.slug,
-                                  excerpt: b.excerpt || "",
-                                  content_md: b.content_md || "",
-                                  cover_image_url: b.cover_image_url || "",
-                                  published: !!b.published,
-                                })
-                              }
-                              className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {b.title}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                /{b.slug}
-                              </div>
-                              <div className="text-xs mt-1">
-                                <span
-                                  className={`px-2 py-0.5 rounded-full ${
-                                    b.published
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                  }`}
-                                >
-                                  {b.published ? "Published" : "Draft"}
-                                </span>
-                              </div>
-                            </button>
-                          ))
-                        )}
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        Production
                       </div>
                     </div>
-
-                    <div className="lg:col-span-2 space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            Title
-                          </label>
-                          <input
-                            value={blogDraft.title}
-                            onChange={(e) =>
-                              setBlogDraft((p) => ({
-                                ...p,
-                                title: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            Slug
-                          </label>
-                          <input
-                            value={blogDraft.slug}
-                            onChange={(e) =>
-                              setBlogDraft((p) => ({
-                                ...p,
-                                slug: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          />
-                        </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Version
                       </div>
-
-                      <div>
-                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          Excerpt
-                        </label>
-                        <textarea
-                          value={blogDraft.excerpt}
-                          onChange={(e) =>
-                            setBlogDraft((p) => ({
-                              ...p,
-                              excerpt: e.target.value,
-                            }))
-                          }
-                          rows={2}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-700 dark:text-gray-300">
-                            <input
-                              type="checkbox"
-                              checked={blogDraft.published}
-                              onChange={(e) =>
-                                setBlogDraft((p) => ({
-                                  ...p,
-                                  published: e.target.checked,
-                                }))
-                              }
-                              className="mr-2"
-                            />
-                            Published
-                          </label>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <label className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer">
-                            Upload cover
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file)
-                                  uploadBlogCover(file).catch((err) =>
-                                    toast.error(
-                                      err?.message || "Cover upload failed",
-                                    ),
-                                  );
-                              }}
-                            />
-                          </label>
-
-                          <label className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer">
-                            Insert image
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file)
-                                  insertInlineImage(file).catch((err) =>
-                                    toast.error(
-                                      err?.message || "Image upload failed",
-                                    ),
-                                  );
-                              }}
-                            />
-                          </label>
-
-                          <button
-                            type="button"
-                            onClick={handleSaveBlog}
-                            disabled={blogSaving}
-                            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-60"
-                          >
-                            {blogSaving
-                              ? "Saving..."
-                              : blogDraft.id
-                                ? "Update"
-                                : "Create"}
-                          </button>
-                        </div>
-                      </div>
-
-                      {blogDraft.cover_image_url && (
-                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                          <img
-                            src={blogDraft.cover_image_url}
-                            alt="Cover"
-                            className="w-full h-48 object-cover"
-                          />
-                        </div>
-                      )}
-
-                      <div data-color-mode="light">
-                        <MDEditor
-                          value={blogDraft.content_md}
-                          onChange={(val) =>
-                            setBlogDraft((p) => ({
-                              ...p,
-                              content_md: val || "",
-                            }))
-                          }
-                          height={420}
-                        />
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        1.0.0
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Page Footer */}
+            <div className="mt-8 py-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                © 2026 Ramana Dashboard. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -1448,7 +1506,7 @@ export default function AdminDashboard() {
                       {selectedProduct.category}
                     </span>
                     <span>Stock: {selectedProduct.stock}</span>
-                    <span>Rating: ⭐ {selectedProduct.rating}</span>
+                    <span>Rating: {selectedProduct.rating}</span>
                   </div>
                 </div>
                 <button
@@ -1557,7 +1615,7 @@ export default function AdminDashboard() {
                         </dt>
                         <dd className="text-gray-900 dark:text-white">
                           {new Date(
-                            selectedProduct.created_at,
+                            selectedProduct.created_at as string,
                           ).toLocaleDateString()}
                         </dd>
                       </div>

@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Star,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -22,6 +23,7 @@ interface AdminSidebarProps {
     | "orders"
     | "customers"
     | "reviews"
+    | "blog"
     | "settings";
   onSectionChange: (
     section:
@@ -30,6 +32,7 @@ interface AdminSidebarProps {
       | "orders"
       | "customers"
       | "reviews"
+      | "blog"
       | "settings",
   ) => void;
 }
@@ -49,6 +52,7 @@ export default function AdminSidebar({
       | "orders"
       | "customers"
       | "reviews"
+      | "blog"
       | "settings";
     label: string;
     icon: any;
@@ -85,6 +89,12 @@ export default function AdminSidebar({
       description: "Review management",
     },
     {
+      id: "blog",
+      label: "Blog",
+      icon: FileText,
+      description: "Blog posts",
+    },
+    {
       id: "settings",
       label: "Settings",
       icon: Settings,
@@ -104,7 +114,14 @@ export default function AdminSidebar({
   };
 
   const handleSectionChange = (
-    section: "analytics" | "products" | "orders" | "customers" | "settings",
+    section:
+      | "analytics"
+      | "products"
+      | "orders"
+      | "customers"
+      | "reviews"
+      | "blog"
+      | "settings",
   ) => {
     onSectionChange(section);
     setIsMobileMenuOpen(false);
