@@ -26,6 +26,14 @@ import OrderViewModal from "@/components/orders/OrderViewModal";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import ReviewManager from "@/components/admin/ReviewManager";
 import type { Database } from "@/types/database.types";
+import { getCurrentAdmin } from "@/lib/supabase/auth";
+import dynamic from "next/dynamic";
+import {
+  generateBlogImagePath,
+  uploadImageToBucket,
+} from "@/lib/supabase/storage";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 interface Product {
   id: string;
@@ -81,6 +89,49 @@ export default function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
 
+  const [adminProfile, setAdminProfile] = useState<{
+    user: { id: string; email: string | null; created_at?: string };
+    admin: {
+      id: string;
+      email: string;
+      role: string;
+      created_at: string | null;
+    };
+  } | null>(null);
+
+  type BlogDraft = {
+    id?: string;
+    title: string;
+    slug: string;
+    excerpt: string;
+    content_md: string;
+    cover_image_url: string;
+    published: boolean;
+  };
+
+  type BlogRow = {
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    content_md: string;
+    cover_image_url: string | null;
+    published: boolean;
+    created_at: string | null;
+    updated_at: string | null;
+  };
+
+  const [blogs, setBlogs] = useState<BlogRow[]>([]);
+  const [blogDraft, setBlogDraft] = useState<BlogDraft>({
+    title: "",
+    slug: "",
+    excerpt: "",
+    content_md: "",
+    cover_image_url: "",
+    published: false,
+  });
+  const [blogSaving, setBlogSaving] = useState(false);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -92,6 +143,117 @@ export default function AdminDashboard() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeSection !== "settings") return;
+    const loadSettings = async () => {
+      const current = await getCurrentAdmin();
+      if (current) {
+        setAdminProfile({
+          user: {
+            id: current.user.id,
+            email: current.user.email ?? null,
+            created_at: (current.user as any).created_at,
+          },
+          admin: current.admin,
+        });
+      } else {
+        setAdminProfile(null);
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("blogs" as any)
+          .select(
+            "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
+          )
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setBlogs((data as any) || []);
+      } catch (e: any) {
+        // blogs table may not exist yet; keep UI but show toast
+        toast.error(e?.message || "Failed to load blogs");
+        setBlogs([]);
+      }
+    };
+    loadSettings();
+  }, [activeSection]);
+
+  const uploadBlogCover = async (file: File) => {
+    const blogId = blogDraft.id || "draft";
+    const path = generateBlogImagePath(blogId, file.name, "cover");
+    const url = await uploadImageToBucket("blog-images", file, path);
+    setBlogDraft((prev) => ({ ...prev, cover_image_url: url }));
+  };
+
+  const insertInlineImage = async (file: File) => {
+    const blogId = blogDraft.id || "draft";
+    const path = generateBlogImagePath(blogId, file.name, "inline");
+    const url = await uploadImageToBucket("blog-images", file, path);
+    setBlogDraft((prev) => ({
+      ...prev,
+      content_md: `${prev.content_md}\n\n![](${url})\n`,
+    }));
+  };
+
+  const handleSaveBlog = async () => {
+    if (!blogDraft.title.trim() || !blogDraft.slug.trim()) {
+      toast.error("Title and slug are required");
+      return;
+    }
+
+    setBlogSaving(true);
+    try {
+      const payload = {
+        title: blogDraft.title.trim(),
+        slug: blogDraft.slug.trim(),
+        excerpt: blogDraft.excerpt.trim() || null,
+        content_md: blogDraft.content_md || "",
+        cover_image_url: blogDraft.cover_image_url || null,
+        published: blogDraft.published,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (blogDraft.id) {
+        const { error } = await (supabase as any)
+          .from("blogs")
+          .update(payload)
+          .eq("id", blogDraft.id);
+        if (error) throw error;
+        toast.success("Blog updated");
+      } else {
+        const { error } = await (supabase as any).from("blogs").insert({
+          ...payload,
+          created_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+        toast.success("Blog created");
+      }
+
+      const { data, error: reloadError } = await (supabase as any)
+        .from("blogs")
+        .select(
+          "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
+        )
+        .order("created_at", { ascending: false });
+      if (reloadError) throw reloadError;
+      setBlogs(data || []);
+
+      setBlogDraft({
+        title: "",
+        slug: "",
+        excerpt: "",
+        content_md: "",
+        cover_image_url: "",
+        published: false,
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save blog");
+    } finally {
+      setBlogSaving(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -996,14 +1158,267 @@ export default function AdminDashboard() {
             {activeSection === "reviews" && <ReviewManager />}
 
             {activeSection === "settings" && (
-              <div className="text-center py-12">
-                <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Settings
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  System settings coming soon
-                </p>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                    Settings
+                  </h2>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+                    Admin Details
+                  </h3>
+                  {adminProfile ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Email
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {adminProfile.admin.email}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Role
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {adminProfile.admin.role}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Admin ID
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                          {adminProfile.admin.id}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Created
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {adminProfile.admin.created_at
+                            ? new Date(
+                                adminProfile.admin.created_at,
+                              ).toLocaleString()
+                            : "-"}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Not logged in as admin.
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                      Blog
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                        Existing posts
+                      </div>
+                      <div className="space-y-2 max-h-[420px] overflow-y-auto">
+                        {blogs.length === 0 ? (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            No posts yet.
+                          </div>
+                        ) : (
+                          blogs.map((b) => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() =>
+                                setBlogDraft({
+                                  id: b.id,
+                                  title: b.title,
+                                  slug: b.slug,
+                                  excerpt: b.excerpt || "",
+                                  content_md: b.content_md || "",
+                                  cover_image_url: b.cover_image_url || "",
+                                  published: !!b.published,
+                                })
+                              }
+                              className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {b.title}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                /{b.slug}
+                              </div>
+                              <div className="text-xs mt-1">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full ${
+                                    b.published
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                  }`}
+                                >
+                                  {b.published ? "Published" : "Draft"}
+                                </span>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-2 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Title
+                          </label>
+                          <input
+                            value={blogDraft.title}
+                            onChange={(e) =>
+                              setBlogDraft((p) => ({
+                                ...p,
+                                title: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Slug
+                          </label>
+                          <input
+                            value={blogDraft.slug}
+                            onChange={(e) =>
+                              setBlogDraft((p) => ({
+                                ...p,
+                                slug: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Excerpt
+                        </label>
+                        <textarea
+                          value={blogDraft.excerpt}
+                          onChange={(e) =>
+                            setBlogDraft((p) => ({
+                              ...p,
+                              excerpt: e.target.value,
+                            }))
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                          <label className="text-sm text-gray-700 dark:text-gray-300">
+                            <input
+                              type="checkbox"
+                              checked={blogDraft.published}
+                              onChange={(e) =>
+                                setBlogDraft((p) => ({
+                                  ...p,
+                                  published: e.target.checked,
+                                }))
+                              }
+                              className="mr-2"
+                            />
+                            Published
+                          </label>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <label className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer">
+                            Upload cover
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file)
+                                  uploadBlogCover(file).catch((err) =>
+                                    toast.error(
+                                      err?.message || "Cover upload failed",
+                                    ),
+                                  );
+                              }}
+                            />
+                          </label>
+
+                          <label className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer">
+                            Insert image
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file)
+                                  insertInlineImage(file).catch((err) =>
+                                    toast.error(
+                                      err?.message || "Image upload failed",
+                                    ),
+                                  );
+                              }}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={handleSaveBlog}
+                            disabled={blogSaving}
+                            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-60"
+                          >
+                            {blogSaving
+                              ? "Saving..."
+                              : blogDraft.id
+                                ? "Update"
+                                : "Create"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {blogDraft.cover_image_url && (
+                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                          <img
+                            src={blogDraft.cover_image_url}
+                            alt="Cover"
+                            className="w-full h-48 object-cover"
+                          />
+                        </div>
+                      )}
+
+                      <div data-color-mode="light">
+                        <MDEditor
+                          value={blogDraft.content_md}
+                          onChange={(val) =>
+                            setBlogDraft((p) => ({
+                              ...p,
+                              content_md: val || "",
+                            }))
+                          }
+                          height={420}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
