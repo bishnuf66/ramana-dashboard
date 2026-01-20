@@ -1223,6 +1223,12 @@ export default function AdminDashboard() {
                           </div>
                           <div className="flex gap-2">
                             <Link
+                              href={`/blog/${post.id}`}
+                              className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+                            >
+                              View
+                            </Link>
+                            <Link
                               href={`/blog/${post.id}/edit`}
                               className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
