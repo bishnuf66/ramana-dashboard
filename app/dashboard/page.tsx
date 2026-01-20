@@ -30,7 +30,7 @@ import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
 import {
   generateBlogImagePath,
-  uploadImageToBucket,
+  uploadImageToBucketAdmin,
 } from "@/lib/supabase/storage";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
@@ -201,14 +201,14 @@ export default function AdminDashboard() {
   const uploadBlogCover = async (file: File) => {
     const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "cover");
-    const url = await uploadImageToBucket("blog-images", file, path);
+    const url = await uploadImageToBucketAdmin("blog-images", file, path);
     setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
   };
 
   const insertInlineImage = async (file: File) => {
     const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "inline");
-    const url = await uploadImageToBucket("blog-images", file, path);
+    const url = await uploadImageToBucketAdmin("blog-images", file, path);
     setBlogForm((prev) => ({
       ...prev,
       content_md: `${prev.content_md}\n\n![](${url})\n`,

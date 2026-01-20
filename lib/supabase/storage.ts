@@ -1,9 +1,11 @@
 "use client";
 
 import { supabase } from "./client";
+import { createAdminClient } from "./server";
 
 const BUCKET_NAME = "product-images";
 
+// Client-side upload (for regular users)
 export const uploadImageToBucket = async (
   bucket: string,
   file: File,
@@ -23,6 +25,32 @@ export const uploadImageToBucket = async (
   const {
     data: { publicUrl },
   } = supabase.storage.from(bucket).getPublicUrl(data.path);
+
+  return publicUrl;
+};
+
+// Service role upload (for admin operations)
+export const uploadImageToBucketAdmin = async (
+  bucket: string,
+  file: File,
+  path: string,
+): Promise<string> => {
+  const supabaseAdmin = await createAdminClient();
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(bucket)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
 
   return publicUrl;
 };
