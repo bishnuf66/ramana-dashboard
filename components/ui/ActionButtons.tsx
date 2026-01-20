@@ -68,10 +68,10 @@ export default function ActionButtons({
   const handleView = () => {
     if (onView) {
       onView(id);
-    } else {
-      // Navigate to view route
-      window.location.href = getRoute("view");
+      return; // Don't navigate if onView callback is provided
     }
+    // Navigate to view route only if no onView callback
+    window.location.href = getRoute("view");
   };
 
   const handleEdit = () => {
@@ -109,7 +109,7 @@ export default function ActionButtons({
           </Link>
         ) : (
           <button
-            onClick={() => (window.location.href = getRoute("view"))}
+            onClick={handleView}
             className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1"
             title="View"
           >

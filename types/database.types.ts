@@ -74,6 +74,33 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          picture: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          picture?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          picture?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
@@ -174,7 +201,7 @@ export type Database = {
       }
       products: {
         Row: {
-          category: string
+          category_id: string | null
           cover_image: string | null
           created_at: string | null
           description: string | null
@@ -189,7 +216,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          category: string
+          category_id?: string | null
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
@@ -204,7 +231,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          category?: string
+          category_id?: string | null
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
@@ -218,7 +245,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_cart: {
         Row: {

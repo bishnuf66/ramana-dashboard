@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: cookieStore,
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      },
+    );
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
     const sortBy = searchParams.get("sortBy") || "newest";
@@ -190,7 +202,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Use service role key to bypass RLS for admin moderation.
-    const admin = createAdminClient();
+    const admin = await createAdminClient();
 
     const { data, error } = await admin
       .from("product_reviews")
@@ -222,7 +234,18 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: cookieStore,
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      },
+    );
     const body = await request.json();
 
     const { productId, userId, rating, title, content } = body;
@@ -332,7 +355,18 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: cookieStore,
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      },
+    );
     const body = await request.json();
     const { reviewId, userId, rating, title, content } = body;
 
@@ -423,7 +457,18 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: cookieStore,
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      },
+    );
     const { searchParams } = new URL(request.url);
     const reviewId = searchParams.get("reviewId");
     const userId = searchParams.get("userId");

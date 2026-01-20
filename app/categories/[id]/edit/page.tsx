@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
@@ -16,7 +16,7 @@ export default function EditCategoryPage() {
   );
 
   // Load existing category data
-  const loadCategory = async () => {
+  const loadCategory = useCallback(async () => {
     try {
       const { data, error } = await (supabase as any)
         .from("categories")
@@ -34,11 +34,11 @@ export default function EditCategoryPage() {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [categoryId]);
 
   useEffect(() => {
     loadCategory();
-  }, [categoryId]);
+  }, [categoryId, loadCategory]);
 
   if (initialLoading) {
     return (
@@ -58,7 +58,8 @@ export default function EditCategoryPage() {
             Category Not Found
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            The category you're looking for doesn't exist or has been deleted.
+            The category you&apos;re looking for doesn&apos;t exist or has been
+            deleted.
           </p>
         </div>
       </div>

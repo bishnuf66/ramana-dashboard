@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
@@ -28,7 +28,7 @@ export default function EditBlogPage() {
   );
 
   // Load existing blog data
-  const loadBlog = async () => {
+  const loadBlog = useCallback(async () => {
     try {
       const { data, error } = await (supabase as any)
         .from("blogs")
@@ -46,11 +46,11 @@ export default function EditBlogPage() {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [blogId]);
 
   useEffect(() => {
     loadBlog();
-  }, [blogId]);
+  }, [blogId, loadBlog]);
 
   if (initialLoading) {
     return (
@@ -70,7 +70,8 @@ export default function EditBlogPage() {
             Blog Post Not Found
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            The blog post you're looking for doesn't exist or has been deleted.
+            The blog post you&apos;re looking for doesn&apos;t exist or has been
+            deleted.
           </p>
         </div>
       </div>

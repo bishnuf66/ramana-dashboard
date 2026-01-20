@@ -94,13 +94,15 @@ function OrderTable({
                     {new Date(order.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <ActionButtons
-                      id={order.id}
-                      type="order"
-                      onView={() => (onViewOrder ? onViewOrder(order) : null)}
-                      showEdit={false}
-                      showDelete={false}
-                    />
+                    {onViewOrder && (
+                      <ActionButtons
+                        id={order.id}
+                        type="order"
+                        onView={() => onViewOrder(order)}
+                        showEdit={false}
+                        showDelete={false}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -163,13 +165,15 @@ function OrderTable({
                     <option value="cancelled">Cancelled</option>
                   </select>
 
-                  <ActionButtons
-                    id={order.id}
-                    type="order"
-                    onView={() => (onViewOrder ? onViewOrder(order) : null)}
-                    showEdit={false}
-                    showDelete={false}
-                  />
+                  {onViewOrder && (
+                    <ActionButtons
+                      id={order.id}
+                      type="order"
+                      onView={() => onViewOrder(order)}
+                      showEdit={false}
+                      showDelete={false}
+                    />
+                  )}
                 </div>
               </div>
             ))}

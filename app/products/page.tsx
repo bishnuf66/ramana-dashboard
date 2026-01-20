@@ -89,7 +89,7 @@ const ProductsPage = () => {
     return Array.from(set);
   }, [products]);
 
-  const handleDeleteProduct = (product: AdminProduct) => {
+  const handleDeleteProduct = (product: DbProduct) => {
     setProductToDelete(product);
     setShowDeleteModal(true);
   };
