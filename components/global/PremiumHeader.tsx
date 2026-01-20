@@ -2,16 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
-import {
-  Menu,
-  X,
-  User,
-  ChevronDown,
-  Bell,
-  ShoppingBag,
-  Heart,
-  Search,
-} from "lucide-react";
+import { Menu, X, User, ChevronDown, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
@@ -25,18 +16,9 @@ export default function PremiumHeader() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cartItems, setCartItems] = useState(0);
-  const [wishlistItems, setWishlistItems] = useState(0);
-
-  useLayoutEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,31 +71,6 @@ export default function PremiumHeader() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load cart and wishlist items
-  useEffect(() => {
-    const loadCartItems = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartItems(cart.length);
-    };
-
-    const loadWishlistItems = () => {
-      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
-      setWishlistItems(wishlist.length);
-    };
-
-    loadCartItems();
-    loadWishlistItems();
-
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      loadCartItems();
-      loadWishlistItems();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
   const handleLogout = async () => {
     try {
       await signOut();
@@ -124,20 +81,9 @@ export default function PremiumHeader() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery("");
-    }
-  };
-
   const navigationItems = [
     { href: "/", label: "Home", icon: null },
     { href: "/products", label: "Products", icon: null },
-    { href: "/about", label: "About", icon: null },
-    { href: "/contact", label: "Contact", icon: null },
   ];
 
   return (
@@ -194,65 +140,6 @@ export default function PremiumHeader() {
             {/* Actions */}
             <div className="flex items-center gap-3">
               {/* Search */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-
-                <AnimatePresence>
-                  {isSearchOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-                    >
-                      <form onSubmit={handleSearch} className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Search className="w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
-                            placeholder="Search products..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-500"
-                            autoFocus
-                          />
-                        </div>
-                      </form>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Wishlist */}
-              <Link
-                href="/wishlist"
-                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-              >
-                <Heart className="w-5 h-5" />
-                {wishlistItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {wishlistItems > 99 ? "99+" : wishlistItems}
-                  </span>
-                )}
-              </Link>
-
-              {/* Cart */}
-              <Link
-                href="/cart"
-                className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                {cartItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
-                    {cartItems > 99 ? "99+" : cartItems}
-                  </span>
-                )}
-              </Link>
 
               {/* Theme Toggle */}
               <ThemeToggle />
@@ -425,34 +312,6 @@ export default function PremiumHeader() {
                     {item.label}
                   </Link>
                 ))}
-
-                {/* Mobile Actions */}
-                <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <Link
-                    href="/wishlist"
-                    className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Heart className="w-5 h-5" />
-                    {wishlistItems > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {wishlistItems}
-                      </span>
-                    )}
-                  </Link>
-                  <Link
-                    href="/cart"
-                    className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <ShoppingBag className="w-5 h-5" />
-                    {cartItems > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
-                        {cartItems}
-                      </span>
-                    )}
-                  </Link>
-                </div>
 
                 {/* Mobile Profile/Login */}
                 {user ? (
