@@ -1,6 +1,6 @@
 {
-  "name": "small-shop",
-  "version": "0.0.0",
+  "name": "ramana-dashboard",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,9 +16,9 @@
     "@uiw/react-md-editor": "^4.0.11",
     "framer-motion": "^12.5.0",
     "lucide-react": "^0.482.0",
-    "next": "^15.1.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "next": "^16.1.4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.21.0",
-    "eslint-config-next": "^15.1.6",
+    "eslint-config-next": "^16.1.4",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2"

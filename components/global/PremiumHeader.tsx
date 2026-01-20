@@ -36,9 +36,9 @@ export default function PremiumHeader() {
       setUser(user);
 
       if (user) {
-        // Load user profile from auth.users
+        // Load user profile from admin_users
         const { data: profile } = await supabase
-          .from("auth.users")
+          .from("admin_users")
           .select("id, email, raw_user_meta_data, created_at")
           .eq("id", user.id)
           .single();

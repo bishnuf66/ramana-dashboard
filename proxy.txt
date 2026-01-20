@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   console.log("Middleware: Processing request for:", pathname);
@@ -31,21 +31,29 @@ export async function middleware(request: NextRequest) {
 
   // If trying to access protected route without auth, redirect to login
   if (isProtectedRoute) {
-    console.log("Middleware: Redirecting to login - no auth found");
-    const cookieStore = await cookies();
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: cookieStore,
-      },
-    );
+    console.log("Middleware: Checking auth for protected route");
+    try {
+      const cookieStore = await cookies();
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: cookieStore,
+        },
+      );
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (!session) {
+      if (!session) {
+        console.log("Middleware: No session, redirecting to login");
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("redirect", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    } catch (error) {
+      console.error("Middleware: Error checking session:", error);
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
@@ -54,22 +62,28 @@ export async function middleware(request: NextRequest) {
 
   // If authenticated user tries to access public routes (login/register), redirect to dashboard
   if (isPublicRoute) {
-    console.log("Middleware: User is authenticated, redirecting to dashboard");
-    const cookieStore = await cookies();
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: cookieStore,
-      },
-    );
+    console.log("Middleware: Checking if user is authenticated for public route");
+    try {
+      const cookieStore = await cookies();
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: cookieStore,
+        },
+      );
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (session) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      if (session) {
+        console.log("Middleware: User authenticated, redirecting to dashboard");
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    } catch (error) {
+      console.error("Middleware: Error checking session for public route:", error);
+      // If error, allow access to login
     }
   }
 

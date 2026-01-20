@@ -11,13 +11,40 @@ import { Suspense } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { admin, loading } = useAuth();
+  console.log("FROM LAYOUT", admin);
+  return (
+    <>
+      <FaviconSwitcher />
+      {admin && <PremiumHeader />}
+      <div className="flex pt-20 min-h-screen">
+        {admin && (
+          <Suspense
+            fallback={
+              <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
+            }
+          >
+            <AdminSidebar />
+          </Suspense>
+        )}
+        <main className="flex-1">{children}</main>
+      </div>
+      <PremiumFooter />
+      <FloatingContact />
+      <ToastContainer
+        theme="colored"
+        toastClassName="dark:bg-gray-800 dark:text-white"
+      />
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { admin, loading } = useAuth();
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -26,26 +53,7 @@ export default function RootLayout({
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
         <AuthProvider>
           <ThemeProvider>
-            <FaviconSwitcher />
-            {admin && <PremiumHeader />}
-            <div className="flex pt-20 min-h-screen">
-              {admin && (
-                <Suspense
-                  fallback={
-                    <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
-                  }
-                >
-                  <AdminSidebar />
-                </Suspense>
-              )}
-              <main className="flex-1">{children}</main>
-            </div>
-            <PremiumFooter />
-            <FloatingContact />
-            <ToastContainer
-              theme="colored"
-              toastClassName="dark:bg-gray-800 dark:text-white"
-            />
+            <LayoutContent>{children}</LayoutContent>
           </ThemeProvider>
         </AuthProvider>
       </body>

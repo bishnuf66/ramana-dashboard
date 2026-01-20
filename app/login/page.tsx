@@ -25,8 +25,8 @@ export default function AdminLoginPage() {
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
-    } finally {
       toast.error("Login failed");
+    } finally {
       setLoading(false);
     }
   };
@@ -39,9 +39,9 @@ export default function AdminLoginPage() {
       router.refresh();
       toast.success("Google login successful");
     } catch (error) {
+      toast.error("Google login failed");
       console.error("Google login error:", error);
     } finally {
-      toast.error("Google login failed");
       setLoading(false);
     }
   };

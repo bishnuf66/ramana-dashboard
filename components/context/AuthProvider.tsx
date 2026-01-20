@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Listen for auth changes (middleware handles initial auth)
   useEffect(() => {
     const {
       data: { subscription },
@@ -36,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "AuthProvider: Auth state changed:",
         session?.user ? "authenticated" : "not authenticated",
       );
+
       if (session?.user) {
         // Check if user is admin
         const checkAdmin = async () => {
