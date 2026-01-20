@@ -25,6 +25,7 @@ import ActionButtons from "@/components/ui/ActionButtons";
 import BlogList from "@/components/blog/BlogList";
 import CategoryList from "@/components/categories/CategoryList";
 import type { Database } from "@/types/database.types";
+import type { Category } from "@/types/category";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
@@ -41,7 +42,13 @@ interface Product {
   cover_image: string;
   gallery_images: string[] | null;
   rating: number;
-  category: "flowers" | "accessories" | "fruits";
+  category_id: string | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    picture?: string | null;
+  } | null;
   stock: number;
   created_at: string;
 }
@@ -88,6 +95,7 @@ export default function AdminDashboard() {
       | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -145,7 +153,7 @@ export default function AdminDashboard() {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchProducts(), fetchOrders()]);
+        await Promise.all([fetchProducts(), fetchOrders(), fetchCategories()]);
       } finally {
         setLoading(false);
       }
@@ -331,13 +339,32 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          category:categories(id, name, slug, picture)
+        `,
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
       toast.error("Failed to fetch products: " + error.message);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      toast.error("Failed to fetch categories: " + error.message);
     }
   };
 
@@ -958,7 +985,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                {product.category}
+                                {product.category?.name || "Uncategorized"}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -1014,7 +1041,7 @@ export default function AdminDashboard() {
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                  {product.category}
+                                  {product.category?.name || "Uncategorized"}
                                 </span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                   Stock: {product.stock}
@@ -1283,7 +1310,7 @@ export default function AdminDashboard() {
                   </h2>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs sm:text-sm">
-                      {selectedProduct.category}
+                      {selectedProduct.category?.name || "Uncategorized"}
                     </span>
                     <span>Stock: {selectedProduct.stock}</span>
                     <span>Rating: {selectedProduct.rating}</span>
