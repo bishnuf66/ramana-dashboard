@@ -12,6 +12,7 @@ import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
+import type { Category } from "@/types/category";
 
 interface Product {
   id: string;
@@ -22,7 +23,13 @@ interface Product {
   cover_image: string;
   gallery_images: { url: string; title: string }[] | null;
   rating: number;
-  category: "flowers" | "accessories" | "fruits";
+  category_id: string | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    picture?: string | null;
+  } | null;
   stock: number;
   created_at: string;
   updated_at: string;
@@ -45,6 +52,7 @@ export default function EditProductPage() {
   const [removedGalleryImages, setRemovedGalleryImages] = useState<string[]>(
     [],
   );
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -52,15 +60,35 @@ export default function EditProductPage() {
     price: "",
     discount_price: "",
     rating: "5",
-    category: "flowers" as "flowers" | "accessories" | "fruits",
+    category_id: "",
     stock: "",
   });
 
   useEffect(() => {
-    const loadProduct = async () => {
+    const loadData = async () => {
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await (
+        supabase as any
+      )
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (categoriesError) {
+        console.error("Failed to fetch categories:", categoriesError);
+      } else {
+        setCategories(categoriesData || []);
+      }
+
+      // Fetch product with category
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          category:categories(id, name, slug, picture)
+        `,
+        )
         .eq("id", params.id)
         .single();
 
@@ -80,7 +108,7 @@ export default function EditProductPage() {
         price: productData.price.toString(),
         discount_price: productData.discount_price?.toString() || "",
         rating: productData.rating.toString(),
-        category: productData.category,
+        category_id: productData.category_id || "",
         stock: productData.stock.toString(),
       });
 
@@ -92,7 +120,7 @@ export default function EditProductPage() {
       setLoading(false);
     };
 
-    loadProduct();
+    loadData();
   }, [params.id, router]);
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,7 +221,7 @@ export default function EditProductPage() {
       setUploading(false);
 
       // Update product
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("products")
         .update({
           title: formData.title,
@@ -206,7 +234,7 @@ export default function EditProductPage() {
           gallery_images:
             finalGalleryImages.length > 0 ? finalGalleryImages : null,
           rating: parseFloat(formData.rating),
-          category: formData.category,
+          category_id: formData.category_id || null,
           stock: parseInt(formData.stock) || 0,
           updated_at: new Date().toISOString(),
         })
@@ -272,22 +300,24 @@ export default function EditProductPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                Category *
+                Category
               </label>
               <select
-                value={formData.category}
+                value={formData.category_id}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    category: e.target.value as any,
+                    category_id: e.target.value,
                   })
                 }
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                required
               >
-                <option value="flowers">Flowers</option>
-                <option value="accessories">Accessories</option>
-                <option value="fruits">Fruits</option>
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </div>
 

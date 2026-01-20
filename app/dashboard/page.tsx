@@ -1397,7 +1397,7 @@ export default function AdminDashboard() {
                           Category:
                         </dt>
                         <dd className="text-gray-900 dark:text-white capitalize">
-                          {selectedProduct.category}
+                          {selectedProduct.category?.name || "Uncategorized"}
                         </dd>
                       </div>
                       <div className="flex justify-between">

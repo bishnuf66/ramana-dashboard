@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage, generateImagePath } from "@/lib/supabase/storage";
@@ -8,6 +8,7 @@ import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
+import type { Category } from "@/types/category";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function NewProductPage() {
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [galleryTitles, setGalleryTitles] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -25,9 +27,28 @@ export default function NewProductPage() {
     price: "",
     discount_price: "",
     rating: "5",
-    category: "flowers" as "flowers" | "accessories" | "fruits",
+    category_id: "",
     stock: "",
   });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from("categories")
+          .select("*")
+          .order("name", { ascending: true });
+
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error: any) {
+        console.error("Failed to fetch categories:", error);
+        toast.error("Failed to load categories");
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -100,7 +121,7 @@ export default function NewProductPage() {
       setUploading(false);
 
       // Create product
-      const { error } = await supabase.from("products").insert([
+      const { error } = await (supabase as any).from("products").insert([
         {
           id: productId,
           title: formData.title,
@@ -118,7 +139,7 @@ export default function NewProductPage() {
                 }))
               : null,
           rating: parseFloat(formData.rating),
-          category: formData.category,
+          category_id: formData.category_id || null,
           stock: parseInt(formData.stock) || 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -171,22 +192,24 @@ export default function NewProductPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                Category *
+                Category
               </label>
               <select
-                value={formData.category}
+                value={formData.category_id}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    category: e.target.value as any,
+                    category_id: e.target.value,
                   })
                 }
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                required
               >
-                <option value="flowers">Flowers</option>
-                <option value="accessories">Accessories</option>
-                <option value="fruits">Fruits</option>
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </div>
 
