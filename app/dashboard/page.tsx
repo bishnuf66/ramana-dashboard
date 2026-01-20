@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import ReviewManager from "@/components/reviews/ReviewManager";
+import BlogList from "@/components/blog/BlogList";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
