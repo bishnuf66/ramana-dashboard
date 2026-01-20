@@ -35,7 +35,27 @@ export const uploadImageToBucketAdmin = async (
   file: File,
   path: string,
 ): Promise<string> => {
+  console.log("Starting admin upload to bucket:", bucket, "path:", path);
+
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  console.log(
+    "Environment check - URL:",
+    !!supabaseUrl,
+    "Service Key:",
+    !!serviceRoleKey,
+  );
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Missing environment variables");
+    throw new Error("Missing Supabase environment variables");
+  }
+
   const supabaseAdmin = await createAdminClient();
+
+  console.log("Created admin client, attempting upload...");
 
   const { data, error } = await supabaseAdmin.storage
     .from(bucket)
@@ -43,6 +63,8 @@ export const uploadImageToBucketAdmin = async (
       cacheControl: "3600",
       upsert: false,
     });
+
+  console.log("Upload result:", { data, error });
 
   if (error) {
     throw new Error(`Failed to upload image: ${error.message}`);
@@ -52,6 +74,7 @@ export const uploadImageToBucketAdmin = async (
     data: { publicUrl },
   } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
 
+  console.log("Generated public URL:", publicUrl);
   return publicUrl;
 };
 
@@ -61,8 +84,9 @@ export const uploadImageToBucketAdmin = async (
 export const uploadImage = async (
   file: File,
   path: string,
+  bucket: string = BUCKET_NAME,
 ): Promise<string> => {
-  return uploadImageToBucket(BUCKET_NAME, file, path);
+  return uploadImageToBucket(bucket, file, path);
 };
 
 /**

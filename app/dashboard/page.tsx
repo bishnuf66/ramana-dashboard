@@ -9,29 +9,22 @@ import {
   ShoppingCart,
   Users,
   DollarSign,
-  TrendingUp,
   Plus,
-  LogOut,
   Edit,
   Trash2,
   Eye,
   X,
-  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
-import AdminSidebar from "@/components/global/AdminSidebar";
 import ReviewManager from "@/components/reviews/ReviewManager";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
-import {
-  generateBlogImagePath,
-  uploadImageToBucketAdmin,
-} from "@/lib/supabase/storage";
+import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 const blogEditor = MDEditor;
@@ -201,14 +194,14 @@ export default function AdminDashboard() {
   const uploadBlogCover = async (file: File) => {
     const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "cover");
-    const url = await uploadImageToBucketAdmin("blog-images", file, path);
+    const url = await uploadImage(file, path, "blog-images");
     setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
   };
 
   const insertInlineImage = async (file: File) => {
     const blogId = editingBlogId || "draft";
     const path = generateBlogImagePath(blogId, file.name, "inline");
-    const url = await uploadImageToBucketAdmin("blog-images", file, path);
+    const url = await uploadImage(file, path, "blog-images");
     setBlogForm((prev) => ({
       ...prev,
       content_md: `${prev.content_md}\n\n![](${url})\n`,
@@ -438,23 +431,6 @@ export default function AdminDashboard() {
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "processing":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "shipped":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-      case "delivered":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
