@@ -1187,171 +1187,12 @@ export default function AdminDashboard() {
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                     Blog Manager
                   </h2>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-                    Create / Edit Blog Post
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        value={blogForm.title}
-                        onChange={(e) => {
-                          const title = e.target.value;
-                          const slug = title
-                            .toLowerCase()
-                            .replace(/[^a-z0-9\s-]/g, "")
-                            .replace(/\s+/g, "-")
-                            .replace(/-+/g, "-")
-                            .replace(/^-|-$/g, "");
-                          setBlogForm((f) => ({
-                            ...f,
-                            title: title,
-                            slug: blogForm.slug || slug,
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Blog post title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Slug
-                      </label>
-                      <input
-                        type="text"
-                        value={blogForm.slug}
-                        onChange={(e) =>
-                          setBlogForm((f) => ({ ...f, slug: e.target.value }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="blog-post-slug"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        URL-friendly version of the title (auto-generated from
-                        title)
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Created By
-                      </label>
-                      <input
-                        type="text"
-                        value={blogForm.created_by}
-                        onChange={(e) =>
-                          setBlogForm((f) => ({
-                            ...f,
-                            created_by: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Author name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Excerpt
-                      </label>
-                      <textarea
-                        value={blogForm.excerpt}
-                        onChange={(e) =>
-                          setBlogForm((f) => ({
-                            ...f,
-                            excerpt: e.target.value,
-                          }))
-                        }
-                        rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Brief excerpt"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Cover Image
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBlogCoverImageUpload}
-                        className="w-full text-sm text-gray-700 dark:text-gray-300"
-                      />
-                      {blogForm.cover_image_url && (
-                        <img
-                          src={blogForm.cover_image_url}
-                          alt="Cover"
-                          className="mt-2 h-32 w-auto object-cover rounded"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Content (Markdown)
-                      </label>
-                      <div className="mb-2">
-                        <button
-                          onClick={handleBlogInlineImageUpload}
-                          className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-                        >
-                          Insert Image
-                        </button>
-                      </div>
-                      {blogEditor &&
-                        React.createElement(blogEditor, {
-                          value: blogForm.content_md,
-                          onChange: (val: any) =>
-                            setBlogForm((f) => ({
-                              ...f,
-                              content_md: val || "",
-                            })),
-                          height: 400,
-                        })}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="published"
-                        checked={blogForm.published}
-                        onChange={(e) =>
-                          setBlogForm((f) => ({
-                            ...f,
-                            published: e.target.checked,
-                          }))
-                        }
-                        className="rounded"
-                      />
-                      <label
-                        htmlFor="published"
-                        className="text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        Published
-                      </label>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSaveBlog}
-                        disabled={blogSaving}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {blogSaving
-                          ? "Saving..."
-                          : editingBlogId
-                            ? "Update"
-                            : "Save"}
-                      </button>
-                      <button
-                        onClick={resetBlogForm}
-                        className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                  <Link
+                    href="/blog/new"
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                  >
+                    Create New Blog
+                  </Link>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
@@ -1381,12 +1222,12 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => startEditBlog(post)}
+                            <Link
+                              href={`/blog/${post.id}/edit`}
                               className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
                               Edit
-                            </button>
+                            </Link>
                             <button
                               onClick={() => handleDeleteBlog(post.id)}
                               className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
