@@ -130,8 +130,8 @@ export default function PremiumHeader() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </button>
 
-              {/* Profile / Login */}
-              {user ? (
+              {/* Profile  */}
+              {user && (
                 <div className="relative">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -239,22 +239,6 @@ export default function PremiumHeader() {
                     )}
                   </AnimatePresence>
                 </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/login"
-                    className="hidden md:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <User className="w-4 h-4" />
-                    Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="hidden md:flex items-center gap-2 px-6 py-2 border-2 border-green-600 text-green-600 dark:text-green-400 rounded-full font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
               )}
 
               {/* Mobile Menu Button */}
@@ -282,8 +266,8 @@ export default function PremiumHeader() {
               className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
             >
               <nav className="px-4 py-4 space-y-4">
-                {/* Mobile Profile/Login */}
-                {user ? (
+                {/* Mobile Profile */}
+                {user && (
                   <>
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                       <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -348,28 +332,6 @@ export default function PremiumHeader() {
                       </div>
                     </div>
                   </>
-                ) : (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => {
-                        router.push("/login");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg"
-                    >
-                      <User className="w-4 h-4" />
-                      Login
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push("/register");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 border-2 border-green-600 text-green-600 dark:text-green-400 rounded-full font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
                 )}
               </nav>
             </motion.div>

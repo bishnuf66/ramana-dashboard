@@ -1,4 +1,6 @@
+"use client";
 import { ThemeProvider } from "@/components/context/ThemeContext";
+import { AuthProvider, useAuth } from "@/components/context/AuthProvider";
 import PremiumHeader from "@/components/global/PremiumHeader";
 import AdminSidebar from "@/components/global/AdminSidebar";
 import PremiumFooter from "@/components/global/PremiumFooter";
@@ -14,32 +16,38 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { admin, loading } = useAuth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon-light.ico" type="image/x-icon" />
       </head>
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
-        <ThemeProvider>
-          <FaviconSwitcher />
-          <PremiumHeader />
-          <div className="flex pt-20 min-h-screen">
-            <Suspense
-              fallback={
-                <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
-              }
-            >
-              <AdminSidebar />
-            </Suspense>
-            <main className="flex-1">{children}</main>
-          </div>
-          <PremiumFooter />
-          <FloatingContact />
-          <ToastContainer
-            theme="colored"
-            toastClassName="dark:bg-gray-800 dark:text-white"
-          />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <FaviconSwitcher />
+            {admin && <PremiumHeader />}
+            <div className="flex pt-20 min-h-screen">
+              {admin && (
+                <Suspense
+                  fallback={
+                    <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
+                  }
+                >
+                  <AdminSidebar />
+                </Suspense>
+              )}
+              <main className="flex-1">{children}</main>
+            </div>
+            <PremiumFooter />
+            <FloatingContact />
+            <ToastContainer
+              theme="colored"
+              toastClassName="dark:bg-gray-800 dark:text-white"
+            />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

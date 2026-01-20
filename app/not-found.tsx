@@ -59,62 +59,12 @@ export default function NotFound() {
           className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
           <Link
-            href="/"
+            href="/dashboard"
             className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-rose-500 to-green-500 text-white font-medium rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300"
           >
             <Home className="w-5 h-5" />
-            Back to Home
+            Back Admin Dashboard
           </Link>
-
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-white text-gray-700 font-medium rounded-full border-2 border-gray-200 hover:border-rose-300 hover:shadow-md transform hover:scale-105 transition-all duration-300"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Admin Dashboard
-          </Link>
-
-          <Link
-            href="/cart"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-          >
-            <Search className="w-5 h-5" />
-            View Cart
-          </Link>
-        </motion.div>
-
-        {/* Helpful Suggestions */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-16 p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100"
-        >
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            Looking for something specific?
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div className="text-center p-3 bg-rose-50 rounded-lg">
-              <div className="text-rose-500 font-medium mb-1">
-                Fresh Flowers
-              </div>
-              <div className="text-gray-600">
-                Beautiful bouquets & arrangements
-              </div>
-            </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-green-500 font-medium mb-1">
-                Premium Fruits
-              </div>
-              <div className="text-gray-600">Fresh & seasonal selections</div>
-            </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <div className="text-purple-500 font-medium mb-1">
-                Accessories
-              </div>
-              <div className="text-gray-600">Vases & decorative items</div>
-            </div>
-          </div>
         </motion.div>
 
         {/* Floating Decorative Elements */}

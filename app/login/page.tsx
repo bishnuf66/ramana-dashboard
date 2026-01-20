@@ -20,11 +20,13 @@ export default function AdminLoginPage() {
 
     try {
       await signInAdmin(formData.email, formData.password);
+      toast.success("Login successful");
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
     } finally {
+      toast.error("Login failed");
       setLoading(false);
     }
   };
@@ -35,9 +37,11 @@ export default function AdminLoginPage() {
       await signInWithGoogle();
       router.push("/dashboard");
       router.refresh();
+      toast.success("Google login successful");
     } catch (error) {
       console.error("Google login error:", error);
     } finally {
+      toast.error("Google login failed");
       setLoading(false);
     }
   };
