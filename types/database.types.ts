@@ -44,7 +44,9 @@ export type Database = {
           excerpt: string | null
           id: string
           published: boolean
+          read_min: number | null
           slug: string
+          tags: string[] | null
           title: string
           updated_at: string
         }
@@ -56,7 +58,9 @@ export type Database = {
           excerpt?: string | null
           id?: string
           published?: boolean
+          read_min?: number | null
           slug: string
+          tags?: string[] | null
           title: string
           updated_at?: string
         }
@@ -68,7 +72,9 @@ export type Database = {
           excerpt?: string | null
           id?: string
           published?: boolean
+          read_min?: number | null
           slug?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
         }
@@ -109,6 +115,7 @@ export type Database = {
           customer_phone: string | null
           id: string
           items: Json
+          notes: string | null
           shipping_address: string
           status: string
           total_amount: number
@@ -121,6 +128,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           items: Json
+          notes?: string | null
           shipping_address: string
           status?: string
           total_amount: number
@@ -133,6 +141,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           items?: Json
+          notes?: string | null
           shipping_address?: string
           status?: string
           total_amount?: number
@@ -209,6 +218,7 @@ export type Database = {
           gallery_images: Json | null
           id: string
           image_url: string | null
+          is_featured: boolean
           price: number
           rating: number | null
           stock: number | null
@@ -224,6 +234,7 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean
           price: number
           rating?: number | null
           stock?: number | null
@@ -239,6 +250,7 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean
           price?: number
           rating?: number | null
           stock?: number | null

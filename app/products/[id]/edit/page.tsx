@@ -30,6 +30,7 @@ interface Product {
     picture?: string | null;
   } | null;
   stock: number;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +62,7 @@ export default function EditProductPage() {
     rating: "5",
     category_id: "",
     stock: "",
+    is_featured: false,
   });
 
   useEffect(() => {
@@ -109,6 +111,7 @@ export default function EditProductPage() {
         rating: productData.rating.toString(),
         category_id: productData.category_id || "",
         stock: productData.stock.toString(),
+        is_featured: productData.is_featured || false,
       });
 
       // Set gallery images
@@ -235,6 +238,7 @@ export default function EditProductPage() {
           rating: parseFloat(formData.rating),
           category_id: formData.category_id || null,
           stock: parseInt(formData.stock) || 0,
+          is_featured: formData.is_featured,
           updated_at: new Date().toISOString(),
         })
         .eq("id", product.id);
@@ -383,6 +387,24 @@ export default function EditProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_featured"
+                checked={formData.is_featured}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_featured: e.target.checked })
+                }
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+              />
+              <label
+                htmlFor="is_featured"
+                className="ml-2 block text-sm text-gray-700 dark:text-gray-200"
+              >
+                Featured Product
+              </label>
             </div>
           </div>
 

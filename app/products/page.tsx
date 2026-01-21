@@ -30,6 +30,7 @@ type DbProduct = {
   rating: number;
   category: string | null;
   stock: number;
+  is_featured: boolean;
   created_at: string;
 };
 
@@ -218,6 +219,9 @@ const ProductsPage = () => {
                   Rating
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Featured
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -282,6 +286,18 @@ const ProductsPage = () => {
                         {product.rating?.toFixed(1)}
                       </span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.is_featured ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <span className="text-yellow-500">★</span>
+                        Featured
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400 dark:text-gray-500">
+                        —
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
