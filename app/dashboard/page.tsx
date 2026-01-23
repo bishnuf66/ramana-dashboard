@@ -25,6 +25,7 @@ import ActionButtons from "@/components/ui/ActionButtons";
 import BlogList from "@/components/blog/BlogList";
 import CategoryList from "@/components/categories/CategoryList";
 import Support from "@/components/support/Support";
+import DiscountManager from "@/components/discounts/DiscountManager";
 import type { Database } from "@/types/database.types";
 import type { Category } from "@/types/category";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
@@ -94,8 +95,9 @@ function DashboardContent() {
       | "reviews"
       | "blog"
       | "categories"
-      | "settings"
-      | "support") || "analytics";
+      | "discounts"
+      | "support"
+      | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1196,6 +1198,8 @@ function DashboardContent() {
             )}
 
             {activeSection === "categories" && <CategoryList />}
+
+            {activeSection === "discounts" && <DiscountManager />}
 
             {activeSection === "support" && <Support />}
 
