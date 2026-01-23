@@ -9,6 +9,7 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import type { Category } from "@/types/category";
+import { generateSlug } from "@/lib/utils";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function NewProductPage() {
 
   const [formData, setFormData] = useState({
     title: "",
+    slug: "",
     description: "",
     price: "",
     discount_price: "",
@@ -127,6 +129,7 @@ export default function NewProductPage() {
         {
           id: productId,
           title: formData.title,
+          slug: formData.slug,
           description: formData.description || null,
           price: parseFloat(formData.price),
           discount_price: formData.discount_price
@@ -186,11 +189,29 @@ export default function NewProductPage() {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  setFormData({
+                    ...formData,
+                    title: newTitle,
+                    slug: generateSlug(newTitle),
+                  });
+                }}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Slug
+              </label>
+              <input
+                type="text"
+                value={formData.slug}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+                placeholder="Auto-generated from title"
               />
             </div>
 
