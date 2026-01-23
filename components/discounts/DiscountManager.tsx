@@ -24,6 +24,11 @@ import {
   type Coupon,
   type CouponProduct,
 } from "@/lib/discounts/DiscountService";
+import type { Database } from "@/types/database.types";
+
+type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
+type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 
 interface CouponFormData {
   code: string;
@@ -40,11 +45,11 @@ interface CouponFormData {
 }
 
 export default function DiscountManager() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [coupons, setCoupons] = useState<CouponRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [editingCoupon, setEditingCoupon] = useState<CouponRow | null>(null);
+  const [products, setProducts] = useState<ProductRow[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
@@ -102,13 +107,21 @@ export default function DiscountManager() {
 
     try {
       const submitData = {
-        ...formData,
         code: formData.code.toUpperCase(),
+        description: formData.description,
+        discount_type: formData.discount_type,
+        discount_value: formData.discount_value,
+        minimum_order_amount: formData.minimum_order_amount,
+        usage_limit: formData.usage_limit,
+        first_time_only: formData.first_time_only,
+        is_active: formData.is_active,
         expires_at: formData.expires_at || null,
+        is_product_specific: formData.is_product_specific,
+        product_inclusion_type: formData.product_inclusion_type,
       };
 
       if (editingCoupon) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("coupons")
           .update(submitData)
           .eq("id", editingCoupon.id);
@@ -118,17 +131,17 @@ export default function DiscountManager() {
         // Handle product associations if product-specific
         if (formData.is_product_specific) {
           // Get existing products for this coupon
-          const { data: existingProducts } = await supabase
+          const { data: existingProducts } = await (supabase as any)
             .from("coupon_products")
             .select("product_id")
             .eq("coupon_id", editingCoupon.id);
 
           const existingProductIds =
-            existingProducts?.map((p) => p.product_id) || [];
+            existingProducts?.map((p: any) => p.product_id) || [];
 
           // Remove products that are no longer selected
           const toRemove = existingProductIds.filter(
-            (id) => !selectedProducts.includes(id),
+            (id: string) => !selectedProducts.includes(id),
           );
           if (toRemove.length > 0) {
             await DiscountService.removeProductsFromCoupon(
@@ -139,7 +152,7 @@ export default function DiscountManager() {
 
           // Add newly selected products
           const toAdd = selectedProducts.filter(
-            (id) => !existingProductIds.includes(id),
+            (id: string) => !existingProductIds.includes(id),
           );
           if (toAdd.length > 0) {
             await DiscountService.addProductsToCoupon(editingCoupon.id, toAdd);
@@ -148,7 +161,7 @@ export default function DiscountManager() {
 
         toast.success("Coupon updated successfully");
       } else {
-        const { data: newCoupon, error } = await supabase
+        const { data: newCoupon, error } = await (supabase as any)
           .from("coupons")
           .insert(submitData)
           .select()
@@ -177,20 +190,24 @@ export default function DiscountManager() {
     }
   };
 
-  const handleEdit = async (coupon: Coupon) => {
+  const handleEdit = async (coupon: CouponRow) => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
-      description: coupon.description,
-      discount_type: coupon.discount_type,
+      description: coupon.description || "",
+      discount_type: coupon.discount_type as
+        | "percentage"
+        | "fixed_amount"
+        | "free_shipping",
       discount_value: coupon.discount_value,
-      minimum_order_amount: coupon.minimum_order_amount,
+      minimum_order_amount: coupon.minimum_order_amount || 0,
       usage_limit: coupon.usage_limit,
-      first_time_only: coupon.first_time_only,
-      is_active: coupon.is_active,
+      first_time_only: coupon.first_time_only || false,
+      is_active: coupon.is_active || false,
       expires_at: coupon.expires_at?.split("T")[0] || "",
       is_product_specific: coupon.is_product_specific || false,
-      product_inclusion_type: coupon.product_inclusion_type || "include",
+      product_inclusion_type:
+        (coupon.product_inclusion_type as "include" | "exclude") || "include",
     });
 
     // Load selected products if product-specific
@@ -249,9 +266,9 @@ export default function DiscountManager() {
     }
   };
 
-  const getUsagePercentage = (coupon: Coupon) => {
+  const getUsagePercentage = (coupon: CouponRow) => {
     if (!coupon.usage_limit) return 0;
-    return (coupon.usage_count / coupon.usage_limit) * 100;
+    return ((coupon.usage_count || 0) / coupon.usage_limit) * 100;
   };
 
   return (
@@ -396,11 +413,12 @@ export default function DiscountManager() {
                       {coupon.discount_type === "free_shipping" &&
                         "Free Shipping"}
                     </div>
-                    {coupon.minimum_order_amount > 0 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Min: ${coupon.minimum_order_amount}
-                      </div>
-                    )}
+                    {coupon.minimum_order_amount &&
+                      coupon.minimum_order_amount > 0 && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Min: ${coupon.minimum_order_amount}
+                        </div>
+                      )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col gap-1">

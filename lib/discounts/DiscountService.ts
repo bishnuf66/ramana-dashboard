@@ -41,7 +41,7 @@ export class DiscountService {
     productIds?: string[],
   ): Promise<CouponValidationResult> {
     try {
-      const { data, error } = await supabase.rpc("validate_coupon", {
+      const { data, error } = await (supabase as any).rpc("validate_coupon", {
         coupon_code: code,
         customer_email: customerEmail,
         order_total: orderTotal,
@@ -72,7 +72,7 @@ export class DiscountService {
   // Get products associated with a coupon
   static async getCouponProducts(couponId: string): Promise<CouponProduct[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("coupon_products")
         .select("*")
         .eq("coupon_id", couponId);
@@ -96,7 +96,7 @@ export class DiscountService {
         product_id: productId,
       }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("coupon_products")
         .insert(productsToAdd);
 
@@ -114,7 +114,7 @@ export class DiscountService {
     productIds: string[],
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("coupon_products")
         .delete()
         .eq("coupon_id", couponId)
@@ -135,7 +135,7 @@ export class DiscountService {
     productInclusionType: "include" | "exclude" = "include",
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("coupons")
         .update({
           is_product_specific: isProductSpecific,
@@ -158,11 +158,14 @@ export class DiscountService {
     productIds?: string[],
   ): Promise<Coupon[]> {
     try {
-      const { data, error } = await supabase.rpc("get_applicable_coupons", {
-        customer_email: customerEmail,
-        product_ids: productIds || null,
-        order_total: orderTotal,
-      });
+      const { data, error } = await (supabase as any).rpc(
+        "get_applicable_coupons",
+        {
+          customer_email: customerEmail,
+          product_ids: productIds || null,
+          order_total: orderTotal,
+        },
+      );
 
       if (error) throw error;
       return data || [];
@@ -180,7 +183,7 @@ export class DiscountService {
     discountAmount: number,
   ): Promise<boolean> {
     try {
-      const { error } = await supabase.rpc("apply_coupon_usage", {
+      const { error } = await (supabase as any).rpc("apply_coupon_usage", {
         coupon_id: couponId,
         customer_email: customerEmail,
         order_id: orderId,
@@ -198,7 +201,7 @@ export class DiscountService {
   // Get available coupons for display
   static async getAvailableCoupons(): Promise<Coupon[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("coupons")
         .select("*")
         .eq("is_active", true)
@@ -216,7 +219,7 @@ export class DiscountService {
   // Check if customer is first-time
   static async isFirstTimeCustomer(customerEmail: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("customer_discounts")
         .select("first_purchase_completed")
         .eq("customer_email", customerEmail)
@@ -237,7 +240,7 @@ export class DiscountService {
   // Get first-time customer coupons
   static async getFirstTimeCoupons(): Promise<Coupon[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("coupons")
         .select("*")
         .eq("is_active", true)
@@ -256,7 +259,7 @@ export class DiscountService {
   // Get product-specific coupons
   static async getProductSpecificCoupons(): Promise<Coupon[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("coupons")
         .select("*")
         .eq("is_active", true)
@@ -307,7 +310,7 @@ export class DiscountService {
   // Get coupon usage statistics
   static async getCouponStats() {
     try {
-      const { data: coupons, error: couponsError } = await supabase
+      const { data: coupons, error: couponsError } = await (supabase as any)
         .from("coupons")
         .select("id, usage_count, usage_limit, is_product_specific");
 
@@ -315,11 +318,11 @@ export class DiscountService {
 
       const totalCoupons = coupons?.length || 0;
       const activeCoupons =
-        coupons?.filter((c) => c.usage_count > 0).length || 0;
+        coupons?.filter((c: any) => c.usage_count > 0).length || 0;
       const productSpecificCoupons =
-        coupons?.filter((c) => c.is_product_specific).length || 0;
+        coupons?.filter((c: any) => c.is_product_specific).length || 0;
       const totalUsage =
-        coupons?.reduce((sum, c) => sum + c.usage_count, 0) || 0;
+        coupons?.reduce((sum: number, c: any) => sum + c.usage_count, 0) || 0;
 
       return {
         totalCoupons,
