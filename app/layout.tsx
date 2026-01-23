@@ -7,35 +7,92 @@ import PremiumFooter from "@/components/global/PremiumFooter";
 import FaviconSwitcher from "@/components/global/FaviconSwitcher";
 import { ToastContainer } from "react-toastify";
 import { Suspense } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { admin, loading } = useAuth();
-  console.log("FROM LAYOUT", admin);
-  return (
-    <>
-      <FaviconSwitcher />
-      {admin && <PremiumHeader />}
-      <div className="flex pt-20 min-h-screen">
-        {admin && (
-          <Suspense
-            fallback={
-              <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
-            }
-          >
-            <AdminSidebar />
-          </Suspense>
-        )}
-        <main className="flex-1">{children}</main>
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Route protection using same logic as header/sidebar
+  useEffect(() => {
+    // Allow access to login page without authentication
+    if (pathname === "/login" || pathname === "/auth/callback") {
+      return;
+    }
+
+    // If not loading and not admin, redirect to login
+    if (!loading && !admin) {
+      console.log("Route protection: Redirecting to login");
+      router.push("/login");
+      return;
+    }
+
+    // If admin is on login page, redirect to dashboard
+    if (!loading && admin && pathname === "/login") {
+      console.log(
+        "Route protection: Admin on login page, redirecting to dashboard",
+      );
+      router.push("/dashboard");
+      return;
+    }
+  }, [admin, loading, pathname, router]);
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
-      <PremiumFooter />
-      <ToastContainer
-        theme="colored"
-        toastClassName="dark:bg-gray-800 dark:text-white"
-      />
-    </>
-  );
+    );
+  }
+
+  // Show login page layout for unauthenticated users on login page
+  if (!admin && (pathname === "/login" || pathname === "/auth/callback")) {
+    return (
+      <>
+        <FaviconSwitcher />
+        <main className="flex-1">{children}</main>
+        <ToastContainer
+          theme="colored"
+          toastClassName="dark:bg-gray-800 dark:text-white"
+        />
+      </>
+    );
+  }
+
+  // Show full admin layout for authenticated users
+  if (admin) {
+    return (
+      <>
+        <FaviconSwitcher />
+        {admin && <PremiumHeader />}
+        <div className="flex pt-20 min-h-screen">
+          {admin && (
+            <Suspense
+              fallback={
+                <div className="w-64 bg-white dark:bg-gray-800 animate-pulse"></div>
+              }
+            >
+              <AdminSidebar />
+            </Suspense>
+          )}
+          <main className="flex-1">{children}</main>
+        </div>
+        <PremiumFooter />
+        <ToastContainer
+          theme="colored"
+          toastClassName="dark:bg-gray-800 dark:text-white"
+        />
+      </>
+    );
+  }
+
+  // Fallback (shouldn't reach here due to redirect above)
+  return null;
 }
 
 export default function RootLayout({
