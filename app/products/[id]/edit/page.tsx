@@ -31,6 +31,7 @@ interface Product {
   } | null;
   stock: number;
   is_featured: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +64,7 @@ export default function EditProductPage() {
     category_id: "",
     stock: "",
     is_featured: false,
+    is_active: true,
   });
 
   useEffect(() => {
@@ -112,6 +114,8 @@ export default function EditProductPage() {
         category_id: productData.category_id || "",
         stock: productData.stock.toString(),
         is_featured: productData.is_featured || false,
+        is_active:
+          productData.is_active !== undefined ? productData.is_active : true,
       });
 
       // Set gallery images
@@ -239,6 +243,7 @@ export default function EditProductPage() {
           category_id: formData.category_id || null,
           stock: parseInt(formData.stock) || 0,
           is_featured: formData.is_featured,
+          is_active: formData.is_active,
           updated_at: new Date().toISOString(),
         })
         .eq("id", product.id);
@@ -404,6 +409,24 @@ export default function EditProductPage() {
                 className="ml-2 block text-sm text-gray-700 dark:text-gray-200"
               >
                 Featured Product
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_active: e.target.checked })
+                }
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+              />
+              <label
+                htmlFor="is_active"
+                className="ml-2 block text-sm text-gray-700 dark:text-gray-200"
+              >
+                Active Product
               </label>
             </div>
           </div>
