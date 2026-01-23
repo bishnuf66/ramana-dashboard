@@ -154,8 +154,8 @@ export class DiscountService {
   // Get applicable coupons for a cart
   static async getApplicableCoupons(
     customerEmail: string,
-    productIds?: string[],
     orderTotal: number,
+    productIds?: string[],
   ): Promise<Coupon[]> {
     try {
       const { data, error } = await supabase.rpc("get_applicable_coupons", {

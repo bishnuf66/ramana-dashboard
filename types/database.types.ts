@@ -107,6 +107,207 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      coupon_products: {
+        Row: {
+          coupon_id: string | null
+          created_at: string | null
+          id: string
+          product_id: string | null
+        }
+        Insert: {
+          coupon_id?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+        }
+        Update: {
+          coupon_id?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_products_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_usage: {
+        Row: {
+          coupon_id: string | null
+          customer_email: string
+          discount_amount: number
+          id: string
+          order_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          coupon_id?: string | null
+          customer_email: string
+          discount_amount: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          coupon_id?: string | null
+          customer_email?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          first_time_only: boolean | null
+          id: string
+          is_active: boolean | null
+          is_product_specific: boolean | null
+          minimum_order_amount: number | null
+          product_inclusion_type: string | null
+          starts_at: string | null
+          updated_at: string | null
+          usage_count: number | null
+          usage_limit: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          first_time_only?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_product_specific?: boolean | null
+          minimum_order_amount?: number | null
+          product_inclusion_type?: string | null
+          starts_at?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          first_time_only?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_product_specific?: boolean | null
+          minimum_order_amount?: number | null
+          product_inclusion_type?: string | null
+          starts_at?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
+      customer_discounts: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          first_purchase_completed: boolean | null
+          first_purchase_discount_applied: boolean | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          first_purchase_completed?: boolean | null
+          first_purchase_discount_applied?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          first_purchase_completed?: boolean | null
+          first_purchase_discount_applied?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
@@ -218,9 +419,11 @@ export type Database = {
           gallery_images: Json | null
           id: string
           image_url: string | null
+          is_active: boolean
           is_featured: boolean
           price: number
           rating: number | null
+          slug: string | null
           stock: number | null
           title: string
           updated_at: string | null
@@ -234,9 +437,11 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_featured?: boolean
           price: number
           rating?: number | null
+          slug?: string | null
           stock?: number | null
           title: string
           updated_at?: string | null
@@ -250,9 +455,11 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_featured?: boolean
           price?: number
           rating?: number | null
+          slug?: string | null
           stock?: number | null
           title?: string
           updated_at?: string | null
@@ -308,7 +515,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_coupon_usage: {
+        Args: {
+          coupon_id: string
+          customer_email: string
+          discount_amount: number
+          order_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      validate_coupon:
+        | {
+            Args: {
+              coupon_code: string
+              customer_email: string
+              order_total: number
+            }
+            Returns: {
+              coupon_id: string
+              discount_amount: number
+              message: string
+              valid: boolean
+            }[]
+          }
+        | {
+            Args: {
+              coupon_code: string
+              customer_email: string
+              order_total: number
+              product_ids?: string[]
+            }
+            Returns: {
+              applicable_products: string[]
+              coupon_id: string
+              discount_amount: number
+              message: string
+              valid: boolean
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never

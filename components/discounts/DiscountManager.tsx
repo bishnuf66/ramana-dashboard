@@ -35,6 +35,8 @@ interface CouponFormData {
   first_time_only: boolean;
   is_active: boolean;
   expires_at: string;
+  is_product_specific: boolean;
+  product_inclusion_type: "include" | "exclude";
 }
 
 export default function DiscountManager() {
@@ -42,6 +44,8 @@ export default function DiscountManager() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
     description: "",
@@ -52,11 +56,29 @@ export default function DiscountManager() {
     first_time_only: false,
     is_active: true,
     expires_at: "",
+    is_product_specific: false,
+    product_inclusion_type: "include",
   });
 
   useEffect(() => {
     fetchCoupons();
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, title, price")
+        .eq("is_active", true)
+        .order("title");
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error: any) {
+      console.error("Failed to fetch products:", error);
+    }
+  };
 
   const fetchCoupons = async () => {
     try {
@@ -92,11 +114,56 @@ export default function DiscountManager() {
           .eq("id", editingCoupon.id);
 
         if (error) throw error;
+
+        // Handle product associations if product-specific
+        if (formData.is_product_specific) {
+          // Get existing products for this coupon
+          const { data: existingProducts } = await supabase
+            .from("coupon_products")
+            .select("product_id")
+            .eq("coupon_id", editingCoupon.id);
+
+          const existingProductIds =
+            existingProducts?.map((p) => p.product_id) || [];
+
+          // Remove products that are no longer selected
+          const toRemove = existingProductIds.filter(
+            (id) => !selectedProducts.includes(id),
+          );
+          if (toRemove.length > 0) {
+            await DiscountService.removeProductsFromCoupon(
+              editingCoupon.id,
+              toRemove,
+            );
+          }
+
+          // Add newly selected products
+          const toAdd = selectedProducts.filter(
+            (id) => !existingProductIds.includes(id),
+          );
+          if (toAdd.length > 0) {
+            await DiscountService.addProductsToCoupon(editingCoupon.id, toAdd);
+          }
+        }
+
         toast.success("Coupon updated successfully");
       } else {
-        const { error } = await supabase.from("coupons").insert(submitData);
+        const { data: newCoupon, error } = await supabase
+          .from("coupons")
+          .insert(submitData)
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Add product associations if product-specific
+        if (formData.is_product_specific && selectedProducts.length > 0) {
+          await DiscountService.addProductsToCoupon(
+            newCoupon.id,
+            selectedProducts,
+          );
+        }
+
         toast.success("Coupon created successfully");
       }
 
@@ -110,7 +177,7 @@ export default function DiscountManager() {
     }
   };
 
-  const handleEdit = (coupon: Coupon) => {
+  const handleEdit = async (coupon: Coupon) => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
@@ -122,7 +189,18 @@ export default function DiscountManager() {
       first_time_only: coupon.first_time_only,
       is_active: coupon.is_active,
       expires_at: coupon.expires_at?.split("T")[0] || "",
+      is_product_specific: coupon.is_product_specific || false,
+      product_inclusion_type: coupon.product_inclusion_type || "include",
     });
+
+    // Load selected products if product-specific
+    if (coupon.is_product_specific) {
+      const couponProducts = await DiscountService.getCouponProducts(coupon.id);
+      setSelectedProducts(couponProducts.map((cp) => cp.product_id));
+    } else {
+      setSelectedProducts([]);
+    }
+
     setShowModal(true);
   };
 
@@ -151,7 +229,10 @@ export default function DiscountManager() {
       first_time_only: false,
       is_active: true,
       expires_at: "",
+      is_product_specific: false,
+      product_inclusion_type: "include",
     });
+    setSelectedProducts([]);
     setEditingCoupon(null);
   };
 
@@ -563,6 +644,115 @@ export default function DiscountManager() {
                       Active
                     </span>
                   </label>
+                </div>
+
+                {/* Product-Specific Options */}
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_product_specific}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          is_product_specific: e.target.checked,
+                        })
+                      }
+                      className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Product-specific coupon
+                    </span>
+                  </label>
+
+                  {formData.is_product_specific && (
+                    <div className="space-y-3 pl-6 border-l-2 border-gray-200 dark:border-gray-600">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Product Selection Type
+                        </label>
+                        <select
+                          value={formData.product_inclusion_type}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              product_inclusion_type: e.target.value as
+                                | "include"
+                                | "exclude",
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="include">
+                            Include only selected products
+                          </option>
+                          <option value="exclude">
+                            Exclude selected products (apply to all others)
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {formData.product_inclusion_type === "include"
+                            ? "Select products to include"
+                            : "Select products to exclude"}
+                        </label>
+                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-48 overflow-y-auto dark:bg-gray-700">
+                          {products.length === 0 ? (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No products available
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {products.map((product) => (
+                                <label
+                                  key={product.id}
+                                  className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedProducts.includes(
+                                      product.id,
+                                    )}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedProducts([
+                                          ...selectedProducts,
+                                          product.id,
+                                        ]);
+                                      } else {
+                                        setSelectedProducts(
+                                          selectedProducts.filter(
+                                            (id) => id !== product.id,
+                                          ),
+                                        );
+                                      }
+                                    }}
+                                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {product.title}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      ${product.price}
+                                    </div>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {selectedProducts.length > 0 && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            {selectedProducts.length} product
+                            {selectedProducts.length !== 1 ? "s" : ""} selected
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
