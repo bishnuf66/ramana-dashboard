@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from "@/components/context/AuthProvider";
 import PremiumHeader from "@/components/global/PremiumHeader";
 import AdminSidebar from "@/components/global/AdminSidebar";
 import PremiumFooter from "@/components/global/PremiumFooter";
-import FloatingContact from "@/components/global/FloatingContact";
 import FaviconSwitcher from "@/components/global/FaviconSwitcher";
 import { ToastContainer } from "react-toastify";
 import { Suspense } from "react";
@@ -31,7 +30,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         <main className="flex-1">{children}</main>
       </div>
       <PremiumFooter />
-      <FloatingContact />
       <ToastContainer
         theme="colored"
         toastClassName="dark:bg-gray-800 dark:text-white"

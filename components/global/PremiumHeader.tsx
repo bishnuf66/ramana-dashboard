@@ -206,27 +206,6 @@ export default function PremiumHeader() {
                           </div>
                         </div>
                         <div className="py-2">
-                          <Link
-                            href="/dashboard"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            Dashboard
-                          </Link>
-                          <Link
-                            href="/profile"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            Profile Settings
-                          </Link>
-                          <Link
-                            href="/orders"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            My Orders
-                          </Link>
                           <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                           <button
                             onClick={handleLogout}
@@ -299,27 +278,6 @@ export default function PremiumHeader() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Link
-                          href="/dashboard"
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          Dashboard
-                        </Link>
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          Profile Settings
-                        </Link>
-                        <Link
-                          href="/orders"
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          My Orders
-                        </Link>
                         <button
                           onClick={() => {
                             handleLogout();

@@ -15,6 +15,7 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,7 +28,8 @@ interface AdminSidebarProps {
     | "reviews"
     | "blog"
     | "categories"
-    | "settings";
+    | "settings"
+    | "support";
   onSectionChange: (
     section:
       | "analytics"
@@ -37,7 +39,8 @@ interface AdminSidebarProps {
       | "reviews"
       | "blog"
       | "categories"
-      | "settings",
+      | "settings"
+      | "support",
   ) => void;
 }
 
@@ -72,6 +75,7 @@ export default function AdminSidebar() {
     { id: "reviews", label: "Reviews", icon: Star },
     { id: "blog", label: "Blog", icon: FileText },
     { id: "categories", label: "Categories", icon: Tag },
+    { id: "support", label: "Support", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
