@@ -96,11 +96,69 @@ const ProductsPage = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    if (productToDelete) {
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+
+    try {
+      setLoading(true);
+
+      // Step 1: Delete product images from storage
+      const imagesToDelete = [];
+
+      // Add cover image
+      if (productToDelete.cover_image) {
+        imagesToDelete.push(productToDelete.cover_image);
+      }
+
+      // Add gallery images
+      if (productToDelete.gallery_images) {
+        productToDelete.gallery_images.forEach((img) => {
+          if (typeof img === "string") {
+            imagesToDelete.push(img);
+          } else if (img.url) {
+            imagesToDelete.push(img.url);
+          }
+        });
+      }
+
+      // Delete images from storage
+      for (const imageUrl of imagesToDelete) {
+        if (imageUrl && imageUrl.includes("supabase")) {
+          const filePath = imageUrl.split("/").pop();
+          if (filePath) {
+            const { error: storageError } = await supabase.storage
+              .from("products")
+              .remove([filePath]);
+            if (storageError) {
+              console.warn("Failed to delete image:", storageError);
+            }
+          }
+        }
+      }
+
+      // Step 2: Delete related records (cascade)
+      const { error: deleteError } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productToDelete.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // Step 3: Update local state
       setProducts(products.filter((p) => p.id !== productToDelete.id));
       setShowDeleteModal(false);
       setProductToDelete(null);
+
+      toast.success("Product and all related data deleted successfully");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      toast.error("Failed to delete product: " + errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -401,11 +459,17 @@ const ProductsPage = () => {
                 </p>
               </div>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-6">
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               Are you sure you want to delete &quot;{productToDelete.title}
-              &quot;? This will permanently remove the product from your
-              catalog.
+              &quot;? This will permanently remove:
             </p>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-1">
+              <li>• Product from catalog</li>
+              <li>• Cover image and gallery images</li>
+              <li>• All customer reviews</li>
+              <li>• Related order items</li>
+              <li>• Discount associations</li>
+            </ul>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteModal(false)}
