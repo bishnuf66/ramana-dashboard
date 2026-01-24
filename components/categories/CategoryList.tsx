@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { Category } from "@/types/category";
 import ActionButtons from "@/components/ui/ActionButtons";
 import DeleteModal from "@/components/ui/DeleteModal";
+import CategoryViewModal from "./CategoryViewModal";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -25,6 +26,11 @@ export default function CategoryList({
     null,
   );
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [categoryToView, setCategoryToView] = useState<Category | null>(null);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -35,7 +41,24 @@ export default function CategoryList({
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        setCategories((data as any) || []);
+        const categoriesData = (data as any) || [];
+        setCategories(categoriesData);
+
+        // Load product counts for each category
+        const counts: Record<string, number> = {};
+        for (const category of categoriesData) {
+          const { data: products, error: productsError } = await supabase
+            .from("products")
+            .select("id")
+            .eq("category", category.name);
+
+          if (!productsError) {
+            counts[category.id] = products?.length || 0;
+          } else {
+            counts[category.id] = 0;
+          }
+        }
+        setProductCounts(counts);
       } catch (error: any) {
         toast.error(error.message || "Failed to load categories");
         setCategories([]);
@@ -50,6 +73,11 @@ export default function CategoryList({
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category);
     setShowDeleteModal(true);
+  };
+
+  const handleViewCategory = (category: Category) => {
+    setCategoryToView(category);
+    setShowViewModal(true);
   };
 
   const handleDeleteById = (id: string) => {
@@ -237,18 +265,95 @@ export default function CategoryList({
 
               {/* Actions */}
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <ActionButtons
-                  id={category.id}
-                  type="category"
-                  style="icons"
-                  onDelete={handleDeleteById}
-                  showView={false}
-                />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleViewCategory(category)}
+                      className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                      title="View category"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    </button>
+                    <Link
+                      href={`/categories/${category.id}/edit`}
+                      className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                      title="Edit category"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteClick(category)}
+                    className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                    title="Delete category"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Category View Modal */}
+      <CategoryViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        category={categoryToView}
+        onDelete={(categoryId) => {
+          // Handle deletion from view modal
+          const category = categories.find((c) => c.id === categoryId);
+          if (category) {
+            handleDeleteClick(category);
+          }
+        }}
+        productCount={
+          categoryToView ? productCounts[categoryToView.id] || 0 : 0
+        }
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteModal
