@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import DeleteModal from "@/components/ui/DeleteModal";
+import ProductViewModal from "./ProductViewModal";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -46,6 +47,8 @@ const ProductsPage = () => {
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [productToView, setProductToView] = useState<DbProduct | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -95,6 +98,11 @@ const ProductsPage = () => {
   const handleDeleteProduct = (product: DbProduct) => {
     setProductToDelete(product);
     setShowDeleteModal(true);
+  };
+
+  const handleViewProduct = (product: DbProduct) => {
+    setProductToView(product);
+    setShowViewModal(true);
   };
 
   const confirmDelete = async () => {
@@ -392,11 +400,12 @@ const ProductsPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
-                      <Link href={`/products/${product.slug || product.id}`}>
-                        <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </Link>
+                      <button
+                        onClick={() => handleViewProduct(product)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <Link href={`/products/${product.id}/edit`}>
                         <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1">
                           <Edit className="w-4 h-4" />
@@ -438,6 +447,20 @@ const ProductsPage = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Product View Modal */}
+      <ProductViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        product={productToView}
+        onDelete={(productId) => {
+          // Handle deletion from view modal
+          const product = products.find((p) => p.id === productId);
+          if (product) {
+            handleDeleteProduct(product);
+          }
+        }}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteModal

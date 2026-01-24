@@ -21,7 +21,6 @@ import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import ReviewManager from "@/components/reviews/ReviewManager";
-import ActionButtons from "@/components/ui/ActionButtons";
 import BlogList from "@/components/blog/BlogList";
 import CategoryList from "@/components/categories/CategoryList";
 import Support from "@/components/support/Support";
@@ -31,9 +30,9 @@ import type { Category } from "@/types/category";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
+import ProductsPage from "../../components/products/ProductPage";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
-const blogEditor = MDEditor;
 
 interface Product {
   id: string;
@@ -927,165 +926,7 @@ function DashboardContent() {
             )}
             {activeSection === "products" && (
               <div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-4">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                    Product Management
-                  </h2>
-                  <Link
-                    href="/products/new"
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm sm:text-base"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add New Product</span>
-                    <span className="sm:hidden">Add Product</span>
-                  </Link>
-                </div>
-
-                {/* Products Table - Responsive */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                  {/* Desktop Table */}
-                  <div className="hidden lg:block">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Image
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Title
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Category
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Price
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Stock
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {products.map((product) => (
-                          <tr key={product.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Image
-                                src={product.cover_image || "/placeholder.jpg"}
-                                alt={product.title}
-                                width={64}
-                                height={64}
-                                className="h-16 w-16 object-cover rounded"
-                              />
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {product.title}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                {product.description}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                {product.category?.name || "Uncategorized"}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900 dark:text-white">
-                                ${product.price}
-                              </div>
-                              {product.discount_price && (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                                  ${product.discount_price}
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {product.stock}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex gap-2">
-                                <ActionButtons
-                                  id={product.id}
-                                  type="product"
-                                  onView={() => handleViewProduct(product)}
-                                  onDelete={() =>
-                                    handleDeleteProduct(product.id)
-                                  }
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile/Tablet Cards */}
-                  <div className="lg:hidden">
-                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {products.map((product) => (
-                        <div key={product.id} className="p-4 space-y-3">
-                          <div className="flex gap-3">
-                            <Image
-                              src={product.cover_image || "/placeholder.jpg"}
-                              alt={product.title}
-                              width={64}
-                              height={64}
-                              className="h-16 w-16 object-cover rounded flex-shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {product.title}
-                              </h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                {product.description}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                  {product.category?.name || "Uncategorized"}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Stock: {product.stock}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                ${product.discount_price || product.price}
-                              </div>
-                              {product.discount_price && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400 line-through">
-                                  ${product.price}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              <ActionButtons
-                                id={product.id}
-                                type="product"
-                                onView={() => handleViewProduct(product)}
-                                onDelete={() => handleDeleteProduct(product.id)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {products.length === 0 && (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                      No products found. Add your first product!
-                    </div>
-                  )}
-                </div>
+                <ProductsPage />
               </div>
             )}
 
