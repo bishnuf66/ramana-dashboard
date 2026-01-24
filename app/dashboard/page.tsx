@@ -1129,13 +1129,6 @@ function DashboardContent() {
                 </div>
               </div>
             )}
-
-            {/* Page Footer */}
-            <div className="mt-8 py-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                © 2026 Ramana Dashboard. All rights reserved.
-              </p>
-            </div>
           </div>
         </div>
       </div>

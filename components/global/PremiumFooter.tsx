@@ -13,16 +13,14 @@ export default function PremiumFooter() {
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        className="border-t border-gray-300 dark:border-gray-800 p-6 flex flex-col md:flex-row justify-between items-center gap-4"
+        className="py-4 border-t border-gray-200 dark:border-gray-700"
       >
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Copyright © {currentYear} Ramana Handmade Bouquets. All rights
-          reserved.
-        </p>
-        <p className="text-gray-600 dark:text-gray-400 text-sm flex items-center gap-2">
-          Made with <Heart className="w-4 h-4 text-rose-500 fill-current" /> for
-          bouquet lovers
-        </p>
+        {/* Page Footer */}
+        <div className="">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            © 2026 Ramana Dashboard. All rights reserved.
+          </p>
+        </div>
       </motion.div>
     </footer>
   );

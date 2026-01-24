@@ -23,22 +23,26 @@ import { toast } from "react-toastify";
 type DbProduct = {
   id: string;
   title: string;
-  slug: string;
+  slug: string | null;
   description: string | null;
   price: number;
   discount_price: number | null;
   cover_image: string;
   gallery_images: (string | { url: string; title?: string })[] | null;
   rating: number;
-  category: string | null;
+  category_id: string | null;
   stock: number;
   is_featured: boolean;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
 };
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<DbProduct[]>([]);
+  const [categoriesList, setCategoriesList] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -51,8 +55,22 @@ const ProductsPage = () => {
   const [productToView, setProductToView] = useState<DbProduct | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       setLoading(true);
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("categories")
+        .select("id, name")
+        .order("name");
+
+      if (categoriesError) {
+        console.error("Failed to load categories:", categoriesError);
+      } else {
+        setCategoriesList(categoriesData || []);
+      }
+
+      // Fetch products
       const { data, error } = await supabase
         .from("products")
         .select("*")
@@ -66,7 +84,7 @@ const ProductsPage = () => {
       setLoading(false);
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   // Filter products based on search and filters
@@ -79,7 +97,7 @@ const ProductsPage = () => {
           .includes(searchTerm.toLowerCase());
       const matchesCategory =
         selectedCategory === "all" ||
-        (product.category || "").toLowerCase() ===
+        (product.category_id || "").toLowerCase() ===
           selectedCategory.toLowerCase();
       const stockStatus = product.stock > 0 ? "in_stock" : "out_of_stock";
       const matchesStatus =
@@ -91,7 +109,7 @@ const ProductsPage = () => {
 
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => p.category && set.add(p.category));
+    products.forEach((p) => p.category_id && set.add(p.category_id));
     return Array.from(set);
   }, [products]);
 
@@ -179,6 +197,12 @@ const ProductsPage = () => {
     return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
   };
 
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return "Uncategorized";
+    const category = categoriesList.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -229,9 +253,9 @@ const ProductsPage = () => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">All Categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
+            {categoriesList.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
@@ -328,12 +352,13 @@ const ProductsPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm text-gray-900 dark:text-white font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                      {product.slug}
+                      {product.slug || "—"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {product.category || "—"}
+                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      <Package className="w-3 h-3" />
+                      {getCategoryName(product.category_id)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -464,6 +489,7 @@ const ProductsPage = () => {
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
         product={productToView}
+        categoriesList={categoriesList}
         onDelete={(productId) => {
           // Handle deletion from view modal
           const product = products.find((p) => p.id === productId);

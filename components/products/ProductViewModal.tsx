@@ -20,18 +20,19 @@ import { toast } from "react-toastify";
 type DbProduct = {
   id: string;
   title: string;
-  slug: string;
+  slug: string | null;
   description: string | null;
   price: number;
   discount_price: number | null;
   cover_image: string;
   gallery_images: (string | { url: string; title?: string })[] | null;
   rating: number;
-  category: string | null;
+  category_id: string | null;
   stock: number;
   is_featured: boolean;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
 };
 
 interface ProductViewModalProps {
@@ -41,6 +42,7 @@ interface ProductViewModalProps {
   onEdit?: (product: DbProduct) => void;
   onDelete?: (productId: string) => void;
   showActions?: boolean;
+  categoriesList?: { id: string; name: string }[];
 }
 
 export default function ProductViewModal({
@@ -50,6 +52,7 @@ export default function ProductViewModal({
   onEdit,
   onDelete,
   showActions = true,
+  categoriesList = [],
 }: ProductViewModalProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -138,6 +141,12 @@ export default function ProductViewModal({
       month: "long",
       day: "numeric",
     });
+  };
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return "Uncategorized";
+    const category = categoriesList.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
   };
 
   const getStockStatus = (stock: number) => {
@@ -270,7 +279,7 @@ export default function ProductViewModal({
                         Category:
                       </span>
                       <span className="text-gray-900 dark:text-white capitalize">
-                        {product.category || "Uncategorized"}
+                        {getCategoryName(product.category_id)}
                       </span>
                     </div>
 
