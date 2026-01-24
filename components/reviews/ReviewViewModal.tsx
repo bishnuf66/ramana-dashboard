@@ -52,6 +52,12 @@ export default function ReviewViewModal({
 }: ReviewViewModalProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    rating: review?.rating || 0,
+    comment: review?.comment || "",
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   if (!review || !isOpen) return null;
 
@@ -112,6 +118,57 @@ export default function ReviewViewModal({
       year: "numeric",
       month: "long",
       day: "numeric",
+    });
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditForm({
+      rating: review.rating,
+      comment: review.comment || "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!review) return;
+
+    try {
+      setEditLoading(true);
+
+      const { error } = await (supabase as any)
+        .from("product_reviews")
+        .update({
+          rating: editForm.rating,
+          comment: editForm.comment,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", review.id);
+
+      if (error) throw error;
+
+      toast.success("Review updated successfully");
+      setIsEditing(false);
+
+      if (onEdit) {
+        onEdit({
+          ...review,
+          rating: editForm.rating,
+          comment: editForm.comment,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating review:", error);
+      toast.error("Failed to update review");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({
+      rating: review.rating,
+      comment: review.comment || "",
     });
   };
 
@@ -198,18 +255,60 @@ export default function ReviewViewModal({
               <div className="space-y-6">
                 {/* Rating */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    Rating
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <div className="flex">{renderStars(review.rating)}</div>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {review.rating.toFixed(1)}
-                    </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      / 5.0
-                    </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Rating
+                    </h3>
+                    {!isEditing && (
+                      <button
+                        onClick={handleEdit}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Rating:
+                        </span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() =>
+                                setEditForm({ ...editForm, rating: star })
+                              }
+                              className="focus:outline-none"
+                            >
+                              <Star
+                                className={`w-6 h-6 ${
+                                  star <= editForm.rating
+                                    ? "text-yellow-500 fill-current"
+                                    : "text-gray-300 dark:text-gray-600"
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          {editForm.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="flex">{renderStars(review.rating)}</div>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {review.rating.toFixed(1)}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        / 5.0
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Review Content */}
@@ -217,11 +316,40 @@ export default function ReviewViewModal({
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                     Review Content
                   </h3>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {review.comment || "No comment provided"}
-                    </p>
-                  </div>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editForm.comment}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, comment: e.target.value })
+                        }
+                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
+                        rows={4}
+                        placeholder="Enter your review..."
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={editLoading}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {editLoading ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        {review.comment || "No comment provided"}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Review Images */}
@@ -378,15 +506,8 @@ export default function ReviewViewModal({
                 </div>
 
                 {/* Actions */}
-                {showActions && (
+                {showActions && !isEditing && (
                   <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <Link
-                      href={`/reviews/${review.id}/edit`}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </Link>
                     <button
                       onClick={() => setShowDeleteModal(true)}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
