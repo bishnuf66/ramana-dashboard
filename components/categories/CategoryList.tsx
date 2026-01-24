@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { Category } from "@/types/category";
 import ActionButtons from "@/components/ui/ActionButtons";
-import DeleteModal from "@/components/ui/DeleteModal";
 import CategoryViewModal from "./CategoryViewModal";
-import Link from "next/link";
-import Image from "next/image";
+import Pagination from "@/components/ui/Pagination";
+import DeleteModal from "@/components/ui/DeleteModal";
 
 interface CategoryListProps {
   onEdit?: (category: Category) => void;
@@ -31,6 +32,10 @@ export default function CategoryList({
   const [productCounts, setProductCounts] = useState<Record<string, number>>(
     {},
   );
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9); // Grid layout, so 9 items (3x3)
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -69,6 +74,15 @@ export default function CategoryList({
 
     loadCategories();
   }, []);
+
+  // Pagination logic
+  const paginatedCategories = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return categories.slice(startIndex, endIndex);
+  }, [categories, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
 
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category);
@@ -204,7 +218,7 @@ export default function CategoryList({
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
+          {paginatedCategories.map((category) => (
             <div
               key={category.id}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
@@ -337,7 +351,18 @@ export default function CategoryList({
           ))}
         </div>
       )}
-
+      {categories.length > 0 && (
+        <div className="mt-8">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={setItemsPerPage}
+            totalItems={categories.length}
+          />
+        </div>
+      )}
       {/* Category View Modal */}
       <CategoryViewModal
         isOpen={showViewModal}

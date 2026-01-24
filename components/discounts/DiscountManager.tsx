@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import {
@@ -25,8 +25,11 @@ import {
   type Coupon,
   type CouponProduct,
 } from "@/lib/discounts/DiscountService";
+import ActionButtons from "@/components/ui/ActionButtons";
 import DiscountViewModal from "./DiscountViewModal";
+import Pagination from "@/components/ui/Pagination";
 import type { Database } from "@/types/database.types";
+import Image from "next/image";
 
 type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
 type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
@@ -55,6 +58,10 @@ export default function DiscountManager() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showViewModal, setShowViewModal] = useState(false);
   const [couponToView, setCouponToView] = useState<CouponRow | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
     description: "",
@@ -73,6 +80,15 @@ export default function DiscountManager() {
     fetchCoupons();
     fetchProducts();
   }, []);
+
+  // Pagination logic
+  const paginatedCoupons = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return coupons.slice(startIndex, endIndex);
+  }, [coupons, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(coupons.length / itemsPerPage);
 
   const fetchProducts = async () => {
     try {
@@ -383,7 +399,7 @@ export default function DiscountManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {coupons.map((coupon) => (
+              {paginatedCoupons.map((coupon) => (
                 <tr
                   key={coupon.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -484,6 +500,20 @@ export default function DiscountManager() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {coupons.length > 0 && (
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={coupons.length}
+            />
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Modal */}

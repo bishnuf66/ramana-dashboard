@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import DeleteModal from "@/components/ui/DeleteModal";
 import ProductViewModal from "./ProductViewModal";
+import Pagination from "@/components/ui/Pagination";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -53,6 +54,10 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [productToView, setProductToView] = useState<DbProduct | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,6 +111,20 @@ const ProductsPage = () => {
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [products, searchTerm, selectedCategory, selectedStatus]);
+
+  // Pagination logic
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus, itemsPerPage]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -325,7 +344,7 @@ const ProductsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredProducts.map((product) => (
+              {paginatedProducts.map((product) => (
                 <tr
                   key={product.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -460,6 +479,20 @@ const ProductsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredProducts.length > 0 && (
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={filteredProducts.length}
+            />
+          </div>
+        )}
 
         {filteredProducts.length === 0 && !loading && (
           <div className="text-center py-12">

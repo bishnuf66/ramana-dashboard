@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Star,
   Search,
@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ActionButtons from "@/components/ui/ActionButtons";
 import ReviewViewModal from "./ReviewViewModal";
+import Pagination from "@/components/ui/Pagination";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
@@ -58,6 +59,10 @@ export default function ReviewManager() {
     "all" | "pending" | "approved" | "rejected"
   >("all");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -158,6 +163,20 @@ export default function ReviewManager() {
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  // Pagination logic
+  const paginatedReviews = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return reviews.slice(startIndex, endIndex);
+  }, [reviews, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(reviews.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, ratingFilter, itemsPerPage]);
 
   const handleStatusUpdate = async (
     reviewId: string,
@@ -392,7 +411,7 @@ export default function ReviewManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {reviews.map((review) => (
+                {paginatedReviews.map((review) => (
                   <motion.tr
                     key={review.id}
                     initial={{ opacity: 0 }}
@@ -512,6 +531,20 @@ export default function ReviewManager() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {reviews.length > 0 && (
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={reviews.length}
+            />
           </div>
         )}
       </div>
