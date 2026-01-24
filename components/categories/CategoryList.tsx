@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { Category } from "@/types/category";
 import ActionButtons from "@/components/ui/ActionButtons";
+import DeleteModal from "@/components/ui/DeleteModal";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -19,6 +20,11 @@ export default function CategoryList({
 }: CategoryListProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -41,25 +47,44 @@ export default function CategoryList({
     loadCategories();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+  const handleDeleteClick = (category: Category) => {
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteById = (id: string) => {
+    const category = categories.find((cat) => cat.id === id);
+    if (category) {
+      handleDeleteClick(category);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
 
     try {
+      setDeleteLoading(true);
       const { error } = await (supabase as any)
         .from("categories")
         .delete()
-        .eq("id", id);
+        .eq("id", categoryToDelete.id);
 
       if (error) throw error;
 
       toast.success("Category deleted successfully!");
-      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      setCategories((prev) =>
+        prev.filter((cat) => cat.id !== categoryToDelete.id),
+      );
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
 
       if (onDelete) {
-        onDelete(id);
+        onDelete(categoryToDelete.id);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to delete category");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -216,7 +241,7 @@ export default function CategoryList({
                   id={category.id}
                   type="category"
                   style="icons"
-                  onDelete={handleDelete}
+                  onDelete={handleDeleteById}
                   showView={false}
                 />
               </div>
@@ -224,6 +249,22 @@ export default function CategoryList({
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        description="Are you sure you want to delete"
+        itemName={categoryToDelete?.name || ""}
+        itemsToDelete={[
+          "Category from catalog",
+          "All products in this category",
+          "Related discounts and associations",
+        ]}
+        isLoading={deleteLoading}
+      />
     </div>
   );
 }
