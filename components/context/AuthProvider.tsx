@@ -25,9 +25,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<Admin | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check initial auth state on mount
+    const checkInitialAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          // Check if user is admin
+          const { data: adminData } = await supabase
+            .from("admin_users")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+
+          if (adminData) {
+            console.log("AuthProvider: User is admin, setting admin state");
+            setAdmin({ user: session.user, admin: adminData });
+          } else {
+            console.log(
+              "AuthProvider: User is not admin, clearing admin state",
+            );
+            setAdmin(null);
+          }
+        } else {
+          console.log("AuthProvider: No session found");
+          setAdmin(null);
+        }
+      } catch (error) {
+        console.error("AuthProvider: Initial auth check error:", error);
+        setAdmin(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkInitialAuth();
+
+    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
@@ -58,8 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error("Admin check error:", error);
             setAdmin(null);
-          } finally {
-            setLoading(false);
           }
         };
 
@@ -67,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.log("AuthProvider: User logged out, clearing admin state");
         setAdmin(null);
-        setLoading(false);
       }
     });
 
@@ -76,9 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Simple loading state for UI
+  // Show loading spinner while checking auth
   if (loading) {
-    return <div>Loading authentication...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
   }
 
   return (
