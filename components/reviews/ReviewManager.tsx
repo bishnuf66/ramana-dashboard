@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ActionButtons from "@/components/ui/ActionButtons";
+import ReviewViewModal from "./ReviewViewModal";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
@@ -48,6 +49,9 @@ export default function ReviewManager() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [reviewToView, setReviewToView] =
+    useState<ProductReviewWithProduct | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -195,6 +199,33 @@ export default function ReviewManager() {
       console.error("Error updating review status:", error);
       toast.error("Failed to update review status");
     }
+  };
+
+  const handleViewReview = (review: Review) => {
+    // Convert Review back to ProductReviewWithProduct format for the modal
+    const productReview: ProductReviewWithProduct = {
+      id: review.id,
+      product_id: review.product_id,
+      user_id: review.user_id,
+      user_name: review.user_name,
+      user_email: review.user_email,
+      rating: review.rating,
+      comment: review.content,
+      helpful_count: review.helpful_count,
+      dislike_count: review.not_helpful_count,
+      like_count: 0, // Add missing field
+      is_verified: review.verified_purchase,
+      review_images: [],
+      created_at: review.created_at,
+      updated_at: review.updated_at || null,
+      products: {
+        id: review.product_id,
+        title: review.product_name,
+        cover_image: review.product_image || null,
+      },
+    };
+    setReviewToView(productReview);
+    setShowViewModal(true);
   };
 
   const handleDeleteReview = async (reviewId: string) => {
@@ -428,11 +459,9 @@ export default function ReviewManager() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedReview(review);
-                            setShowReviewModal(true);
-                          }}
+                          onClick={() => handleViewReview(review)}
                           className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          title="View review"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -657,6 +686,16 @@ export default function ReviewManager() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Review View Modal */}
+      <ReviewViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        review={reviewToView}
+        onDelete={(reviewId) => {
+          handleDeleteReview(reviewId);
+        }}
+      />
     </div>
   );
 }
