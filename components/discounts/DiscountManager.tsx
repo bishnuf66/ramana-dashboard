@@ -7,6 +7,7 @@ import {
   Plus,
   Edit2,
   Trash2,
+  Eye,
   Tag,
   Percent,
   DollarSign,
@@ -24,6 +25,7 @@ import {
   type Coupon,
   type CouponProduct,
 } from "@/lib/discounts/DiscountService";
+import DiscountViewModal from "./DiscountViewModal";
 import type { Database } from "@/types/database.types";
 
 type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
@@ -51,6 +53,8 @@ export default function DiscountManager() {
   const [editingCoupon, setEditingCoupon] = useState<CouponRow | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [couponToView, setCouponToView] = useState<CouponRow | null>(null);
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
     description: "",
@@ -190,35 +194,28 @@ export default function DiscountManager() {
     }
   };
 
-  const handleEdit = async (coupon: CouponRow) => {
+  const handleEdit = (coupon: CouponRow) => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
       description: coupon.description || "",
-      discount_type: coupon.discount_type as
-        | "percentage"
-        | "fixed_amount"
-        | "free_shipping",
-      discount_value: coupon.discount_value,
+      discount_type: coupon.discount_type as any,
+      discount_value: coupon.discount_value || 0,
       minimum_order_amount: coupon.minimum_order_amount || 0,
       usage_limit: coupon.usage_limit,
       first_time_only: coupon.first_time_only || false,
       is_active: coupon.is_active || false,
-      expires_at: coupon.expires_at?.split("T")[0] || "",
+      expires_at: coupon.expires_at || "",
       is_product_specific: coupon.is_product_specific || false,
-      product_inclusion_type:
-        (coupon.product_inclusion_type as "include" | "exclude") || "include",
+      product_inclusion_type: coupon.product_inclusion_type as any,
     });
-
-    // Load selected products if product-specific
-    if (coupon.is_product_specific) {
-      const couponProducts = await DiscountService.getCouponProducts(coupon.id);
-      setSelectedProducts(couponProducts.map((cp) => cp.product_id));
-    } else {
-      setSelectedProducts([]);
-    }
-
+    setSelectedProducts([]);
     setShowModal(true);
+  };
+
+  const handleView = (coupon: CouponRow) => {
+    setCouponToView(coupon);
+    setShowViewModal(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -462,6 +459,12 @@ export default function DiscountManager() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleView(coupon)}
+                        className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleEdit(coupon)}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
@@ -798,6 +801,16 @@ export default function DiscountManager() {
           </div>
         </div>
       )}
+
+      {/* Discount View Modal */}
+      <DiscountViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        discount={couponToView}
+        onDelete={(couponId) => {
+          handleDelete(couponId);
+        }}
+      />
     </div>
   );
 }
