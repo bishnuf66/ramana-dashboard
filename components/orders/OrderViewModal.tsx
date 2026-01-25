@@ -55,9 +55,9 @@ export default function OrderViewModal({
     try {
       setEmailLoading(true);
       const orderItems = order.items.map((item) => ({
-        name: item.product_name || item.name || "Product",
+        name: item.product_name || "Product",
         quantity: item.quantity || 1,
-        price: item.price || 0,
+        price: item.unit_price || 0,
       }));
 
       const result = await EmailService.sendOrderStatusUpdate(
