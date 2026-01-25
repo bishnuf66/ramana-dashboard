@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import CategoryForm from "@/components/categories/CategoryForm";
-import { Category } from "@/types/category";
+import type { Database } from "@/types/database.types";
+
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 export default function EditCategoryPage() {
   const params = useParams();
@@ -18,7 +20,7 @@ export default function EditCategoryPage() {
   // Load existing category data
   const loadCategory = useCallback(async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("categories")
         .select("*")
         .eq("id", categoryId)

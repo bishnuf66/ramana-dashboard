@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import { Category, CategoryFormData } from "@/types/category";
 import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
+import { Database } from "@/types/database.types";
+
+type Category = Database["public"]["Tables"]["categories"]["Row"];
+type CategoryFormData = Omit<Category, "id" | "created_at" | "updated_at">;
 
 interface CategoryFormProps {
   categoryId?: string;

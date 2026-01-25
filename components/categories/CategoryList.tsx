@@ -3,11 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import { Category } from "@/types/category";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CategoryViewModal from "./CategoryViewModal";
 import Pagination from "@/components/ui/Pagination";
 import DeleteModal from "@/components/ui/DeleteModal";
+import { Database } from "@/types/database.types";
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 interface CategoryListProps {
   onEdit?: (category: Category) => void;
@@ -273,7 +274,10 @@ export default function CategoryList({
 
                 {/* Metadata */}
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Created: {new Date(category.created_at).toLocaleDateString()}
+                  Created:{" "}
+                  {category.created_at
+                    ? new Date(category.created_at).toLocaleDateString()
+                    : "N/A"}
                 </div>
               </div>
 

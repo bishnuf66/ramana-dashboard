@@ -8,8 +8,9 @@ import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
-import type { Category } from "@/types/category";
 import { generateSlug } from "@/lib/utils";
+import { Database } from "@/types/database.types";
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 export default function NewProductPage() {
   const router = useRouter();

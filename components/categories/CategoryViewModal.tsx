@@ -16,7 +16,8 @@ import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import { Category } from "@/types/category";
+import { Database } from "@/types/database.types";
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 interface CategoryViewModalProps {
   isOpen: boolean;
@@ -100,7 +101,8 @@ export default function CategoryViewModal({
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",

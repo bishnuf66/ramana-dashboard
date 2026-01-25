@@ -26,12 +26,12 @@ import CategoryList from "@/components/categories/CategoryList";
 import Support from "@/components/support/Support";
 import DiscountManager from "@/components/discounts/DiscountManager";
 import type { Database } from "@/types/database.types";
-import type { Category } from "@/types/category";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 import ProductsPage from "../../components/products/ProductPage";
 import SettingPage from "@/components/setting/SettingPage";
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
