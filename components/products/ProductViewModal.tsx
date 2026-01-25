@@ -16,30 +16,16 @@ import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import type { Database } from "@/types/database.types";
 
-type DbProduct = {
-  id: string;
-  title: string;
-  slug: string | null;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  cover_image: string;
-  gallery_images: (string | { url: string; title?: string })[] | null;
-  rating?: number; // Make optional since it might not exist in DB
-  category_id: string | null;
-  stock: number;
-  is_featured: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
 
 interface ProductViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: DbProduct | null;
-  onEdit?: (product: DbProduct) => void;
+  product: ProductRow | null;
+  onEdit?: (product: ProductRow) => void;
   onDelete?: (productId: string) => void;
   showActions?: boolean;
   categoriesList?: { id: string; name: string }[];
@@ -91,15 +77,7 @@ export default function ProductViewModal({
       // Get paginated reviews
       const { data, error } = await supabase
         .from("product_reviews")
-        .select(
-          `
-          *,
-          users!inner(
-            name,
-            email
-          )
-        `,
-        )
+        .select("*")
         .eq("product_id", product.id)
         .eq("is_verified", true)
         .order("created_at", { ascending: false })
@@ -155,10 +133,13 @@ export default function ProductViewModal({
 
       // Add gallery images
       if (product.gallery_images) {
-        product.gallery_images.forEach((img) => {
+        const galleryArray = Array.isArray(product.gallery_images)
+          ? product.gallery_images
+          : [];
+        galleryArray.forEach((img: any) => {
           if (typeof img === "string") {
             imagesToDelete.push(img);
-          } else if (img.url) {
+          } else if (img && img.url) {
             imagesToDelete.push(img.url);
           }
         });
@@ -270,38 +251,47 @@ export default function ProductViewModal({
                     Product Image
                   </h3>
                   <div className="relative w-full h-64 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                    <Image
-                      src={product.cover_image}
-                      alt={product.title}
-                      fill
-                      className="object-cover"
-                    />
+                    {product.cover_image ? (
+                      <Image
+                        src={product.cover_image}
+                        alt={product.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <Package className="w-12 h-12" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Gallery Images */}
                 {product.gallery_images &&
+                  Array.isArray(product.gallery_images) &&
                   product.gallery_images.length > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                         Gallery Images
                       </h3>
                       <div className="grid grid-cols-3 gap-2">
-                        {product.gallery_images.map((image, index) => (
-                          <div
-                            key={index}
-                            className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
-                          >
-                            <Image
-                              src={
-                                typeof image === "string" ? image : image.url
-                              }
-                              alt={`${product.title} - Gallery ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ))}
+                        {(product.gallery_images as any[]).map(
+                          (image: any, index: number) => (
+                            <div
+                              key={index}
+                              className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
+                            >
+                              <Image
+                                src={
+                                  typeof image === "string" ? image : image.url
+                                }
+                                alt={`${product.title} - Gallery ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          ),
+                        )}
                       </div>
                     </div>
                   )}
@@ -336,9 +326,9 @@ export default function ProductViewModal({
                         Stock:
                       </span>
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStockStatus(product.stock)}`}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStockStatus(product.stock || 0)}`}
                       >
-                        {product.stock} units
+                        {product.stock || 0} units
                       </span>
                     </div>
 
@@ -405,13 +395,13 @@ export default function ProductViewModal({
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                    {review.users?.name
+                                    {review.user_name
                                       ?.charAt(0)
                                       .toUpperCase() || "U"}
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {review.users?.name || "Anonymous"}
+                                      {review.user_name || "Anonymous"}
                                     </p>
                                     <div className="flex items-center gap-1">
                                       {[...Array(5)].map((_, i) => (
@@ -517,7 +507,7 @@ export default function ProductViewModal({
                         Created:
                       </span>
                       <span className="text-gray-900 dark:text-white">
-                        {formatDate(product.created_at)}
+                        {formatDate(product.created_at || "")}
                       </span>
                     </div>
                   </div>
@@ -608,14 +598,14 @@ export default function ProductViewModal({
                 {/* Reviewer Info */}
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg font-medium">
-                    {selectedReview.users?.name?.charAt(0).toUpperCase() || "U"}
+                    {selectedReview.user_name?.charAt(0).toUpperCase() || "U"}
                   </div>
                   <div>
                     <p className="text-lg font-medium text-gray-900 dark:text-white">
-                      {selectedReview.users?.name || "Anonymous"}
+                      {selectedReview.user_name || "Anonymous"}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {selectedReview.users?.email || "No email provided"}
+                      {selectedReview.user_email || "No email provided"}
                     </p>
                   </div>
                 </div>
