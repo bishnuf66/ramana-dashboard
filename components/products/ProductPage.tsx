@@ -20,24 +20,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import type { Database } from "@/types/database.types";
 
-type DbProduct = {
-  id: string;
-  title: string;
-  slug: string | null;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  cover_image: string;
-  gallery_images: (string | { url: string; title?: string })[] | null;
-  rating: number;
-  category_id: string | null;
-  stock: number;
-  is_featured: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<DbProduct[]>([]);
@@ -104,7 +89,8 @@ const ProductsPage = () => {
         selectedCategory === "all" ||
         (product.category_id || "").toLowerCase() ===
           selectedCategory.toLowerCase();
-      const stockStatus = product.stock > 0 ? "in_stock" : "out_of_stock";
+      const stockStatus =
+        (product.stock || 0) > 0 ? "in_stock" : "out_of_stock";
       const matchesStatus =
         selectedStatus === "all" || selectedStatus === stockStatus;
 
@@ -158,10 +144,13 @@ const ProductsPage = () => {
 
       // Add gallery images
       if (productToDelete.gallery_images) {
-        productToDelete.gallery_images.forEach((img) => {
+        const galleryArray = Array.isArray(productToDelete.gallery_images)
+          ? productToDelete.gallery_images
+          : [];
+        galleryArray.forEach((img: any) => {
           if (typeof img === "string") {
             imagesToDelete.push(img);
-          } else if (img.url) {
+          } else if (img && img.url) {
             imagesToDelete.push(img.url);
           }
         });
@@ -349,12 +338,18 @@ const ProductsPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden mr-4">
-                        <Image
-                          src={product.cover_image}
-                          alt={product.title}
-                          fill
-                          className="object-cover"
-                        />
+                        {product.cover_image ? (
+                          <Image
+                            src={product.cover_image}
+                            alt={product.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
                       </div>
                       <div className="max-w-xs">
                         <div className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
@@ -393,10 +388,10 @@ const ProductsPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        product.stock,
+                        product.stock || 0,
                       )}`}
                     >
-                      {product.stock} units
+                      {product.stock || 0} units
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
