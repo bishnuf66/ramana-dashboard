@@ -21,8 +21,6 @@ export interface Product {
   tags: string[];
   inStock: boolean;
   stockQuantity: number;
-  rating: number;
-  reviewCount: number;
   features: string[];
   dimensions?: string;
   weight?: string;

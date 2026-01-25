@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   X,
@@ -26,7 +26,7 @@ type DbProduct = {
   discount_price: number | null;
   cover_image: string;
   gallery_images: (string | { url: string; title?: string })[] | null;
-  rating: number;
+  rating?: number; // Make optional since it might not exist in DB
   category_id: string | null;
   stock: number;
   is_featured: boolean;
@@ -119,6 +119,23 @@ export default function ProductViewModal({
   const handleReviewsPageChange = (newPage: number) => {
     setReviewsPage(newPage);
   };
+
+  // Calculate average rating from reviews
+  const calculatedRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + (review.rating || 0), 0);
+    return sum / reviews.length;
+  }, [reviews]);
+
+  // Debug: Log product data and reviews
+  useEffect(() => {
+    if (product) {
+      console.log("Product data:", product);
+      console.log("Product rating field:", product.rating);
+      console.log("Reviews data:", reviews);
+      console.log("Calculated rating:", calculatedRating);
+    }
+  }, [product, reviews, calculatedRating]);
 
   if (!product || !isOpen) return null;
 
@@ -332,8 +349,16 @@ export default function ProductViewModal({
                       <div className="flex items-center gap-1">
                         <Star className="w-5 h-5 text-yellow-500 fill-current" />
                         <span className="text-gray-900 dark:text-white font-medium">
-                          {product.rating.toFixed(1)} / 5
+                          {calculatedRating > 0
+                            ? `${calculatedRating.toFixed(1)} / 5`
+                            : "No rating"}
                         </span>
+                        {totalReviews > 0 && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ({totalReviews}{" "}
+                            {totalReviews === 1 ? "review" : "reviews"})
+                          </span>
+                        )}
                       </div>
                     </div>
 
