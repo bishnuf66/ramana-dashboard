@@ -1,9 +1,8 @@
-import {
-  EmailTemplates,
-  OrderEmailData,
-  EmailTemplate,
-} from "./EmailTemplates";
-import { supabase } from "@/lib/supabase/client";
+import { PendingOrderTemplate } from "./templates/PendingOrderTemplate";
+import { ProcessingOrderTemplate } from "./templates/ProcessingOrderTemplate";
+import { ShippedOrderTemplate } from "./templates/ShippedOrderTemplate";
+import { DeliveredOrderTemplate } from "./templates/DeliveredOrderTemplate";
+import { CancelledOrderTemplate } from "./templates/CancelledOrderTemplate";
 
 export interface EmailServiceConfig {
   fromEmail: string;
@@ -34,40 +33,115 @@ export class EmailService {
     },
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const emailData: OrderEmailData = {
-        customerName,
-        customerEmail: toEmail,
-        orderId,
-        orderItems,
-        totalAmount,
-        trackingNumber: options?.trackingNumber,
-        estimatedDelivery: options?.estimatedDelivery,
-        cancellationReason: options?.cancellationReason,
-      };
-
-      let template: EmailTemplate;
+      let template: { subject: string; html: string; text: string };
 
       switch (status) {
         case "pending":
-          template = EmailTemplates.pendingOrder(emailData);
+          template = {
+            subject: PendingOrderTemplate.getSubject(orderId),
+            html: PendingOrderTemplate.getHtml({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+            text: PendingOrderTemplate.getText({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+          };
           break;
         case "processing":
-          template = EmailTemplates.processingOrder(emailData);
+          template = {
+            subject: ProcessingOrderTemplate.getSubject(orderId),
+            html: ProcessingOrderTemplate.getHtml({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+            text: ProcessingOrderTemplate.getText({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+          };
           break;
         case "shipped":
-          template = EmailTemplates.shippedOrder(emailData);
+          template = {
+            subject: ShippedOrderTemplate.getSubject(orderId),
+            html: ShippedOrderTemplate.getHtml({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+              trackingNumber: options?.trackingNumber,
+              estimatedDelivery: options?.estimatedDelivery,
+            }),
+            text: ShippedOrderTemplate.getText({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+              trackingNumber: options?.trackingNumber,
+              estimatedDelivery: options?.estimatedDelivery,
+            }),
+          };
           break;
         case "delivered":
-          template = EmailTemplates.deliveredOrder(emailData);
+          template = {
+            subject: DeliveredOrderTemplate.getSubject(orderId),
+            html: DeliveredOrderTemplate.getHtml({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+            text: DeliveredOrderTemplate.getText({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+            }),
+          };
           break;
         case "cancelled":
-          template = EmailTemplates.cancelledOrder(emailData);
+          template = {
+            subject: CancelledOrderTemplate.getSubject(orderId),
+            html: CancelledOrderTemplate.getHtml({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+              cancellationReason: options?.cancellationReason,
+            }),
+            text: CancelledOrderTemplate.getText({
+              customerName,
+              customerEmail: toEmail,
+              orderId,
+              orderItems,
+              totalAmount,
+              cancellationReason: options?.cancellationReason,
+            }),
+          };
           break;
         default:
           throw new Error(`Unsupported order status: ${status}`);
       }
 
-      // Send email using Supabase Edge Function or your preferred email service
+      // Send email using Next.js API route
       const result = await this.sendEmail(
         toEmail,
         template.subject,
@@ -75,7 +149,7 @@ export class EmailService {
         template.text,
       );
 
-      // Log the email sent for tracking
+      // Log the email sent for tracking (optional)
       await this.logEmailSent(toEmail, orderId, status, template.subject);
 
       return result;
@@ -89,7 +163,7 @@ export class EmailService {
     }
   }
 
-  // Send email using your preferred email service
+  // Send email using Next.js API route
   private static async sendEmail(
     to: string,
     subject: string,
@@ -97,9 +171,13 @@ export class EmailService {
     text: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Option 1: Using Supabase Edge Functions (recommended)
-      const { data, error } = await supabase.functions.invoke("send-email", {
-        body: {
+      // Send email using Next.js API route
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           to,
           from: this.config.fromEmail,
           fromName: this.config.fromName,
@@ -107,58 +185,19 @@ export class EmailService {
           subject,
           html,
           text,
-        },
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send email");
+      }
 
       return {
         success: true,
         message: "Email sent successfully",
       };
-
-      /* 
-      // Option 2: Using Resend (alternative)
-      import { Resend } from 'resend';
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      
-      const { data, error } = await resend.emails.send({
-        from: `${this.config.fromName} <${this.config.fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-        text
-      });
-
-      if (error) throw error;
-
-      return {
-        success: true,
-        message: 'Email sent successfully'
-      };
-
-      // Option 3: Using SendGrid (alternative)
-      import sgMail from '@sendgrid/mail';
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-
-      const msg = {
-        to,
-        from: {
-          email: this.config.fromEmail,
-          name: this.config.fromName
-        },
-        subject,
-        html,
-        text
-      };
-
-      await sgMail.send(msg);
-
-      return {
-        success: true,
-        message: 'Email sent successfully'
-      };
-      */
     } catch (error) {
       console.error("Email sending error:", error);
       return {
@@ -169,7 +208,7 @@ export class EmailService {
     }
   }
 
-  // Log email sent for tracking purposes
+  // Log email sent for tracking purposes (console logging only)
   private static async logEmailSent(
     toEmail: string,
     orderId: string,
@@ -177,13 +216,13 @@ export class EmailService {
     subject: string,
   ): Promise<void> {
     try {
-      await supabase.from("email_logs").insert({
-        to_email: toEmail,
-        order_id: orderId,
-        order_status: status,
+      // Console logging for now - you can implement database logging later
+      console.log("Email sent:", {
+        to: toEmail,
+        orderId,
+        status,
         subject,
-        sent_at: new Date().toISOString(),
-        status: "sent",
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Error logging email:", error);
@@ -191,58 +230,29 @@ export class EmailService {
     }
   }
 
-  // Get email logs for an order
+  // Get email logs for an order (placeholder - implement with your preferred storage)
   static async getOrderEmailLogs(orderId: string): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from("email_logs")
-        .select("*")
-        .eq("order_id", orderId)
-        .order("sent_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      // Placeholder implementation - you can implement this with your preferred storage
+      console.log("Getting email logs for order:", orderId);
+      return [];
     } catch (error) {
       console.error("Error fetching email logs:", error);
       return [];
     }
   }
 
-  // Resend failed email
+  // Resend failed email (placeholder - implement with your preferred storage)
   static async resendOrderStatusEmail(
     emailLogId: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const { data: logData, error: logError } = await supabase
-        .from("email_logs")
-        .select("*")
-        .eq("id", emailLogId)
-        .single();
-
-      if (logError) throw logError;
-
-      // Resend the email with the same data
-      const result = await this.sendOrderStatusUpdate(
-        logData.to_email,
-        "", // customer name would need to be fetched from order
-        logData.order_id,
-        logData.order_status as any,
-        [], // order items would need to be fetched from order
-        0, // total amount would need to be fetched from order
-      );
-
-      if (result.success) {
-        // Update the log entry
-        await supabase
-          .from("email_logs")
-          .update({
-            sent_at: new Date().toISOString(),
-            status: "resent",
-          })
-          .eq("id", emailLogId);
-      }
-
-      return result;
+      // Placeholder implementation - you can implement this with your preferred storage
+      console.log("Resending email with log ID:", emailLogId);
+      return {
+        success: false,
+        message: "Resend functionality not implemented yet",
+      };
     } catch (error) {
       console.error("Error resending email:", error);
       return {
@@ -259,7 +269,7 @@ export class EmailService {
     message: string;
   }> {
     try {
-      const testTemplate = EmailTemplates.pendingOrder({
+      const testTemplate = PendingOrderTemplate.getHtml({
         customerName: "Test Customer",
         customerEmail: "test@example.com",
         orderId: "TEST-123",
@@ -269,9 +279,9 @@ export class EmailService {
 
       const result = await this.sendEmail(
         "test@example.com", // Replace with your test email
-        testTemplate.subject,
-        testTemplate.html,
-        testTemplate.text,
+        "Test Email - Order Confirmation",
+        testTemplate,
+        "This is a test email to verify email configuration.",
       );
 
       return result;
