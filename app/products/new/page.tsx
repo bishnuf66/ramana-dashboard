@@ -33,6 +33,10 @@ export default function NewProductPage() {
     stock: "",
     is_featured: false,
     is_active: true,
+    weight_gram: "",
+    height_cm: "",
+    width_cm: "",
+    length_cm: "",
   });
 
   useEffect(() => {
@@ -147,6 +151,12 @@ export default function NewProductPage() {
           stock: parseInt(formData.stock) || 0,
           is_featured: formData.is_featured,
           is_active: formData.is_active,
+          weight_gram: formData.weight_gram
+            ? parseInt(formData.weight_gram)
+            : null,
+          height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
+          width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
+          length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -282,6 +292,79 @@ export default function NewProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
+            </div>
+
+            {/* Dimensions Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Dimensions (Optional)
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Weight (grams)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.weight_gram}
+                    onChange={(e) =>
+                      setFormData({ ...formData, weight_gram: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.height_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, height_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Width (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.width_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, width_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 8"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Length (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.length_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, length_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 15"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center">

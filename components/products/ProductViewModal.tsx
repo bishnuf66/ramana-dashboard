@@ -331,6 +331,60 @@ export default function ProductViewModal({
                       </span>
                     </div>
 
+                    {/* Dimensions */}
+                    {(product.weight_gram ||
+                      product.height_cm ||
+                      product.width_cm ||
+                      product.length_cm) && (
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                          Dimensions
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {product.weight_gram && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Weight:
+                              </span>
+                              <span className="text-gray-900 dark:text-white font-medium">
+                                {product.weight_gram}g
+                              </span>
+                            </div>
+                          )}
+                          {product.height_cm && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Height:
+                              </span>
+                              <span className="text-gray-900 dark:text-white font-medium">
+                                {product.height_cm}cm
+                              </span>
+                            </div>
+                          )}
+                          {product.width_cm && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Width:
+                              </span>
+                              <span className="text-gray-900 dark:text-white font-medium">
+                                {product.width_cm}cm
+                              </span>
+                            </div>
+                          )}
+                          {product.length_cm && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Length:
+                              </span>
+                              <span className="text-gray-900 dark:text-white font-medium">
+                                {product.length_cm}cm
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-gray-400">
                         Rating:

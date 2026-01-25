@@ -14,30 +14,7 @@ import MDEditor from "@uiw/react-md-editor";
 import { generateSlug } from "@/lib/utils";
 import { Database } from "@/types/database.types";
 type Category = Database["public"]["Tables"]["categories"]["Row"];
-
-interface Product {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  cover_image: string;
-  gallery_images: { url: string; title: string }[] | null;
-  rating: number;
-  category_id: string | null;
-  category?: {
-    id: string;
-    name: string;
-    slug: string;
-    picture?: string | null;
-  } | null;
-  stock: number;
-  is_featured: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+type Product = Database["public"]["Tables"]["products"]["Row"];
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
@@ -68,6 +45,10 @@ export default function EditProductPage() {
     stock: "",
     is_featured: false,
     is_active: true,
+    weight_gram: "",
+    height_cm: "",
+    width_cm: "",
+    length_cm: "",
   });
 
   useEffect(() => {
@@ -115,15 +96,24 @@ export default function EditProductPage() {
         price: productData.price.toString(),
         discount_price: productData.discount_price?.toString() || "",
         category_id: productData.category_id || "",
-        stock: productData.stock.toString(),
+        stock: productData.stock?.toString() || "0",
         is_featured: productData.is_featured || false,
         is_active:
           productData.is_active !== undefined ? productData.is_active : true,
+        weight_gram: productData.weight_gram?.toString() || "",
+        height_cm: productData.height_cm?.toString() || "",
+        width_cm: productData.width_cm?.toString() || "",
+        length_cm: productData.length_cm?.toString() || "",
       });
 
       // Set gallery images
-      if (productData.gallery_images) {
-        setGalleryTitles(productData.gallery_images.map((img) => img.title));
+      if (
+        productData.gallery_images &&
+        Array.isArray(productData.gallery_images)
+      ) {
+        setGalleryTitles(
+          productData.gallery_images.map((img: any) => img.title || ""),
+        );
       }
 
       setLoading(false);
@@ -161,10 +151,16 @@ export default function EditProductPage() {
   };
 
   const removeGalleryImage = (index: number, isExisting: boolean = false) => {
-    if (isExisting && product?.gallery_images) {
+    if (
+      isExisting &&
+      product?.gallery_images &&
+      Array.isArray(product.gallery_images)
+    ) {
       // Mark existing image for removal
-      const imageToRemove = product.gallery_images[index];
-      setRemovedGalleryImages([...removedGalleryImages, imageToRemove.url]);
+      const imageToRemove = (product.gallery_images as any)[index];
+      if (imageToRemove && imageToRemove.url) {
+        setRemovedGalleryImages([...removedGalleryImages, imageToRemove.url]);
+      }
     } else {
       // Remove new image
       setGalleryFiles(galleryFiles.filter((_, i) => i !== index));
@@ -187,10 +183,12 @@ export default function EditProductPage() {
       // Upload new cover image if provided
       if (coverImageFile) {
         // Mark old cover image for deletion
-        imagesToDelete.push(product.cover_image);
+        if (product.cover_image) {
+          imagesToDelete.push(product.cover_image);
+        }
 
         const coverImagePath = generateImagePath(
-          product.id,
+          product.id || "",
           coverImageFile.name,
           "cover",
         );
@@ -201,7 +199,7 @@ export default function EditProductPage() {
       const newGalleryUrls: { url: string; title: string }[] = [];
       for (let i = 0; i < galleryFiles.length; i++) {
         const galleryPath = generateImagePath(
-          product.id,
+          product.id || "",
           galleryFiles[i].name,
           "gallery",
         );
@@ -213,12 +211,16 @@ export default function EditProductPage() {
       }
 
       // Combine existing gallery images (minus removed ones) with new ones
-      let finalGalleryImages = product.gallery_images || [];
-      if (removedGalleryImages.length > 0) {
-        finalGalleryImages = finalGalleryImages.filter(
-          (img) => !removedGalleryImages.includes(img.url),
+      let finalGalleryImages: { url: string; title: string }[] = [];
+
+      // Start with existing images if they exist and are an array
+      if (product.gallery_images && Array.isArray(product.gallery_images)) {
+        finalGalleryImages = (product.gallery_images as any[]).filter(
+          (img: any) => !removedGalleryImages.includes(img.url),
         );
       }
+
+      // Add new images
       finalGalleryImages = [...finalGalleryImages, ...newGalleryUrls];
 
       // Delete removed images from storage
@@ -247,6 +249,12 @@ export default function EditProductPage() {
           stock: parseInt(formData.stock) || 0,
           is_featured: formData.is_featured,
           is_active: formData.is_active,
+          weight_gram: formData.weight_gram
+            ? parseInt(formData.weight_gram)
+            : null,
+          height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
+          width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
+          length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", product.id);
@@ -397,6 +405,79 @@ export default function EditProductPage() {
               />
             </div>
 
+            {/* Dimensions Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Dimensions (Optional)
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Weight (grams)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.weight_gram}
+                    onChange={(e) =>
+                      setFormData({ ...formData, weight_gram: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.height_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, height_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Width (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.width_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, width_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 8"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Length (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.length_cm}
+                    onChange={(e) =>
+                      setFormData({ ...formData, length_cm: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., 15"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -444,7 +525,7 @@ export default function EditProductPage() {
                 {coverImagePreview || product.cover_image ? (
                   <div className="relative inline-block">
                     <Image
-                      src={coverImagePreview || product.cover_image}
+                      src={coverImagePreview || product.cover_image || ""}
                       alt="Cover preview"
                       width={192}
                       height={192}
@@ -512,56 +593,68 @@ export default function EditProductPage() {
 
                 {/* Existing Gallery Images */}
                 {product.gallery_images &&
+                  Array.isArray(product.gallery_images) &&
                   product.gallery_images.length > 0 && (
                     <div className="mt-4">
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                         Current Gallery Images:
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {product.gallery_images.map((image, index) => (
-                          <div
-                            key={index}
-                            className="relative flex gap-3 items-start"
-                          >
-                            <div className="relative h-24 w-24 rounded-lg overflow-hidden">
-                              <Image
-                                src={image.url}
-                                alt={`Gallery ${index + 1}`}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <input
-                                type="text"
-                                value={image.title}
-                                onChange={(e) => {
-                                  const updatedGallery = [
-                                    ...(product.gallery_images || []),
-                                  ];
-                                  updatedGallery[index] = {
-                                    ...image,
-                                    title: e.target.value,
-                                  };
-                                  setProduct({
-                                    ...product,
-                                    gallery_images: updatedGallery,
-                                  });
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                                placeholder="Title / caption"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeGalleryImage(index, true)}
-                                className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                        {product.gallery_images &&
+                          Array.isArray(product.gallery_images) &&
+                          (product.gallery_images as any[]).map(
+                            (image: any, index: number) => (
+                              <div
+                                key={index}
+                                className="relative flex gap-3 items-start"
                               >
-                                <Trash2 className="h-3 w-3" />
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                                <div className="relative h-24 w-24 rounded-lg overflow-hidden">
+                                  <Image
+                                    src={image.url || ""}
+                                    alt={`Gallery ${index + 1}`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  <input
+                                    type="text"
+                                    value={image.title}
+                                    onChange={(e) => {
+                                      if (
+                                        product.gallery_images &&
+                                        Array.isArray(product.gallery_images)
+                                      ) {
+                                        const updatedGallery = [
+                                          ...(product.gallery_images as any[]),
+                                        ];
+                                        updatedGallery[index] = {
+                                          ...image,
+                                          title: e.target.value,
+                                        };
+                                        setProduct({
+                                          ...product,
+                                          gallery_images: updatedGallery,
+                                        });
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                    placeholder="Title / caption"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeGalleryImage(index, true)
+                                    }
+                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ),
+                          )}
                       </div>
                     </div>
                   )}
