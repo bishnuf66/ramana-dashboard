@@ -91,7 +91,7 @@ export default function EditProductPage() {
       // Set form data
       setFormData({
         title: productData.title,
-        slug: productData.slug,
+        slug: productData.slug || "",
         description: productData.description || "",
         price: productData.price.toString(),
         discount_price: productData.discount_price?.toString() || "",
@@ -262,7 +262,7 @@ export default function EditProductPage() {
       if (error) throw error;
 
       toast.success("Product updated successfully!");
-      router.push("/dashboard");
+      router.push("/dashboard?section=products");
     } catch (error: any) {
       setUploading(false);
       toast.error("Failed to update product: " + error.message);
@@ -328,7 +328,7 @@ export default function EditProductPage() {
               </label>
               <input
                 type="text"
-                value={formData.slug}
+                value={formData.slug || ""}
                 readOnly
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="Auto-generated from title"

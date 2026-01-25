@@ -165,7 +165,7 @@ export default function NewProductPage() {
       if (error) throw error;
 
       toast.success("Product created successfully!");
-      router.push("/dashboard");
+      router.push("/dashboard?section=products");
     } catch (error: any) {
       setUploading(false);
       toast.error("Failed to create product: " + error.message);
