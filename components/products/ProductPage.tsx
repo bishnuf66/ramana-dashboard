@@ -330,9 +330,6 @@ const ProductsPage = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Featured
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -412,14 +409,6 @@ const ProductsPage = () => {
                     >
                       {product.is_active ? "Active" : "Inactive"}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1 text-sm">
-                      <span className="text-yellow-500">★</span>
-                      <span className="text-gray-900 dark:text-white">
-                        {product.rating?.toFixed(1)}
-                      </span>
-                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {product.is_featured ? (
