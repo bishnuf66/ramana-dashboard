@@ -109,7 +109,6 @@ export default function ProductViewModal({
   useEffect(() => {
     if (product) {
       console.log("Product data:", product);
-      console.log("Product rating field:", product.rating);
       console.log("Reviews data:", reviews);
       console.log("Calculated rating:", calculatedRating);
     }
