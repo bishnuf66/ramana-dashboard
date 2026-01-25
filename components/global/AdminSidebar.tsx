@@ -30,6 +30,7 @@ interface AdminSidebarProps {
     | "blog"
     | "categories"
     | "discounts"
+    | "testimonials"
     | "support"
     | "settings";
   onSectionChange: (
@@ -42,6 +43,7 @@ interface AdminSidebarProps {
       | "blog"
       | "categories"
       | "discounts"
+      | "testimonials"
       | "support"
       | "settings",
   ) => void;
@@ -79,6 +81,7 @@ export default function AdminSidebar() {
     { id: "blog", label: "Blog", icon: FileText },
     { id: "categories", label: "Categories", icon: Tag },
     { id: "discounts", label: "Discounts", icon: Gift },
+    { id: "testimonials", label: "Testimonials", icon: MessageSquare },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];

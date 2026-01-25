@@ -25,6 +25,7 @@ import BlogList from "@/components/blog/BlogList";
 import CategoryList from "@/components/categories/CategoryList";
 import Support from "@/components/support/Support";
 import DiscountManager from "@/components/discounts/DiscountManager";
+import TestimonialList from "@/components/testimonials/TestimonialList";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
@@ -96,6 +97,7 @@ function DashboardContent() {
       | "blog"
       | "categories"
       | "discounts"
+      | "testimonials"
       | "support"
       | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
@@ -1042,6 +1044,8 @@ function DashboardContent() {
             {activeSection === "categories" && <CategoryList />}
 
             {activeSection === "discounts" && <DiscountManager />}
+
+            {activeSection === "testimonials" && <TestimonialList />}
 
             {activeSection === "support" && <Support />}
 
