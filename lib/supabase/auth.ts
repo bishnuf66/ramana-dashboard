@@ -120,3 +120,58 @@ export const getCurrentAdmin = async () => {
     return null;
   }
 };
+
+// Update user email
+export const updateUserEmail = async (newEmail: string) => {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      email: newEmail,
+    });
+
+    if (error) throw error;
+
+    toast.success(
+      "Email updated successfully! Please check your inbox for verification.",
+    );
+    return data;
+  } catch (error: any) {
+    toast.error(error.message || "Failed to update email");
+    throw error;
+  }
+};
+
+// Update user password
+export const updateUserPassword = async (newPassword: string) => {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    toast.success("Password updated successfully!");
+    return data;
+  } catch (error: any) {
+    toast.error(error.message || "Failed to update password");
+    throw error;
+  }
+};
+
+// Update user name (display name)
+export const updateUserName = async (newName: string) => {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        display_name: newName,
+      },
+    });
+
+    if (error) throw error;
+
+    toast.success("Name updated successfully!");
+    return data;
+  } catch (error: any) {
+    toast.error(error.message || "Failed to update name");
+    throw error;
+  }
+};

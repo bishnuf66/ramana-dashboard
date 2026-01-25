@@ -8,6 +8,10 @@ export interface EmailServiceConfig {
   fromEmail: string;
   fromName: string;
   replyToEmail?: string;
+  fromPhone?: string;
+  fromAddress?: string;
+  emailSignature?: string;
+  emailFooter?: string;
 }
 
 export class EmailService {
@@ -16,6 +20,14 @@ export class EmailService {
     fromName: process.env.NEXT_PUBLIC_FROM_NAME || "Your Store",
     replyToEmail:
       process.env.NEXT_PUBLIC_REPLY_TO_EMAIL || "support@yourstore.com",
+    fromPhone: process.env.NEXT_PUBLIC_FROM_PHONE || "+1-800-123-4567",
+    fromAddress:
+      process.env.NEXT_PUBLIC_FROM_ADDRESS || "Your City, Your Country",
+    emailSignature:
+      process.env.NEXT_PUBLIC_EMAIL_SIGNATURE || "Best regards,\nYour Team",
+    emailFooter:
+      process.env.NEXT_PUBLIC_EMAIL_FOOTER ||
+      "© 2024 Your Store. All rights reserved.",
   };
 
   // Send order status update email

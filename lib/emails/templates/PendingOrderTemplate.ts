@@ -15,6 +15,26 @@ export class PendingOrderTemplate {
     return `Order Confirmation - #${orderId}`;
   }
 
+  private static getSignature(): string {
+    return (
+      process.env.NEXT_PUBLIC_EMAIL_SIGNATURE || "Best regards,\nYour Team"
+    );
+  }
+
+  private static getFooter(): string {
+    return (
+      process.env.NEXT_PUBLIC_EMAIL_FOOTER ||
+      "© 2024 Your Store. All rights reserved."
+    );
+  }
+
+  private static getContactInfo(): string {
+    const phone = process.env.NEXT_PUBLIC_FROM_PHONE || "+1-800-123-4567";
+    const address =
+      process.env.NEXT_PUBLIC_FROM_ADDRESS || "Your City, Your Country";
+    return `Phone: ${phone}\nAddress: ${address}`;
+  }
+
   static getHtml(data: PendingOrderData): string {
     return `
       <!DOCTYPE html>
@@ -75,7 +95,13 @@ export class PendingOrderTemplate {
           <div class="footer">
             <p>Thank you for shopping with us!</p>
             <p>If you have any questions, please contact our support team.</p>
-            <p>&copy; 2024 Your Store. All rights reserved.</p>
+            <div style="margin: 15px 0; padding: 15px 0; border-top: 1px solid #eee;">
+              <p style="margin: 0; white-space: pre-line;">${this.getSignature()}</p>
+            </div>
+            <div style="margin: 10px 0; padding: 10px 0; border-top: 1px solid #eee; font-size: 11px;">
+              <p style="margin: 0; white-space: pre-line;">${this.getContactInfo()}</p>
+            </div>
+            <p style="margin: 10px 0 0 0; white-space: pre-line;">${this.getFooter()}</p>
           </div>
         </div>
       </body>
@@ -102,7 +128,12 @@ ${data.orderItems.map((item) => `- ${item.name} x ${item.quantity} - $${(item.pr
 We'll notify you as soon as your order moves to the next stage.
 
 Thank you for shopping with us!
-© 2024 Your Store. All rights reserved.
+
+${this.getSignature()}
+
+${this.getContactInfo()}
+
+${this.getFooter()}
     `;
   }
 }

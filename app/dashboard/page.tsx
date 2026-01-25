@@ -31,6 +31,7 @@ import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 import ProductsPage from "../../components/products/ProductPage";
+import SettingPage from "@/components/setting/SettingPage";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
@@ -1045,89 +1046,7 @@ function DashboardContent() {
             {activeSection === "support" && <Support />}
 
             {activeSection === "settings" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                    Settings
-                  </h2>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-                    Admin Details
-                  </h3>
-                  {adminProfile ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Email
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {adminProfile.admin.email}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Role
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {adminProfile.admin.role}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Admin ID
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white break-all">
-                          {adminProfile.admin.id}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Created
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {adminProfile.admin.created_at
-                            ? new Date(
-                                adminProfile.admin.created_at as string,
-                              ).toLocaleString()
-                            : "-"}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Not logged in as admin.
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                      System Info
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Environment
-                      </div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        Production
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Version
-                      </div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        1.0.0
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <SettingPage adminProfile={adminProfile} />
             )}
           </div>
         </div>
