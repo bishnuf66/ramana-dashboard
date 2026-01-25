@@ -16,9 +16,12 @@ import {
   Clock,
   Truck,
   AlertCircle,
+  Send,
 } from "lucide-react";
 import Image from "next/image";
 import { Order, OrderItem } from "@/app/dashboard/page";
+import { EmailService } from "@/lib/emails/EmailService";
+import { useState } from "react";
 
 interface OrderViewModalProps {
   order: Order | null;
@@ -38,6 +41,54 @@ export default function OrderViewModal({
   onStatusUpdate,
   onPaymentStatusUpdate,
 }: OrderViewModalProps) {
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  // Send email notification for status change
+  const handleStatusChangeWithEmail = async (newStatus: Order["status"]) => {
+    if (!onStatusUpdate || !order) return;
+
+    // First update the status
+    onStatusUpdate(order.id, newStatus);
+
+    // Then send email notification
+    try {
+      setEmailLoading(true);
+      const orderItems = order.items.map((item) => ({
+        name: item.product_name || item.name || "Product",
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+      }));
+
+      const result = await EmailService.sendOrderStatusUpdate(
+        order.customer_email,
+        order.customer_name,
+        order.id,
+        newStatus,
+        orderItems,
+        order.total_amount || 0,
+        {
+          trackingNumber: newStatus === "shipped" ? "TRACK123456" : undefined, // You can add tracking number logic here
+          estimatedDelivery:
+            newStatus === "shipped" ? "3-5 business days" : undefined,
+          cancellationReason:
+            newStatus === "cancelled"
+              ? "Order cancelled by customer request"
+              : undefined,
+        },
+      );
+
+      if (result.success) {
+        setEmailSent(true);
+        setTimeout(() => setEmailSent(false), 3000); // Hide success message after 3 seconds
+      }
+    } catch (error) {
+      console.error("Failed to send email notification:", error);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
   if (!order || !isOpen) return null;
 
   const getStatusColor = (status: string) => {
@@ -177,24 +228,35 @@ export default function OrderViewModal({
                       Status:
                     </span>
                     {onStatusUpdate ? (
-                      <select
-                        value={order.status}
-                        onChange={(e) =>
-                          onStatusUpdate(
-                            order.id,
-                            e.target.value as Order["status"],
-                          )
-                        }
-                        className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getStatusColor(
-                          order.status,
-                        )}`}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            handleStatusChangeWithEmail(
+                              e.target.value as Order["status"],
+                            )
+                          }
+                          className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getStatusColor(
+                            order.status,
+                          )}`}
+                          disabled={emailLoading}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                        {emailLoading && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        )}
+                        {emailSent && (
+                          <div className="flex items-center gap-1 text-green-600">
+                            <Send className="w-3 h-3" />
+                            <span className="text-xs">Email sent</span>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
