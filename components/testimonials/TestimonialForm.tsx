@@ -6,6 +6,7 @@ import { uploadImage, deleteImage } from "@/lib/supabase/storage";
 import { Upload, X, Star } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import MDEditor from "@uiw/react-md-editor";
 import type { Database } from "@/types/database.types";
 
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
@@ -229,16 +230,22 @@ export default function TestimonialForm({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Content *
             </label>
-            <textarea
-              required
-              rows={6}
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Enter the testimonial content"
-            />
+            <div className="border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600">
+              <MDEditor
+                value={formData.content}
+                onChange={(value) =>
+                  setFormData({ ...formData, content: value || "" })
+                }
+                height={200}
+                preview="edit"
+                hideToolbar={false}
+                visibleDragbar={false}
+                textareaProps={{
+                  placeholder: "Enter the testimonial content...",
+                  className: "dark:bg-gray-700 dark:text-white",
+                }}
+              />
+            </div>
           </div>
 
           <div>
