@@ -20,19 +20,9 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { deleteImage } from "@/lib/supabase/storage";
 import { toast } from "react-toastify";
-// Define Testimonial type inline to avoid database types issues
-interface Testimonial {
-  id: number;
-  name: string;
-  email?: string;
-  role: string | null;
-  content: string;
-  rating: number | null;
-  image: string | null;
-  status: "active" | "inactive" | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+import type { Database } from "@/types/database.types";
+
+type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
 const TestimonialList = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -133,9 +123,12 @@ const TestimonialList = () => {
   const handleStatusToggle = async (testimonial: Testimonial) => {
     try {
       const newStatus = testimonial.status === "active" ? "inactive" : "active";
+
+      // Temporary bypass of type checking until database types are regenerated
       const { error } = await supabase
         .from("testimonials")
-        .update({ status: newStatus } as any)
+        // @ts-ignore - Temporary fix for type mismatch
+        .update({ status: newStatus })
         .eq("id", testimonial.id);
 
       if (error) throw error;
@@ -337,6 +330,9 @@ const TestimonialList = () => {
                         <Link
                           href={`/testimonials/${testimonial.id}/edit`}
                           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          onClick={() =>
+                            console.log("Edit testimonial ID:", testimonial.id)
+                          }
                         >
                           <Edit className="w-4 h-4" />
                         </Link>

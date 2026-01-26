@@ -16,14 +16,17 @@ export default function TestimonialViewModal({
   testimonial,
   onClose,
 }: TestimonialViewModalProps) {
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | null) => {
+    const safeRating = rating || 0;
     return (
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={`w-5 h-5 ${
-              star <= rating ? "text-yellow-400 fill-current" : "text-gray-300"
+              star <= safeRating
+                ? "text-yellow-400 fill-current"
+                : "text-gray-300"
             }`}
           />
         ))}
@@ -120,14 +123,16 @@ export default function TestimonialViewModal({
                   Created:
                 </span>
                 <span className="ml-2 text-gray-900 dark:text-white">
-                  {new Date(testimonial.created_at).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}
+                  {testimonial.created_at
+                    ? new Date(testimonial.created_at).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )
+                    : "N/A"}
                 </span>
               </div>
               <div>
@@ -135,14 +140,16 @@ export default function TestimonialViewModal({
                   Last Updated:
                 </span>
                 <span className="ml-2 text-gray-900 dark:text-white">
-                  {new Date(testimonial.updated_at).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}
+                  {testimonial.updated_at
+                    ? new Date(testimonial.updated_at).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )
+                    : "N/A"}
                 </span>
               </div>
             </div>

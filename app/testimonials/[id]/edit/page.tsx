@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import TestimonialForm from "@/components/testimonials/TestimonialForm";
@@ -10,9 +10,9 @@ import type { Database } from "@/types/database.types";
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
 interface EditTestimonialPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditTestimonialPage({
@@ -22,16 +22,33 @@ export default function EditTestimonialPage({
   const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Unwrap the params Promise
+  const { id } = use(params);
+
   useEffect(() => {
     const fetchTestimonial = async () => {
+      // Check if ID exists and is valid
+      if (!id || id === "undefined") {
+        console.error("Invalid testimonial ID:", id);
+        toast.error("Invalid testimonial ID");
+        router.push("/testimonials");
+        return;
+      }
+
       try {
+        console.log("Fetching testimonial with ID:", id);
         const { data, error } = await supabase
           .from("testimonials")
           .select("*")
-          .eq("id", parseInt(params.id))
+          .eq("id", id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+
+        console.log("Fetched testimonial:", data);
         setTestimonial(data);
       } catch (error) {
         console.error("Error fetching testimonial:", error);
@@ -43,7 +60,7 @@ export default function EditTestimonialPage({
     };
 
     fetchTestimonial();
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleSuccess = () => {
     router.push("/testimonials");

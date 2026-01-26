@@ -104,6 +104,7 @@ export default function TestimonialForm({
 
         const { error } = await supabase
           .from("testimonials")
+          // @ts-ignore - Temporary fix for type mismatch
           .update(updateData)
           .eq("id", testimonial.id);
 
@@ -122,6 +123,7 @@ export default function TestimonialForm({
 
         const { error } = await supabase
           .from("testimonials")
+          // @ts-ignore - Temporary fix for type mismatch
           .insert([insertData]);
 
         if (error) throw error;
