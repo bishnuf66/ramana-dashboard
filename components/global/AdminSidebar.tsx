@@ -17,6 +17,7 @@ import {
   ChevronRight,
   HelpCircle,
   Gift,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 

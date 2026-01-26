@@ -40,12 +40,12 @@ export default function TestimonialForm({
     if (testimonial) {
       setFormData({
         name: testimonial.name,
-        role: testimonial.role,
+        role: testimonial.role || "",
         content: testimonial.content,
-        rating: testimonial.rating,
-        status: testimonial.status,
+        rating: testimonial.rating || 5,
+        status: testimonial.status || "active",
       });
-      setImagePreview(testimonial.image);
+      setImagePreview(testimonial.image || "");
     }
   }, [testimonial]);
 
@@ -81,15 +81,6 @@ export default function TestimonialForm({
     setLoading(true);
 
     try {
-      const testimonialData = {
-        name: formData.name,
-        role: formData.role,
-        content: formData.content,
-        image: imagePreview,
-        rating: formData.rating,
-        status: formData.status,
-      };
-
       if (testimonial) {
         // Check if image has changed and delete old image
         if (testimonial.image && testimonial.image !== imagePreview) {
@@ -102,18 +93,36 @@ export default function TestimonialForm({
         }
 
         // Update existing testimonial
+        const updateData: TestimonialUpdate = {
+          name: formData.name,
+          role: formData.role || null,
+          content: formData.content,
+          image: imagePreview || null,
+          rating: formData.rating,
+          status: formData.status,
+        };
+
         const { error } = await supabase
           .from("testimonials")
-          .update(testimonialData)
+          .update(updateData)
           .eq("id", testimonial.id);
 
         if (error) throw error;
         toast.success("Testimonial updated successfully");
       } else {
         // Create new testimonial
+        const insertData: TestimonialInsert = {
+          name: formData.name,
+          role: formData.role || null,
+          content: formData.content,
+          image: imagePreview || null,
+          rating: formData.rating,
+          status: formData.status,
+        };
+
         const { error } = await supabase
           .from("testimonials")
-          .insert([testimonialData]);
+          .insert([insertData]);
 
         if (error) throw error;
         toast.success("Testimonial created successfully");
