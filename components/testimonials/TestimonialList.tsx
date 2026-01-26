@@ -20,9 +20,19 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { deleteImage } from "@/lib/supabase/storage";
 import { toast } from "react-toastify";
-import type { Database } from "@/types/database.types";
-
-type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
+// Define Testimonial type inline to avoid database types issues
+interface Testimonial {
+  id: number;
+  name: string;
+  email?: string;
+  role: string | null;
+  content: string;
+  rating: number | null;
+  image: string | null;
+  status: "active" | "inactive" | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 const TestimonialList = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -73,7 +83,8 @@ const TestimonialList = () => {
       (testimonial) =>
         testimonial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         testimonial.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        testimonial.role.toLowerCase().includes(searchTerm.toLowerCase()),
+        (testimonial.role?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+          false),
     );
   }, [testimonials, searchTerm]);
 
@@ -143,14 +154,17 @@ const TestimonialList = () => {
     }
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | null) => {
+    const safeRating = rating || 0;
     return (
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={`w-4 h-4 ${
-              star <= rating ? "text-yellow-400 fill-current" : "text-gray-300"
+              star <= safeRating
+                ? "text-yellow-400 fill-current"
+                : "text-gray-300"
             }`}
           />
         ))}
@@ -305,7 +319,9 @@ const TestimonialList = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(testimonial.created_at).toLocaleDateString()}
+                      {testimonial.created_at
+                        ? new Date(testimonial.created_at).toLocaleDateString()
+                        : "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
