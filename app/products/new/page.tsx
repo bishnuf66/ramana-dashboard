@@ -37,7 +37,47 @@ export default function NewProductPage() {
     height_cm: "",
     width_cm: "",
     length_cm: "",
+    tags: [] as string[],
   });
+  const [tagInput, setTagInput] = useState("");
+
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, trimmedTag],
+      });
+    }
+    setTagInput("");
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (
+      e.key === "Backspace" &&
+      tagInput === "" &&
+      formData.tags.length > 0
+    ) {
+      // Remove last tag when backspace is pressed on empty input
+      removeTag(formData.tags.length - 1);
+    }
+  };
+
+  const handleTagInputBlur = () => {
+    if (tagInput.trim()) {
+      addTag(tagInput);
+    }
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -157,6 +197,7 @@ export default function NewProductPage() {
           height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
           width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
           length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
+          tags: formData.tags.length > 0 ? formData.tags : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -292,6 +333,48 @@ export default function NewProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Tags
+              </label>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 min-h-[48px]">
+                  {formData.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full text-sm"
+                    >
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(index)}
+                        className="ml-1 text-purple-600 hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-100"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={handleTagInputBlur}
+                    placeholder={
+                      formData.tags.length === 0
+                        ? "Add a tag and press Enter..."
+                        : "Add another tag..."
+                    }
+                    className="flex-1 min-w-[120px] px-2 py-1 border-none outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Press Enter to add a tag, click X to remove. Tags help
+                  organize your products.
+                </p>
+              </div>
             </div>
 
             {/* Dimensions Section */}

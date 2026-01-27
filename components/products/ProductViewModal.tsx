@@ -563,6 +563,27 @@ export default function ProductViewModal({
                         {formatDate(product.created_at || "")}
                       </span>
                     </div>
+
+                    {/* Tags */}
+                    {product.tags &&
+                      Array.isArray(product.tags) &&
+                      product.tags.length > 0 && (
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                            Tags
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {product.tags.map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full text-xs font-medium"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </div>
 
