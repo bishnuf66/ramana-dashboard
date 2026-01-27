@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   X,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,6 +27,7 @@ import CategoryList from "@/components/categories/CategoryList";
 import Support from "@/components/support/Support";
 import DiscountManager from "@/components/discounts/DiscountManager";
 import TestimonialList from "@/components/testimonials/TestimonialList";
+import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import dynamic from "next/dynamic";
@@ -98,6 +100,7 @@ function DashboardContent() {
       | "categories"
       | "discounts"
       | "testimonials"
+      | "payment-options"
       | "support"
       | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
@@ -1046,6 +1049,8 @@ function DashboardContent() {
             {activeSection === "discounts" && <DiscountManager />}
 
             {activeSection === "testimonials" && <TestimonialList />}
+
+            {activeSection === "payment-options" && <PaymentOptionList />}
 
             {activeSection === "support" && <Support />}
 

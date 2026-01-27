@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Gift,
   MessageSquare,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -32,6 +33,7 @@ interface AdminSidebarProps {
     | "categories"
     | "discounts"
     | "testimonials"
+    | "payment-options"
     | "support"
     | "settings";
   onSectionChange: (
@@ -45,6 +47,7 @@ interface AdminSidebarProps {
       | "categories"
       | "discounts"
       | "testimonials"
+      | "payment-options"
       | "support"
       | "settings",
   ) => void;
@@ -83,6 +86,7 @@ export default function AdminSidebar() {
     { id: "categories", label: "Categories", icon: Tag },
     { id: "discounts", label: "Discounts", icon: Gift },
     { id: "testimonials", label: "Testimonials", icon: MessageSquare },
+    { id: "payment-options", label: "Payment Options", icon: CreditCard },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];
