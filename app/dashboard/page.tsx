@@ -72,6 +72,9 @@ export interface Order {
   items: OrderItem[];
   delivery_date: string | null;
   notes: string | null;
+  cancellation_request: boolean | null;
+  cancellation_requested_at: string | null;
+  cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
 }

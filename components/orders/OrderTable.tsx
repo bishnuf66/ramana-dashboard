@@ -38,6 +38,9 @@ function OrderTable({
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Cancellation
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -90,6 +93,34 @@ function OrderTable({
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {order.cancellation_request ? (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-xs font-medium">
+                          Requested
+                        </span>
+                        {order.cancellation_requested_at && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(
+                              order.cancellation_requested_at,
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                        {order.cancellation_reason && (
+                          <div
+                            className="text-xs text-gray-600 dark:text-gray-300 max-w-xs truncate"
+                            title={order.cancellation_reason}
+                          >
+                            Reason: {order.cancellation_reason}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        No request
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(order.created_at).toLocaleDateString()}
                   </td>
@@ -136,6 +167,29 @@ function OrderTable({
                     </div>
                   </div>
                 </div>
+
+                {/* Cancellation Info */}
+                {order.cancellation_request && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-xs font-medium">
+                        Cancellation Requested
+                      </span>
+                      {order.cancellation_requested_at && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(
+                            order.cancellation_requested_at,
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    {order.cancellation_reason && (
+                      <div className="text-xs text-gray-600 dark:text-gray-300">
+                        <strong>Reason:</strong> {order.cancellation_reason}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center">
                   <select

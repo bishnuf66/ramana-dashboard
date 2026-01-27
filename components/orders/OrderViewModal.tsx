@@ -331,6 +331,44 @@ export default function OrderViewModal({
               </div>
             </div>
 
+            {/* Cancellation Information */}
+            {order.cancellation_request && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Cancellation Request
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-orange-700 dark:text-orange-300">
+                      Requested:
+                    </span>
+                    <span className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                      {order.cancellation_requested_at
+                        ? new Date(
+                            order.cancellation_requested_at,
+                          ).toLocaleDateString() +
+                          " " +
+                          new Date(
+                            order.cancellation_requested_at,
+                          ).toLocaleTimeString()
+                        : "N/A"}
+                    </span>
+                  </div>
+                  {order.cancellation_reason && (
+                    <div className="pt-2 border-t border-orange-200 dark:border-orange-700">
+                      <span className="text-sm text-orange-700 dark:text-orange-300 block mb-1">
+                        Reason:
+                      </span>
+                      <p className="text-sm text-orange-900 dark:text-orange-100 bg-white dark:bg-gray-800 p-2 rounded border border-orange-100 dark:border-orange-700">
+                        {order.cancellation_reason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Order Items & Summary */}
             <div className="lg:col-span-2 space-y-4">
               {/* Order Items */}
