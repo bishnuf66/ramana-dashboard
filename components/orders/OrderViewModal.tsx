@@ -386,7 +386,7 @@ export default function OrderViewModal({
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                         <Image
                           src={item.product_image || "/placeholder.jpg"}
-                          alt={item.product_name}
+                          alt={item.product_name || "Product image"}
                           fill
                           className="object-cover"
                         />
