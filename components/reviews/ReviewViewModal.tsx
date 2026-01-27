@@ -375,27 +375,6 @@ export default function ReviewViewModal({
                     </div>
                   </div>
                 )}
-
-                {/* Helpfulness */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    Helpfulness
-                  </h3>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <ThumbsUp className="w-4 h-4 text-green-600" />
-                      <span className="text-gray-900 dark:text-white">
-                        {review.helpful_count}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ThumbsDown className="w-4 h-4 text-red-600" />
-                      <span className="text-gray-900 dark:text-white">
-                        {review.dislike_count || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Right Column - Product & Reviewer Info */}

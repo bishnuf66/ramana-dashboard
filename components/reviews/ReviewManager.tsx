@@ -38,8 +38,6 @@ interface Review {
   rating: number;
   title: string;
   content: string;
-  helpful_count: number;
-  not_helpful_count: number;
   verified_purchase: boolean;
   status: "pending" | "approved" | "rejected";
   created_at: string;
@@ -122,8 +120,6 @@ export default function ReviewManager() {
           rating: review.rating,
           title: "Review", // Since your table uses 'comment' instead of 'title'
           content: review.comment || "",
-          helpful_count: review.helpful_count || 0,
-          not_helpful_count: review.dislike_count || 0,
           verified_purchase: review.is_verified || false,
           status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
           created_at: review.created_at || new Date().toISOString(),
@@ -230,8 +226,7 @@ export default function ReviewManager() {
       user_email: review.user_email,
       rating: review.rating,
       comment: review.content,
-      helpful_count: review.helpful_count,
-      dislike_count: review.not_helpful_count,
+      dislike_count: 0, // Set to 0 since we removed this field
       like_count: 0, // Add missing field
       is_verified: review.verified_purchase,
       review_images: [],
@@ -661,31 +656,6 @@ export default function ReviewManager() {
                         <p className="text-gray-600 dark:text-gray-300">
                           {selectedReview.content}
                         </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Engagement Stats */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                      Engagement
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                          {selectedReview.helpful_count}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          Helpful
-                        </div>
-                      </div>
-                      <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                          {selectedReview.not_helpful_count}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          Not Helpful
-                        </div>
                       </div>
                     </div>
                   </div>
