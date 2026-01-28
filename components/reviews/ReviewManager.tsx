@@ -23,34 +23,25 @@ import Image from "next/image";
 
 type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
-type ProductReviewWithProduct = ProductReviewRow & {
-  products: Pick<ProductRow, "id" | "title" | "cover_image"> | null;
-};
 
-interface Review {
-  id: string;
-  product_id: string;
+// Extended interface that adds UI-specific fields while keeping generated fields
+type Review = ProductReviewRow & {
+  products: Pick<ProductRow, "id" | "title" | "cover_image"> | null;
+  // UI-specific computed fields
   product_name: string;
   product_image: string;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  rating: number;
   title: string;
   content: string;
   verified_purchase: boolean;
   status: "pending" | "approved" | "rejected";
-  created_at: string;
-  updated_at?: string;
-}
+};
 
 export default function ReviewManager() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [reviewToView, setReviewToView] =
-    useState<ProductReviewWithProduct | null>(null);
+  const [reviewToView, setReviewToView] = useState<Review | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -105,26 +96,28 @@ export default function ReviewManager() {
         return;
       }
 
-      // Transform data to match expected format
-      const transformedReviews = (data as ProductReviewWithProduct[]).map(
-        (review): Review => ({
-          id: review.id,
-          product_id: review.product_id,
-          product_name:
-            review.products?.title || `Product ${review.product_id}`,
-          product_image:
-            review.products?.cover_image || "/api/placeholder/100/100",
-          user_id: review.user_id,
-          user_name: review.user_name,
-          user_email: review.user_email,
-          rating: review.rating,
-          title: "Review", // Since your table uses 'comment' instead of 'title'
-          content: review.comment || "",
-          verified_purchase: review.is_verified || false,
-          status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
-          created_at: review.created_at || new Date().toISOString(),
-          updated_at: review.updated_at || undefined,
-        }),
+      // Transform data to match expected format using only generated types
+      const transformedReviews = (data as ProductReviewRow[]).map(
+        (review): Review => {
+          // Create the UI-specific fields
+          const product_name = `Product ${review.product_id}`;
+          const product_image = "/api/placeholder/100/100";
+          const title = "Review";
+          const content = review.comment || "";
+          const verified_purchase = review.is_verified || false;
+          const status = review.is_verified ? "approved" : "pending";
+
+          return {
+            ...review,
+            products: null, // Will be populated by the join
+            product_name,
+            product_image,
+            title,
+            content,
+            verified_purchase,
+            status,
+          };
+        },
       );
 
       // Apply client-side search filter (since it's text-based)
@@ -134,16 +127,6 @@ export default function ReviewManager() {
       if (statusFilter !== "all") {
         filteredReviews = filteredReviews.filter(
           (r: Review) => r.status === statusFilter,
-        );
-      }
-
-      if (searchQuery) {
-        filteredReviews = filteredReviews.filter(
-          (r) =>
-            r.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.content.toLowerCase().includes(searchQuery.toLowerCase()),
         );
       }
 
@@ -201,7 +184,7 @@ export default function ReviewManager() {
                 ...r,
                 verified_purchase: isVerified,
                 status: isVerified ? "approved" : "pending",
-                updated_at: new Date().toISOString(),
+                created_at: r.created_at || new Date().toISOString(),
               }
             : r,
         ),
@@ -217,28 +200,7 @@ export default function ReviewManager() {
   };
 
   const handleViewReview = (review: Review) => {
-    // Convert Review back to ProductReviewWithProduct format for the modal
-    const productReview: ProductReviewWithProduct = {
-      id: review.id,
-      product_id: review.product_id,
-      user_id: review.user_id,
-      user_name: review.user_name,
-      user_email: review.user_email,
-      rating: review.rating,
-      comment: review.content,
-      dislike_count: 0, // Set to 0 since we removed this field
-      like_count: 0, // Add missing field
-      is_verified: review.verified_purchase,
-      review_images: [],
-      created_at: review.created_at,
-      updated_at: review.updated_at || null,
-      products: {
-        id: review.product_id,
-        title: review.product_name,
-        cover_image: review.product_image || null,
-      },
-    };
-    setReviewToView(productReview);
+    setReviewToView(review);
     setShowViewModal(true);
   };
 
@@ -467,7 +429,9 @@ export default function ReviewManager() {
                     </td>
 
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(review.created_at).toLocaleDateString()}
+                      {review.created_at
+                        ? new Date(review.created_at).toLocaleDateString()
+                        : "No date"}
                     </td>
 
                     <td className="px-6 py-4">
