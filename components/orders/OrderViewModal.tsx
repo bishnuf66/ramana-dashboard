@@ -24,6 +24,8 @@ import type { Database } from "@/types/database.types";
 import { EmailService } from "@/lib/emails/EmailService";
 import { supabase } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
+import PaymentDetail from "@/components/payments/PaymentDetail";
+import PaymentList from "@/components/payments/PaymentList";
 
 type PaymentStatus = Database["public"]["Enums"]["payment_status_enum"];
 
@@ -47,6 +49,9 @@ export default function OrderViewModal({
   const [paymentOptions, setPaymentOptions] = useState<
     Database["public"]["Tables"]["payment_options"]["Row"][]
   >([]);
+  const [userPayment, setUserPayment] = useState<any>(null);
+  const [userPayments, setUserPayments] = useState<any[]>([]);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   // Fetch payment options
   useEffect(() => {
@@ -54,8 +59,8 @@ export default function OrderViewModal({
       try {
         const { data, error } = await (supabase as any)
           .from("payment_options")
-          .select("id, name")
-          .order("name");
+          .select("id, payment_type")
+          .order("payment_type");
 
         if (error) throw error;
         setPaymentOptions(data || []);
@@ -66,6 +71,102 @@ export default function OrderViewModal({
 
     fetchPaymentOptions();
   }, []);
+
+  // Fetch user payment information when order changes
+  useEffect(() => {
+    const fetchUserPayments = async () => {
+      if (!order) {
+        setUserPayments([]);
+        setUserPayment(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("user_payments")
+          .select(
+            `
+            *,
+            payment_option:payment_options(*)
+          `,
+          )
+          .eq("order_id", order.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Failed to fetch user payments:", error);
+          setUserPayments([]);
+          setUserPayment(null);
+          return;
+        }
+
+        setUserPayments(data || []);
+        // Set the first payment as the primary one for backward compatibility
+        setUserPayment(data && data.length > 0 ? data[0] : null);
+      } catch (error) {
+        console.error("Failed to fetch user payments:", error);
+        setUserPayments([]);
+        setUserPayment(null);
+      }
+    };
+
+    fetchUserPayments();
+  }, [order]);
+
+  // Handle payment verification
+  const handleVerifyPayment = async (paymentId: string) => {
+    try {
+      setIsVerifyingPayment(true);
+
+      const { error } = await (supabase as any)
+        .from("user_payments")
+        .update({
+          is_verified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", paymentId);
+
+      if (error) throw error;
+
+      // Update local state for both single payment and payments array
+      setUserPayments((prev: any[]) =>
+        prev.map((payment: any) =>
+          payment.id === paymentId
+            ? {
+                ...payment,
+                is_verified: true,
+                updated_at: new Date().toISOString(),
+              }
+            : payment,
+        ),
+      );
+
+      setUserPayment((prev: any) =>
+        prev && prev.id === paymentId
+          ? { ...prev, is_verified: true, updated_at: new Date().toISOString() }
+          : prev,
+      );
+
+      // Check if all payments are verified to update order status
+      const updatedPayments = userPayments.map((payment) =>
+        payment.id === paymentId ? { ...payment, is_verified: true } : payment,
+      );
+
+      const allVerified =
+        updatedPayments.length > 0 &&
+        updatedPayments.every((p) => p.is_verified);
+
+      // Update order payment status to "paid" if all payments are verified
+      if (order && onPaymentStatusUpdate && allVerified) {
+        onPaymentStatusUpdate(order.id, "paid");
+      }
+    } catch (error: any) {
+      console.error("Failed to verify payment:", error);
+      // You could add a toast notification here
+    } finally {
+      setIsVerifyingPayment(false);
+    }
+  };
 
   // Send email notification for status change
   const handleStatusChangeWithEmail = async (newStatus: OrderStatus) => {
@@ -157,6 +258,20 @@ export default function OrderViewModal({
   const getPaymentOptionName = (paymentMethod: string) => {
     const option = paymentOptions.find((opt) => opt.id === paymentMethod);
     return option?.payment_type || paymentMethod;
+  };
+
+  const getPaymentMethodName = () => {
+    if (!userPayment) return "Not specified";
+
+    if (userPayment.payment_option?.payment_type) {
+      return userPayment.payment_option.payment_type;
+    }
+
+    // Fallback to payment_options lookup
+    const option = paymentOptions.find(
+      (opt) => opt.id === userPayment.payment_option_id,
+    );
+    return option?.payment_type || "Unknown";
   };
 
   const getStatusIcon = (status: string) => {
@@ -359,9 +474,17 @@ export default function OrderViewModal({
                       Method:
                     </span>
                     <span className="text-sm text-gray-900 dark:text-white">
-                      {getPaymentOptionName(order.payment_method)}
+                      {getPaymentMethodName()}
                     </span>
                   </div>
+
+                  {/* Payment Details Component */}
+                  <PaymentList
+                    userPayments={userPayments}
+                    onVerifyPayment={handleVerifyPayment}
+                    isVerifying={isVerifyingPayment}
+                  />
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       Order Date:
@@ -438,31 +561,6 @@ export default function OrderViewModal({
                       <div className="text-sm text-gray-900 dark:text-white max-w-xs text-right">
                         {order.notes}
                       </div>
-                    </div>
-                  )}
-                  {order.partial_payment_amount && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Partial Payment:
-                      </span>
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        ${order.partial_payment_amount.toFixed(2)}
-                        {order.partial_payment_percentage && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            ({order.partial_payment_percentage}%)
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {order.remaining_amount && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Remaining:
-                      </span>
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        ${order.remaining_amount.toFixed(2)}
-                      </span>
                     </div>
                   )}
                 </div>

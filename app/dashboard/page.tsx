@@ -245,6 +245,30 @@ function DashboardContent() {
     }
   };
 
+  const handleVerifyPayment = async (orderId: string) => {
+    try {
+      const currentAdmin = await getCurrentAdmin();
+      if (!currentAdmin) {
+        toast.error("You must be logged in to verify payments");
+        return;
+      }
+
+      const { error } = await (supabase as any)
+        .from("orders")
+        .update({
+          payment_status: "paid",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", orderId);
+
+      if (error) throw error;
+      toast.success("Payment verified successfully");
+      fetchOrders();
+    } catch (error: any) {
+      toast.error("Failed to verify payment: " + error.message);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOutAdmin();
@@ -704,6 +728,7 @@ function DashboardContent() {
                   orders={orders}
                   handleUpdateOrderStatus={handleUpdateOrderStatus}
                   onViewOrder={handleViewOrder}
+                  handleVerifyPayment={handleVerifyPayment}
                 />
               </div>
             )}

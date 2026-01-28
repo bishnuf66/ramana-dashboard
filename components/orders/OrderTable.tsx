@@ -1,4 +1,4 @@
-import { Order, OrderItem, OrderStatus } from "@/app/dashboard/page";
+import { Order, OrderStatus } from "@/app/dashboard/page";
 
 import ActionButtons from "@/components/ui/ActionButtons";
 
@@ -6,10 +6,12 @@ function OrderTable({
   orders,
   handleUpdateOrderStatus,
   onViewOrder,
+  handleVerifyPayment,
 }: {
   orders: Order[];
   handleUpdateOrderStatus: (id: string, status: OrderStatus) => void;
   onViewOrder?: (order: Order) => void;
+  handleVerifyPayment?: (orderId: string) => void;
 }) {
   return (
     <div>
@@ -38,6 +40,9 @@ function OrderTable({
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Cancellation
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Payment
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Date
@@ -123,6 +128,35 @@ function OrderTable({
                       </span>
                     )}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            order.payment_status === "paid"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : order.payment_status === "failed"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                          }`}
+                        >
+                          {order.payment_status}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          ${order.total_amount.toFixed(2)}
+                        </span>
+                      </div>
+                      {order.payment_status === "pending" &&
+                        handleVerifyPayment && (
+                          <button
+                            onClick={() => handleVerifyPayment(order.id)}
+                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Verify Payment
+                          </button>
+                        )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {order.created_at
                       ? new Date(order.created_at).toLocaleDateString()
@@ -196,6 +230,43 @@ function OrderTable({
                     )}
                   </div>
                 )}
+
+                {/* Payment Info */}
+                <div className="bg-gray-50 dark:bg-gray-900/20 p-3 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Payment Status:
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        order.payment_status === "paid"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : order.payment_status === "failed"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      }`}
+                    >
+                      {order.payment_status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Amount:
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      ${order.total_amount.toFixed(2)}
+                    </span>
+                  </div>
+                  {order.payment_status === "pending" &&
+                    handleVerifyPayment && (
+                      <button
+                        onClick={() => handleVerifyPayment(order.id)}
+                        className="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Verify Payment
+                      </button>
+                    )}
+                </div>
 
                 <div className="flex justify-between items-center">
                   <select
