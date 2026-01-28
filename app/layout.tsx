@@ -5,6 +5,7 @@ import PremiumHeader from "@/components/global/PremiumHeader";
 import AdminSidebar from "@/components/global/AdminSidebar";
 import PremiumFooter from "@/components/global/PremiumFooter";
 import FaviconSwitcher from "@/components/global/FaviconSwitcher";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import { ToastContainer } from "react-toastify";
 import { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -83,7 +84,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <>
         <FaviconSwitcher />
         {admin && <PremiumHeader />}
-        <div className="flex pt-20 min-h-screen">
+        <Breadcrumb />
+        <div className="flex min-h-screen">
           {admin && (
             <Suspense
               fallback={
