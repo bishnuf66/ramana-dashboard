@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Users } from "lucide-react";
+import type { Database } from "@/types/database.types";
+type Order = Database["public"]["Tables"]["orders"]["Row"];
 
 interface CustomerSummary {
   customer_email: string;
@@ -17,7 +19,7 @@ interface CustomerSummary {
 interface RegisteredUser {
   id: string;
   email: string;
-  created_at: string;
+  created_at: string | null;
   last_sign_in_at: string | null;
   display_name: string | null;
   user_metadata?: any;
@@ -54,17 +56,20 @@ export default function CustomersTab() {
 
       if (ordersError) throw ordersError;
 
+      // Explicitly type the orders data to fix TypeScript inference
+      const ordersData: Order[] = orders || [];
+
       // Create customer summary from orders
       const customerMap = new Map<string, CustomerSummary>();
 
-      orders?.forEach((order) => {
+      ordersData.forEach((order: Order) => {
         const email = order.customer_email;
         if (!email) return;
 
         const customerOrders =
-          orders?.filter((o: any) => o.customer_email === email) || [];
+          ordersData.filter((o: Order) => o.customer_email === email) || [];
         const totalSpent = customerOrders.reduce(
-          (sum: number, o: any) => sum + (Number(o.total_amount) || 0),
+          (sum: number, o: Order) => sum + (Number(o.total_amount) || 0),
           0,
         );
         const lastOrder = customerOrders[0]; // Most recent order due to sorting
@@ -88,9 +93,11 @@ export default function CustomersTab() {
       );
 
       setCustomers(customersList);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching customers:", error);
-      setError(error.message || "Failed to fetch customers");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      setError(errorMessage || "Failed to fetch customers");
     } finally {
       setLoading(false);
     }
@@ -111,7 +118,7 @@ export default function CustomersTab() {
 
       const data = await response.json();
       setRegisteredUsers(data.users || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching registered users:", error);
 
       // Fallback: try to get users from orders as a last resort
@@ -121,7 +128,7 @@ export default function CustomersTab() {
         .order("created_at", { ascending: false });
 
       if (ordersError) {
-        setError(error.message || "Failed to fetch registered users");
+        setError(ordersError.message || "Failed to fetch registered users");
         setRegisteredUsers([]);
         return;
       }
@@ -129,13 +136,16 @@ export default function CustomersTab() {
       // Create user list from orders (this is limited but better than nothing)
       const uniqueUsers = new Map<string, RegisteredUser>();
 
-      orders?.forEach((order: any) => {
+      orders?.forEach((order: Order) => {
         const email = order.customer_email;
         if (!email || uniqueUsers.has(email)) return;
 
-        uniqueUsers.set(email, {
-          id: email, // Use email as ID since we don't have auth ID
-          email: email,
+        // TypeScript now knows email is not null
+        const userEmail: string = email;
+
+        uniqueUsers.set(userEmail, {
+          id: userEmail, // Use email as ID since we don't have auth ID
+          email: userEmail,
           created_at: order.created_at,
           last_sign_in_at: null,
           display_name: order.customer_name || null,
@@ -341,7 +351,9 @@ export default function CustomersTab() {
                           {user.email}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {user.created_at
+                            ? new Date(user.created_at).toLocaleDateString()
+                            : "Unknown"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                           {user.last_sign_in_at

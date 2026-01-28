@@ -1,6 +1,5 @@
 import { Order, OrderItem } from "@/app/dashboard/page";
-import { Eye } from "lucide-react";
-import React from "react";
+
 import ActionButtons from "@/components/ui/ActionButtons";
 
 function OrderTable({

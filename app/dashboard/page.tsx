@@ -9,12 +9,9 @@ import {
   ShoppingCart,
   Users,
   DollarSign,
-  Plus,
   Edit,
   Trash2,
-  Eye,
   X,
-  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,49 +31,20 @@ import { getCurrentAdmin } from "@/lib/supabase/auth";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 import ProductsPage from "../../components/products/ProductPage";
 import SettingPage from "@/components/setting/SettingPage";
-type Category = Database["public"]["Tables"]["categories"]["Row"];
-
-interface Product {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  cover_image: string;
-  gallery_images: string[] | null;
-  rating: number;
-  category_id: string | null;
+// Use generated types
+export type Order = Database["public"]["Tables"]["orders"]["Row"];
+export type OrderStatus = Database["public"]["Enums"]["order_status"];
+export type Category = Database["public"]["Tables"]["categories"]["Row"];
+export type Product = Database["public"]["Tables"]["products"]["Row"] & {
   category?: {
     id: string;
     name: string;
     slug: string;
-    picture?: string | null;
+    picture: string | null;
   } | null;
-  stock: number;
-  created_at: string;
-}
+};
 
-export interface Order {
-  id: string;
-  order_number: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  shipping_address: string;
-  total_amount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  payment_status: "pending" | "paid" | "failed" | "refunded";
-  payment_method: string;
-  items: OrderItem[];
-  delivery_date: string | null;
-  notes: string | null;
-  cancellation_request: boolean | null;
-  cancellation_requested_at: string | null;
-  cancellation_reason: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
+// Define OrderItem interface manually since it might not exist in generated types
 export interface OrderItem {
   id: string;
   product_name: string;
@@ -231,106 +199,6 @@ function DashboardContent() {
     }));
   };
 
-  const handleSaveBlog = async () => {
-    if (
-      !blogForm.title.trim() ||
-      !blogForm.slug.trim() ||
-      !blogForm.created_by.trim()
-    ) {
-      toast.error("Title, slug, and created by are required");
-      return;
-    }
-
-    setBlogSaving(true);
-    try {
-      const payload = {
-        title: blogForm.title.trim(),
-        slug: blogForm.slug.trim(),
-        excerpt: blogForm.excerpt.trim() || null,
-        content_md: blogForm.content_md || "",
-        cover_image_url: blogForm.cover_image_url || null,
-        published: blogForm.published,
-        created_by: blogForm.created_by.trim() || "Admin",
-        updated_at: new Date().toISOString(),
-      };
-
-      if (editingBlogId) {
-        const { error } = await (supabase as any)
-          .from("blogs")
-          .update(payload)
-          .eq("id", editingBlogId);
-        if (error) throw error;
-        toast.success("Blog updated");
-      } else {
-        const { error } = await (supabase as any).from("blogs").insert({
-          ...payload,
-          created_at: new Date().toISOString(),
-        });
-        if (error) throw error;
-        toast.success("Blog created");
-      }
-
-      const { data, error: reloadError } = await (supabase as any)
-        .from("blogs")
-        .select(
-          "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
-        )
-        .order("created_at", { ascending: false });
-      if (reloadError) throw reloadError;
-      setBlogs(data || []);
-
-      resetBlogForm();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save blog");
-    } finally {
-      setBlogSaving(false);
-    }
-  };
-
-  const resetBlogForm = () => {
-    setBlogForm({
-      title: "",
-      slug: "",
-      excerpt: "",
-      content_md: "",
-      cover_image_url: "",
-      published: false,
-      created_by: "",
-    });
-    setEditingBlogId(null);
-  };
-
-  const handleBlogCoverImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) uploadBlogCover(file);
-  };
-
-  const handleBlogInlineImageUpload = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) insertInlineImage(file);
-    };
-    input.click();
-  };
-
-  const startEditBlog = (post: BlogRow) => {
-    setBlogForm({
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt || "",
-      content_md: post.content_md,
-      cover_image_url: post.cover_image_url || "",
-      published: post.published,
-      created_by: post.created_by || "",
-    });
-    setEditingBlogId(post.id);
-  };
-
   const handleDeleteBlog = async (id: string) => {
     if (!confirm("Delete this post?")) return;
     try {
@@ -359,7 +227,14 @@ function DashboardContent() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+
+      // Type the data properly with category relationship
+      const productsWithCategory = (data || []).map((product: any) => ({
+        ...product,
+        category: product.category || null,
+      }));
+
+      setProducts(productsWithCategory);
     } catch (error: any) {
       toast.error("Failed to fetch products: " + error.message);
     }
@@ -393,11 +268,6 @@ function DashboardContent() {
     }
   };
 
-  const handleViewProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setShowProductModal(true);
-  };
-
   const handleCloseProductModal = () => {
     setShowProductModal(false);
     setSelectedProduct(null);
@@ -424,8 +294,8 @@ function DashboardContent() {
       if (product) {
         const imagesToDelete: string[] = [];
         if (product.cover_image) imagesToDelete.push(product.cover_image);
-        if (product.gallery_images)
-          imagesToDelete.push(...product.gallery_images);
+        const galleryImages = getGalleryImages(product);
+        imagesToDelete.push(...galleryImages);
 
         // Delete images (non-blocking)
         import("@/lib/supabase/storage").then(({ deleteImages }) => {
@@ -443,13 +313,10 @@ function DashboardContent() {
     }
   };
 
-  const handleUpdateOrderStatus = async (
-    id: string,
-    status: Order["status"],
-  ) => {
+  const handleUpdateOrderStatus = async (id: string, status: OrderStatus) => {
     try {
       const updatePayload: Database["public"]["Tables"]["orders"]["Update"] = {
-        status,
+        order_status: status,
         updated_at: new Date().toISOString(),
       };
 
@@ -495,8 +362,27 @@ function DashboardContent() {
     }
   };
 
+  // Helper function to safely get gallery images
+  const getGalleryImages = (product: Product): string[] => {
+    if (!product.gallery_images) return [];
+    if (Array.isArray(product.gallery_images)) {
+      return product.gallery_images.filter(
+        (item): item is string => typeof item === "string",
+      );
+    }
+    if (
+      typeof product.gallery_images === "object" &&
+      product.gallery_images !== null
+    ) {
+      return Object.values(product.gallery_images).filter(
+        (item): item is string => typeof item === "string",
+      );
+    }
+    return [];
+  };
+
   const totalOrders = orders.length;
-  const deliveredOrders = orders.filter((o) => o.status === "delivered");
+  const deliveredOrders = orders.filter((o) => o.order_status === "delivered");
   const deliveredRevenue = deliveredOrders.reduce(
     (sum, o) => sum + (Number(o.total_amount) || 0),
     0,
@@ -528,7 +414,8 @@ function DashboardContent() {
   }
 
   for (const o of deliveredOrders) {
-    const d = new Date(o.created_at);
+    const d = o.created_at ? new Date(o.created_at) : null;
+    if (!d) continue;
     d.setHours(0, 0, 0, 0);
     if (d < start) continue;
     const key = d.toISOString().slice(0, 10);
@@ -549,14 +436,14 @@ function DashboardContent() {
 
   const statusCounts = orders.reduce(
     (acc, o) => {
-      acc[o.status] = (acc[o.status] || 0) + 1;
+      acc[o.order_status] = (acc[o.order_status] || 0) + 1;
       return acc;
     },
-    {} as Record<Order["status"], number>,
+    {} as Record<OrderStatus, number>,
   );
   const statusTotal = Math.max(1, totalOrders);
   const statusItems: Array<{
-    key: Order["status"];
+    key: OrderStatus;
     label: string;
     value: number;
     color: string;
@@ -590,6 +477,12 @@ function DashboardContent() {
       label: "Cancelled",
       value: statusCounts.cancelled || 0,
       color: "#EF4444",
+    },
+    {
+      key: "returned",
+      label: "Returned",
+      value: statusCounts.returned || 0,
+      color: "#F97316",
     },
   ];
 
@@ -843,7 +736,9 @@ function DashboardContent() {
                             {order.customer_email}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {new Date(order.created_at).toLocaleString()}
+                            {order.created_at
+                              ? new Date(order.created_at).toLocaleString()
+                              : "Unknown date"}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -852,18 +747,20 @@ function DashboardContent() {
                           </div>
                           <div
                             className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                              order.status === "pending"
+                              order.order_status === "pending"
                                 ? "bg-yellow-100 text-yellow-800"
-                                : order.status === "processing"
+                                : order.order_status === "processing"
                                   ? "bg-blue-100 text-blue-800"
-                                  : order.status === "shipped"
+                                  : order.order_status === "shipped"
                                     ? "bg-purple-100 text-purple-800"
-                                    : order.status === "delivered"
+                                    : order.order_status === "delivered"
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
+                                      : order.order_status === "returned"
+                                        ? "bg-orange-100 text-orange-800"
+                                        : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {order.status}
+                            {order.order_status}
                           </div>
                         </div>
                       </div>
@@ -947,7 +844,6 @@ function DashboardContent() {
                       {selectedProduct.category?.name || "Uncategorized"}
                     </span>
                     <span>Stock: {selectedProduct.stock}</span>
-                    <span>Rating: {selectedProduct.rating}</span>
                   </div>
                 </div>
                 <button
@@ -964,31 +860,36 @@ function DashboardContent() {
                 {/* Product Images */}
                 <div className="space-y-4">
                   <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                    <Image
-                      src={selectedProduct.cover_image}
-                      alt={selectedProduct.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  {selectedProduct.gallery_images &&
-                    selectedProduct.gallery_images.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {selectedProduct.gallery_images.map((image, index) => (
-                          <div
-                            key={index}
-                            className="relative w-full h-16 sm:h-20 rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
-                          >
-                            <Image
-                              src={image}
-                              alt={`Gallery ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ))}
+                    {selectedProduct.cover_image ? (
+                      <Image
+                        src={selectedProduct.cover_image}
+                        alt={selectedProduct.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                        <Package className="h-12 w-12" />
                       </div>
                     )}
+                  </div>
+                  {getGalleryImages(selectedProduct).length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {getGalleryImages(selectedProduct).map((image, index) => (
+                        <div
+                          key={index}
+                          className="relative w-full h-16 sm:h-20 rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
+                        >
+                          <Image
+                            src={image}
+                            alt={`${selectedProduct.title} - Gallery ${index + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Details */}
@@ -1040,14 +941,6 @@ function DashboardContent() {
                         </dt>
                         <dd className="text-gray-900 dark:text-white">
                           {selectedProduct.stock} units
-                        </dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600 dark:text-gray-400">
-                          Rating:
-                        </dt>
-                        <dd className="text-gray-900 dark:text-white">
-                          ⭐ {selectedProduct.rating}/5
                         </dd>
                       </div>
                       <div className="flex justify-between">
