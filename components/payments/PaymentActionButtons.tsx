@@ -66,9 +66,7 @@ export default function PaymentActionButtons({
 
   const handleDelete = () => {
     if (onDelete) {
-      if (confirm(`Are you sure you want to delete payment ${payment.id.slice(0, 8)}?`)) {
-        onDelete(payment);
-      }
+      onDelete(payment);
     }
   };
 

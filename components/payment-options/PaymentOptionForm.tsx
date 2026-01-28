@@ -6,11 +6,8 @@ import { uploadImage, deleteImage } from "@/lib/supabase/storage";
 import { Upload, X, CreditCard, Smartphone, Building } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import type {
-  PaymentOption,
-  PaymentOptionInsert,
-  PaymentOptionUpdate,
-} from "@/types/payment.types";
+import { Database } from "@/types/database.types";
+type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
 
 interface PaymentOptionFormProps {
   paymentOption?: PaymentOption;

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
+import Pagination from "@/components/ui/Pagination";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 
 interface BlogPost {
@@ -46,6 +47,10 @@ export default function BlogList({
 }: BlogListProps) {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 10;
   const [blogForm, setBlogForm] = useState<BlogDraft>({
     title: "",
     slug: "",
@@ -61,15 +66,30 @@ export default function BlogList({
   useEffect(() => {
     const loadBlogs = async () => {
       try {
+        setLoading(true);
+
+        // Get total count first
+        const { count: totalCount } = await (supabase as any)
+          .from("blogs")
+          .select("*", { count: "exact", head: true });
+
+        // Get paginated data
+        const from = (currentPage - 1) * limit;
+        const to = from + limit - 1;
+
         const { data, error } = await (supabase as any)
           .from("blogs")
           .select(
             "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
           )
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .range(from, to);
 
         if (error) throw error;
+
         setBlogs((data as any) || []);
+        setTotalCount(totalCount || 0);
+        setTotalPages(Math.ceil((totalCount || 0) / limit));
       } catch (error: any) {
         toast.error(error.message || "Failed to load blogs");
         setBlogs([]);
@@ -79,7 +99,7 @@ export default function BlogList({
     };
 
     loadBlogs();
-  }, []);
+  }, [currentPage]);
 
   const handleSaveBlog = async () => {
     if (
@@ -370,6 +390,18 @@ export default function BlogList({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          itemsPerPage={limit}
+          onPageChange={setCurrentPage}
+          showItemsPerPageSelector={false}
+        />
       )}
     </div>
   );

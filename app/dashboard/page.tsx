@@ -771,10 +771,23 @@ function DashboardContent() {
                     // TODO: Implement edit functionality
                     toast.info("Edit functionality coming soon!");
                   }}
-                  onPaymentDelete={(payment) => {
-                    console.log("Delete payment:", payment);
-                    // TODO: Implement delete functionality
-                    toast.info("Delete functionality coming soon!");
+                  onPaymentDelete={async (payment) => {
+                    try {
+                      console.log("Deleting payment:", payment);
+
+                      // Delete from database
+                      const { error } = await (supabase as any)
+                        .from("user_payments")
+                        .delete()
+                        .eq("id", payment.id);
+
+                      if (error) throw error;
+
+                      toast.success("Payment deleted successfully!");
+                    } catch (error: any) {
+                      console.error("Failed to delete payment:", error);
+                      toast.error("Failed to delete payment: " + error.message);
+                    }
                   }}
                 />
               </div>

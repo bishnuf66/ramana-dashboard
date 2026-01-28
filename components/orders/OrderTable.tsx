@@ -3,6 +3,7 @@ import { Order, OrderStatus } from "@/app/dashboard/page";
 import ActionButtons from "@/components/ui/ActionButtons";
 import { useState } from "react";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 
 function OrderTable({
   orders,
@@ -21,6 +22,9 @@ function OrderTable({
     status: OrderStatus;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const currency = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) {
       return "Rs.0.00";
@@ -34,6 +38,13 @@ function OrderTable({
       return `Rs.${value.toFixed(2)}`;
     }
   };
+
+  // Pagination logic
+  const paginatedOrders = orders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+  const totalPages = Math.ceil(orders.length / itemsPerPage);
 
   const handleStatusChange = (id: string, status: OrderStatus) => {
     setPendingStatusChange({ id, status });
@@ -103,7 +114,7 @@ function OrderTable({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {orders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <tr key={order.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     #{order.id.slice(0, 8)}
@@ -416,6 +427,18 @@ function OrderTable({
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={orders.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          showItemsPerPageSelector={false}
+        />
+      )}
 
       {/* Status Change Confirmation Modal */}
       <ConfirmationModal

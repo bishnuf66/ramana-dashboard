@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import PaymentViewModal from "./PaymentViewModal";
 import PaymentActionButtons from "./PaymentActionButtons";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 
 interface UserPayment {
   id: string;
@@ -61,8 +63,14 @@ export default function UserPaymentList({
   >("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<UserPayment | null>(
+    null,
+  );
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<UserPayment | null>(
     null,
   );
 
@@ -120,6 +128,7 @@ export default function UserPaymentList({
       if (error) throw error;
 
       setPayments(data || []);
+      setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / limit));
     } catch (error) {
       console.error("Failed to fetch user payments:", error);
@@ -163,7 +172,31 @@ export default function UserPaymentList({
   };
 
   const handleDeletePayment = (payment: UserPayment) => {
-    onPaymentDelete?.(payment);
+    setPaymentToDelete(payment);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeletePayment = async () => {
+    if (!paymentToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      // Call the parent delete handler
+      onPaymentDelete?.(paymentToDelete);
+
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Refresh the list
+      fetchPayments();
+
+      setShowDeleteModal(false);
+      setPaymentToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete payment:", error);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -347,36 +380,14 @@ export default function UserPaymentList({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              Showing {(currentPage - 1) * limit + 1} to{" "}
-              {Math.min(currentPage * limit, payments.length)} of{" "}
-              {payments.length} results
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          itemsPerPage={limit}
+          onPageChange={setCurrentPage}
+          showItemsPerPageSelector={false}
+        />
       )}
 
       {/* Payment View Modal */}
@@ -385,6 +396,22 @@ export default function UserPaymentList({
         onClose={() => setShowViewModal(false)}
         payment={selectedPayment}
         onEdit={handleEditPayment}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setPaymentToDelete(null);
+        }}
+        onConfirm={confirmDeletePayment}
+        title="Delete Payment"
+        message={`Are you sure you want to delete payment ${paymentToDelete?.id.slice(0, 8)}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
+        loading={deleteLoading}
       />
     </div>
   );

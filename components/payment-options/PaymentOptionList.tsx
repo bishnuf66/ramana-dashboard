@@ -2,34 +2,67 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Plus, Edit, Trash2, CreditCard, Smartphone, Building, Eye, EyeOff } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  CreditCard,
+  Smartphone,
+  Building,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import type { PaymentOption } from "@/types/payment.types";
 import PaymentOptionForm from "./PaymentOptionForm";
+import { Database } from "@/types/database.types";
+type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
+import Pagination from "@/components/ui/Pagination";
 
 export default function PaymentOptionList() {
   const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingOption, setEditingOption] = useState<PaymentOption | null>(null);
+  const [editingOption, setEditingOption] = useState<PaymentOption | null>(
+    null,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
     fetchPaymentOptions();
-  }, []);
+  }, [currentPage]);
 
   const fetchPaymentOptions = async () => {
     try {
+      setLoading(true);
+
+      // Get total count first
+      const { count: totalCount } = await (supabase as any)
+        .from("payment_options")
+        .select("*", { count: "exact", head: true });
+
+      // Get paginated data
+      const from = (currentPage - 1) * limit;
+      const to = from + limit - 1;
+
       const { data, error } = await (supabase as any)
         .from("payment_options")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
+
       setPaymentOptions(data || []);
+      setTotalCount(totalCount || 0);
+      setTotalPages(Math.ceil((totalCount || 0) / limit));
     } catch (error: any) {
       console.error("Error fetching payment options:", error);
       toast.error("Failed to fetch payment options");
+      setPaymentOptions([]);
     } finally {
       setLoading(false);
     }
@@ -41,11 +74,12 @@ export default function PaymentOptionList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment option?")) return;
+    if (!confirm("Are you sure you want to delete this payment option?"))
+      return;
 
     try {
-      const option = paymentOptions.find(o => o.id === id);
-      
+      const option = paymentOptions.find((o) => o.id === id);
+
       // Delete QR image if exists
       if (option?.qr_image_url) {
         try {
@@ -71,9 +105,12 @@ export default function PaymentOptionList() {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    
+  const handleToggleStatus = async (
+    id: string,
+    currentStatus: string | null,
+  ) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
     try {
       const { error } = await (supabase as any)
         .from("payment_options")
@@ -81,7 +118,9 @@ export default function PaymentOptionList() {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success(`Payment option ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+      toast.success(
+        `Payment option ${newStatus === "active" ? "activated" : "deactivated"}`,
+      );
       fetchPaymentOptions();
     } catch (error: any) {
       console.error("Error updating payment option status:", error);
@@ -102,11 +141,11 @@ export default function PaymentOptionList() {
 
   const getPaymentIcon = (type: string) => {
     switch (type) {
-      case 'esewa':
+      case "esewa":
         return <Smartphone className="w-5 h-5" />;
-      case 'khalti':
+      case "khalti":
         return <CreditCard className="w-5 h-5" />;
-      case 'bank_transfer':
+      case "bank_transfer":
         return <Building className="w-5 h-5" />;
       default:
         return <CreditCard className="w-5 h-5" />;
@@ -115,21 +154,21 @@ export default function PaymentOptionList() {
 
   const getPaymentLabel = (type: string) => {
     switch (type) {
-      case 'esewa':
-        return 'eSewa';
-      case 'khalti':
-        return 'Khalti';
-      case 'bank_transfer':
-        return 'Bank Transfer';
+      case "esewa":
+        return "eSewa";
+      case "khalti":
+        return "Khalti";
+      case "bank_transfer":
+        return "Bank Transfer";
       default:
         return type;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  const getStatusBadge = (status: string | null) => {
+    return status === "active"
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   };
 
   if (showForm) {
@@ -197,21 +236,25 @@ export default function PaymentOptionList() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      option.payment_type === 'esewa' 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                        : option.payment_type === 'khalti'
-                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400'
-                        : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                    }`}>
+                    <div
+                      className={`p-2 rounded-lg ${
+                        option.payment_type === "esewa"
+                          ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400"
+                          : option.payment_type === "khalti"
+                            ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                            : "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
+                      }`}
+                    >
                       {getPaymentIcon(option.payment_type)}
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         {getPaymentLabel(option.payment_type)}
                       </h3>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusBadge(option.status)}`}>
-                        {option.status}
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusBadge(option.status)}`}
+                      >
+                        {option.status || "Unknown"}
                       </span>
                     </div>
                   </div>
@@ -220,7 +263,9 @@ export default function PaymentOptionList() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      {option.payment_type === 'bank_transfer' ? 'Account Number' : 'Phone Number'}
+                      {option.payment_type === "bank_transfer"
+                        ? "Account Number"
+                        : "Phone Number"}
                     </p>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {option.payment_number}
@@ -229,7 +274,9 @@ export default function PaymentOptionList() {
 
                   {option.qr_image_url && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">QR Code</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        QR Code
+                      </p>
                       <div className="relative w-full h-32 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                         <Image
                           src={option.qr_image_url}
@@ -250,12 +297,12 @@ export default function PaymentOptionList() {
                     <Edit className="w-3 h-3" />
                     Edit
                   </button>
-                  
+
                   <button
                     onClick={() => handleToggleStatus(option.id, option.status)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded transition-colors"
                   >
-                    {option.status === 'active' ? (
+                    {option.status === "active" ? (
                       <>
                         <EyeOff className="w-3 h-3" />
                         Hide
@@ -267,7 +314,7 @@ export default function PaymentOptionList() {
                       </>
                     )}
                   </button>
-                  
+
                   <button
                     onClick={() => handleDelete(option.id)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors"
@@ -281,6 +328,18 @@ export default function PaymentOptionList() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          itemsPerPage={limit}
+          onPageChange={setCurrentPage}
+          showItemsPerPageSelector={false}
+        />
+      )}
     </div>
   );
 }
