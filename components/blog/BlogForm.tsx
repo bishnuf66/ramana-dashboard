@@ -81,7 +81,7 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
     setFormData((prev) => ({
       ...prev,
       title,
-      slug: prev.slug || slug,
+      slug: slug, // Always update slug when title changes
     }));
   };
 
@@ -220,10 +220,8 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
             <input
               type="text"
               value={formData.slug}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, slug: e.target.value }))
-              }
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              readOnly
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="blog-post-slug"
               required
             />
