@@ -266,8 +266,6 @@ export default function UserPaymentList({
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSortChange={handleSortChange}
-            itemsPerPage={itemsPerPage}
-            onItemsPerPageChange={handleItemsPerPageChange}
             showStatusFilter={true}
             statusLabel="Payment Verification Status"
             placeholder="Search payments..."
@@ -447,14 +445,15 @@ export default function UserPaymentList({
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {userPayments.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalCount}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          showItemsPerPageSelector={false}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          showItemsPerPageSelector={true}
         />
       )}
 

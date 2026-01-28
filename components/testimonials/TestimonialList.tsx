@@ -165,8 +165,6 @@ const TestimonialList = () => {
         onStatusChange={handleStatusChange}
         sortBy={`${sortBy}-${sortOrder}`}
         onSortChange={handleSortChange}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
         showStatusFilter={true}
         showClearAll={hasFilters}
         onClearAll={handleClearAll}
@@ -352,13 +350,15 @@ const TestimonialList = () => {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {testimonials.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
           totalItems={total}
+          showItemsPerPageSelector={true}
         />
       )}
 

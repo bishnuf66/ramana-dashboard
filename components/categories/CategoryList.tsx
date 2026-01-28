@@ -143,8 +143,6 @@ export default function CategoryList({
             setSortOrder(order as "asc" | "desc");
           }
         }}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={handleItemsPerPageChange}
         placeholder="Search categories..."
         sortOptions={[
           { value: "created_at-desc", label: "Newest First" },
@@ -154,7 +152,6 @@ export default function CategoryList({
           { value: "updated_at-desc", label: "Recently Updated" },
           { value: "updated_at-asc", label: "Least Recently Updated" },
         ]}
-        itemsPerPageOptions={[6, 9, 12, 24]}
       />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -370,14 +367,15 @@ export default function CategoryList({
         </div>
       )}
       {/* Pagination */}
-      {totalPages > 1 && (
+      {categories.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalCount}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          showItemsPerPageSelector={false}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          showItemsPerPageSelector={true}
         />
       )}
       {/* Category View Modal */}

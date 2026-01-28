@@ -228,8 +228,6 @@ const ProductsPage = () => {
         onStatusChange={handleStatusChange}
         sortBy={`${sortBy}-${sortOrder}`}
         onSortChange={handleSortChange}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
         showStatusFilter={true}
         showClearAll={hasFilters}
         onClearAll={handleClearAll}
@@ -428,7 +426,7 @@ const ProductsPage = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {products.length > 0 && (
           <div className="mt-4">
             <Pagination
               currentPage={currentPage}
@@ -437,6 +435,7 @@ const ProductsPage = () => {
               itemsPerPage={itemsPerPage}
               onItemsPerPageChange={setItemsPerPage}
               totalItems={total}
+              showItemsPerPageSelector={true}
             />
           </div>
         )}

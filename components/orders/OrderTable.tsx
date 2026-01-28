@@ -164,8 +164,6 @@ function OrderTable({
         onStatusChange={handleStatusFilterChange}
         sortBy={`${sortBy}-${sortOrder}`}
         onSortChange={handleSortChange}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
         showStatusFilter={true}
         showClearAll={hasFilters}
         onClearAll={handleClearAll}
@@ -559,14 +557,15 @@ function OrderTable({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {orders.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={total}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          showItemsPerPageSelector={false}
+          onItemsPerPageChange={setItemsPerPage}
+          showItemsPerPageSelector={true}
         />
       )}
 

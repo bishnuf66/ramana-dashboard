@@ -135,8 +135,6 @@ export default function BlogList({
         }}
         status={selectedStatus}
         onStatusChange={handleStatusChange}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={handleItemsPerPageChange}
         showStatusFilter={true}
         placeholder="Search blogs..."
         sortOptions={[
@@ -332,14 +330,15 @@ export default function BlogList({
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {blogs.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalCount}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          showItemsPerPageSelector={false}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          showItemsPerPageSelector={true}
         />
       )}
     </div>
