@@ -17,6 +17,8 @@ import { toast } from "react-toastify";
 import ActionButtons from "@/components/ui/ActionButtons";
 import ReviewViewModal from "./ReviewViewModal";
 import Pagination from "@/components/ui/Pagination";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
@@ -43,6 +45,12 @@ export default function ReviewManager() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [reviewToView, setReviewToView] = useState<Review | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusAction, setStatusAction] = useState<{
+    reviewId: string;
+    newStatus: "approved" | "pending" | "rejected";
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
@@ -155,14 +163,25 @@ export default function ReviewManager() {
     reviewId: string,
     status: "approved" | "pending" | "rejected",
   ) => {
+    // Show confirmation modal instead of directly updating
+    setStatusAction({ reviewId, newStatus: status });
+    setShowStatusModal(true);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!statusAction) return;
+
     try {
       // Update is_verified column instead of status
-      const isVerified = status === "approved";
+      const isVerified = statusAction.newStatus === "approved";
 
       const response = await fetch("/api/reviews", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewId, is_verified: isVerified }),
+        body: JSON.stringify({
+          reviewId: statusAction.reviewId,
+          is_verified: isVerified,
+        }),
       });
 
       if (!response.ok) {
@@ -173,7 +192,7 @@ export default function ReviewManager() {
       // Update local state
       setReviews(
         reviews.map((r) =>
-          r.id === reviewId
+          r.id === statusAction.reviewId
             ? {
                 ...r,
                 verified_purchase: isVerified,
@@ -183,7 +202,9 @@ export default function ReviewManager() {
             : r,
         ),
       );
-      toast.success(`Review ${status} successfully`);
+      toast.success(`Review ${statusAction.newStatus} successfully`);
+      setShowStatusModal(false);
+      setStatusAction(null);
 
       // Ensure UI stays in sync with DB (and join fields)
       fetchReviews();
@@ -199,19 +220,23 @@ export default function ReviewManager() {
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this review? This action cannot be undone.",
-      )
-    )
-      return;
+    // Set the review to delete and show the delete modal
+    const reviewToDelete = reviews.find((r) => r.id === reviewId);
+    if (reviewToDelete) {
+      setSelectedReview(reviewToDelete);
+      setShowDeleteModal(true);
+    }
+  };
+
+  const confirmDeleteReview = async () => {
+    if (!selectedReview) return;
 
     try {
       // Delete from Supabase database
       const { error } = await supabase
         .from("product_reviews")
         .delete()
-        .eq("id", reviewId);
+        .eq("id", selectedReview.id);
 
       if (error) {
         console.error("Database delete error:", error);
@@ -219,13 +244,10 @@ export default function ReviewManager() {
       }
 
       // Update local state
-      setReviews(reviews.filter((r) => r.id !== reviewId));
+      setReviews(reviews.filter((r) => r.id !== selectedReview.id));
       toast.success("Review deleted successfully");
-
-      if (selectedReview?.id === reviewId) {
-        setSelectedReview(null);
-        setShowReviewModal(false);
-      }
+      setShowDeleteModal(false);
+      setSelectedReview(null);
     } catch (error) {
       console.error("Error deleting review:", error);
       toast.error("Failed to delete review");
@@ -445,6 +467,7 @@ export default function ReviewManager() {
                                 handleStatusUpdate(review.id, "approved")
                               }
                               className="p-1 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                              title="Approve"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
@@ -453,6 +476,7 @@ export default function ReviewManager() {
                                 handleStatusUpdate(review.id, "rejected")
                               }
                               className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                              title="Reject"
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
@@ -471,13 +495,13 @@ export default function ReviewManager() {
                           </button>
                         )}
 
-                        <ActionButtons
-                          id={review.id}
-                          type="review"
-                          onDelete={() => handleDeleteReview(review.id)}
-                          showView={false}
-                          showEdit={false}
-                        />
+                        <button
+                          onClick={() => handleDeleteReview(review.id)}
+                          className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                          title="Delete review"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -656,6 +680,62 @@ export default function ReviewManager() {
         onDelete={(reviewId) => {
           handleDeleteReview(reviewId);
         }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedReview(null);
+        }}
+        onConfirm={confirmDeleteReview}
+        title="Delete Review"
+        description="Are you sure you want to delete this review? This action cannot be undone."
+        itemName={
+          selectedReview
+            ? `${selectedReview.product_name} - By ${selectedReview.user_name}`
+            : undefined
+        }
+      />
+
+      {/* Status Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showStatusModal}
+        onClose={() => {
+          setShowStatusModal(false);
+          setStatusAction(null);
+        }}
+        onConfirm={confirmStatusUpdate}
+        title={
+          statusAction
+            ? statusAction.newStatus === "approved"
+              ? "Approve Review"
+              : statusAction.newStatus === "rejected"
+                ? "Reject Review"
+                : "Mark as Pending"
+            : ""
+        }
+        message={
+          statusAction
+            ? statusAction.newStatus === "approved"
+              ? "This will mark the review as verified and approved."
+              : statusAction.newStatus === "rejected"
+                ? "This will mark the review as rejected."
+                : "This will mark the review as pending."
+            : ""
+        }
+        confirmText={
+          statusAction
+            ? statusAction.newStatus === "approved"
+              ? "Approve Review"
+              : statusAction.newStatus === "rejected"
+                ? "Reject Review"
+                : "Mark as Pending"
+            : ""
+        }
+        cancelText="Cancel"
+        type="status"
       />
     </div>
   );
