@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -20,103 +20,101 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
+import {
+  useProducts,
+  useProductsCount,
+  useDeleteProduct,
+} from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
 
 type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState<DbProduct[]>([]);
-  const [categoriesList, setCategoriesList] = useState<
-    { id: string; name: string }[]
-  >([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<DbProduct | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [productToView, setProductToView] = useState<DbProduct | null>(null);
+
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "in_stock" | "out_of_stock"
+  >("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "name" | "price">(
+    "created_at",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  // TanStack Query hooks
+  const { data: products = [], isLoading } = useProducts({
+    search: searchTerm,
+    category: selectedCategory,
+    status: selectedStatus,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-      // Fetch categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name");
+  const { data: total = 0 } = useProductsCount({
+    search: searchTerm,
+    category: selectedCategory,
+    status: selectedStatus,
+  });
 
-      if (categoriesError) {
-        console.error("Failed to load categories:", categoriesError);
-      } else {
-        setCategoriesList(categoriesData || []);
-      }
+  const { data: categoriesList = [] } = useCategories();
+  const deleteProductMutation = useDeleteProduct();
 
-      // Fetch products
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+  // Check if any filters are applied
+  const hasFilters: boolean =
+    !!searchTerm ||
+    selectedCategory !== "all" ||
+    selectedStatus !== "all" ||
+    sortBy !== "created_at" ||
+    sortOrder !== "desc" ||
+    itemsPerPage !== 10 ||
+    currentPage !== 1;
 
-      if (error) {
-        toast.error("Failed to load products: " + error.message);
-      } else {
-        setProducts(data || []);
-      }
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  // Filter products based on search and filters
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.description || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" ||
-        (product.category_id || "").toLowerCase() ===
-          selectedCategory.toLowerCase();
-      const stockStatus =
-        (product.stock || 0) > 0 ? "in_stock" : "out_of_stock";
-      const matchesStatus =
-        selectedStatus === "all" || selectedStatus === stockStatus;
-
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [products, searchTerm, selectedCategory, selectedStatus]);
-
-  // Pagination logic
-  const paginatedProducts = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredProducts.slice(startIndex, endIndex);
-  }, [filteredProducts, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedStatus, itemsPerPage]);
+  };
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => p.category_id && set.add(p.category_id));
-    return Array.from(set);
-  }, [products]);
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value as "all" | "in_stock" | "out_of_stock");
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    const [sort, order] = value.split("-");
+    setSortBy(sort as any);
+    setSortOrder(order as "asc" | "desc");
+    setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedStatus("all");
+    setSortBy("created_at");
+    setSortOrder("desc");
+    setItemsPerPage(10);
+    setCurrentPage(1);
+  };
 
   const handleDeleteProduct = (product: DbProduct) => {
     setProductToDelete(product);
@@ -132,9 +130,7 @@ const ProductsPage = () => {
     if (!productToDelete) return;
 
     try {
-      setLoading(true);
-
-      // Step 1: Delete product images from storage
+      // Delete product images from storage
       const imagesToDelete = [];
 
       // Add cover image
@@ -171,29 +167,16 @@ const ProductsPage = () => {
         }
       }
 
-      // Step 2: Delete related records (cascade)
-      const { error: deleteError } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productToDelete.id);
+      // Delete product using mutation
+      deleteProductMutation.mutate(productToDelete.id);
 
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      // Step 3: Update local state
-      setProducts(products.filter((p) => p.id !== productToDelete.id));
       setShowDeleteModal(false);
       setProductToDelete(null);
-
-      toast.success("Product and all related data deleted successfully");
     } catch (error) {
       console.error("Error deleting product:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       toast.error("Failed to delete product: " + errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -210,6 +193,8 @@ const ProductsPage = () => {
     const category = categoriesList.find((cat) => cat.id === categoryId);
     return category ? category.name : categoryId;
   };
+
+  const totalPages = Math.ceil(total / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -235,59 +220,46 @@ const ProductsPage = () => {
         </Link>
       </div>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
+      {/* Filters using SearchFilterSort */}
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        status={selectedStatus}
+        onStatusChange={handleStatusChange}
+        sortBy={`${sortBy}-${sortOrder}`}
+        onSortChange={handleSortChange}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+        showStatusFilter={true}
+        showClearAll={hasFilters}
+        onClearAll={handleClearAll}
+        statusOptions={[
+          { value: "all", label: "All Status" },
+          { value: "in_stock", label: "In Stock" },
+          { value: "out_of_stock", label: "Out of Stock" },
+        ]}
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "name-asc", label: "Name A-Z" },
+          { value: "name-desc", label: "Name Z-A" },
+          { value: "price-asc", label: "Price: Low to High" },
+          { value: "price-desc", label: "Price: High to Low" },
+        ]}
+        placeholder="Search products by title, description, or SKU..."
+        statusLabel="Stock Status"
+      />
 
-          {/* Category Filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="all">All Categories</option>
-            {categoriesList.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="all">All Stock</option>
-            <option value="in_stock">In Stock</option>
-            <option value="out_of_stock">Out of Stock</option>
-          </select>
-
-          {/* Results Count */}
-          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Package className="w-4 h-4 mr-2" />
-            {loading
-              ? "Loading..."
-              : `${filteredProducts.length} products found`}
-          </div>
-        </div>
-      </motion.div>
+      {/* Results count */}
+      <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        {isLoading ? (
+          "Loading..."
+        ) : (
+          <>
+            Showing {products.length} of {total} products
+          </>
+        )}
+      </div>
 
       {/* Products Table */}
       <motion.div
@@ -330,7 +302,7 @@ const ProductsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedProducts.map((product) => (
+              {products.map((product) => (
                 <tr
                   key={product.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -456,7 +428,7 @@ const ProductsPage = () => {
         </div>
 
         {/* Pagination */}
-        {filteredProducts.length > 0 && (
+        {totalPages > 1 && (
           <div className="mt-4">
             <Pagination
               currentPage={currentPage}
@@ -464,12 +436,12 @@ const ProductsPage = () => {
               onPageChange={setCurrentPage}
               itemsPerPage={itemsPerPage}
               onItemsPerPageChange={setItemsPerPage}
-              totalItems={filteredProducts.length}
+              totalItems={total}
             />
           </div>
         )}
 
-        {filteredProducts.length === 0 && !loading && (
+        {products.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -522,7 +494,7 @@ const ProductsPage = () => {
           "Related order items",
           "Discount associations",
         ]}
-        isLoading={loading}
+        isLoading={deleteProductMutation.isPending}
       />
     </div>
   );

@@ -727,7 +727,6 @@ function DashboardContent() {
 
                 {/* Orders Table - Responsive */}
                 <OrderTable
-                  orders={orders}
                   handleUpdateOrderStatus={handleUpdateOrderStatus}
                   onViewOrder={handleViewOrder}
                   handleVerifyPayment={handleVerifyPayment}

@@ -9,121 +9,100 @@ type OrderStatus =
   | "returned";
 
 import ActionButtons from "@/components/ui/ActionButtons";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
-import { supabase } from "@/lib/supabase/client";
+import {
+  useOrders,
+  useOrdersCount,
+  useUpdateOrderStatus,
+} from "@/hooks/useOrders";
 
 function OrderTable({
   handleUpdateOrderStatus,
   onViewOrder,
   handleVerifyPayment,
-  searchTerm,
-  selectedStatus,
-  sortBy,
-  sortOrder,
-  itemsPerPage,
-  currentPage,
-  onSearchChange,
-  onStatusChange,
-  onSortChange,
-  onItemsPerPageChange,
-  onPageChange,
-  onClearAll,
-  loading = false,
 }: {
-  handleUpdateOrderStatus: (id: string, status: OrderStatus) => void;
+  handleUpdateOrderStatus?: (id: string, status: OrderStatus) => void;
   onViewOrder?: (order: Order) => void;
   handleVerifyPayment?: (orderId: string) => void;
-  // Search, filter, and sort props
-  searchTerm: string;
-  selectedStatus: OrderStatus | "all";
-  sortBy: "created_at" | "updated_at" | "total_amount";
-  sortOrder: "asc" | "desc";
-  itemsPerPage: number;
-  currentPage: number;
-  onSearchChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
-  onSortChange: (value: string) => void;
-  onItemsPerPageChange: (value: number) => void;
-  onPageChange: (value: number) => void;
-  onClearAll: () => void;
-  loading?: boolean;
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{
     id: string;
     status: OrderStatus;
   } | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [total, setTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "all">(
+    "all",
+  );
+  const [sortBy, setSortBy] = useState<
+    "created_at" | "updated_at" | "total_amount"
+  >("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // TanStack Query hooks
+  const {
+    data: orders = [],
+    isLoading,
+    error,
+  } = useOrders({
+    search: searchTerm,
+    status: selectedStatus,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+
+  const { data: total = 0 } = useOrdersCount({
+    search: searchTerm,
+    status: selectedStatus,
+  });
+
+  const updateOrderStatusMutation = useUpdateOrderStatus();
 
   // Check if any filters are applied
-  const hasFilters =
-    searchTerm ||
+  const hasFilters: boolean =
+    !!searchTerm ||
     selectedStatus !== "all" ||
     sortBy !== "created_at" ||
     sortOrder !== "desc" ||
     itemsPerPage !== 10 ||
     currentPage !== 1;
 
-  // Fetch orders from database with search, filter, and sort
-  const fetchOrders = async () => {
-    try {
-      setError(null);
-
-      let query = supabase.from("orders").select("*", { count: "exact" });
-
-      // Apply search filter
-      if (searchTerm) {
-        query = query.or(
-          `customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`,
-        );
-      }
-
-      // Apply status filter
-      if (selectedStatus !== "all") {
-        query = query.eq("order_status", selectedStatus);
-      }
-
-      // Apply sorting
-      const sortColumn =
-        sortBy === "total_amount"
-          ? "total_amount"
-          : sortBy === "updated_at"
-            ? "updated_at"
-            : "created_at";
-      query = query.order(sortColumn, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
-
-      const { data: ordersData, error, count } = await query;
-
-      if (error) throw error;
-
-      setOrders(ordersData || []);
-      setTotal(count || 0);
-    } catch (error: any) {
-      console.error("Error fetching orders:", error);
-      setError(error.message || "Failed to fetch orders");
-    }
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, [
-    searchTerm,
-    selectedStatus,
-    sortBy,
-    sortOrder,
-    currentPage,
-    itemsPerPage,
-  ]);
+  const handleStatusFilterChange = (value: string) => {
+    setSelectedStatus(value as OrderStatus | "all");
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    const [sort, order] = value.split("-");
+    setSortBy(sort as any);
+    setSortOrder(order as "asc" | "desc");
+    setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setSortBy("created_at");
+    setSortOrder("desc");
+    setItemsPerPage(10);
+    setCurrentPage(1);
+  };
 
   const handleStatusChange = (id: string, status: OrderStatus) => {
     setPendingStatusChange({ id, status });
@@ -132,10 +111,10 @@ function OrderTable({
 
   const confirmStatusChange = () => {
     if (pendingStatusChange) {
-      handleUpdateOrderStatus(
-        pendingStatusChange.id,
-        pendingStatusChange.status,
-      );
+      updateOrderStatusMutation.mutate({
+        orderId: pendingStatusChange.id,
+        status: pendingStatusChange.status,
+      });
       setTimeout(() => {
         setShowStatusModal(false);
         setPendingStatusChange(null);
@@ -162,13 +141,9 @@ function OrderTable({
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
-        <button
-          onClick={fetchOrders}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
-          Try Again
-        </button>
+        <div className="text-red-600 dark:text-red-400 mb-4">
+          {error instanceof Error ? error.message : "Failed to fetch orders"}
+        </div>
       </div>
     );
   }
@@ -184,16 +159,16 @@ function OrderTable({
       {/* Search, Filter, and Sort */}
       <SearchFilterSort
         searchTerm={searchTerm}
-        onSearchChange={onSearchChange}
+        onSearchChange={handleSearch}
         status={selectedStatus}
-        onStatusChange={onStatusChange}
+        onStatusChange={handleStatusFilterChange}
         sortBy={`${sortBy}-${sortOrder}`}
-        onSortChange={onSortChange}
+        onSortChange={handleSortChange}
         itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={onItemsPerPageChange}
+        onItemsPerPageChange={setItemsPerPage}
         showStatusFilter={true}
         showClearAll={hasFilters}
-        onClearAll={onClearAll}
+        onClearAll={handleClearAll}
         statusOptions={[
           { value: "all", label: "All Status" },
           { value: "pending", label: "Pending" },
@@ -217,7 +192,13 @@ function OrderTable({
 
       {/* Results count */}
       <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Showing {orders.length} of {total} orders
+        {isLoading ? (
+          "Loading..."
+        ) : (
+          <>
+            Showing {orders.length} of {total} orders
+          </>
+        )}
       </div>
 
       {/* Orders Table - Responsive */}
@@ -401,7 +382,7 @@ function OrderTable({
         {/* Mobile/Tablet Cards */}
         <div className="lg:hidden">
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {paginatedOrders.map((order) => (
+            {orders.map((order) => (
               <div key={order.id} className="p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
@@ -582,7 +563,7 @@ function OrderTable({
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={orders.length}
+          totalItems={total}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           showItemsPerPageSelector={false}
@@ -602,7 +583,7 @@ function OrderTable({
         confirmText="Change Status"
         cancelText="Cancel"
         type="status"
-        loading={loading}
+        loading={updateOrderStatusMutation.isPending}
       />
     </div>
   );

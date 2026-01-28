@@ -1,150 +1,118 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Plus,
-  Search,
-  Eye,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Star,
-  MessageSquare,
-} from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Star, MessageSquare } from "lucide-react";
 import DeleteModal from "@/components/ui/DeleteModal";
 import TestimonialViewModal from "./TestimonialViewModal";
 import Pagination from "@/components/ui/Pagination";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
 import { deleteImage } from "@/lib/supabase/storage";
 import { toast } from "react-toastify";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
+import {
+  useTestimonials,
+  useTestimonialsCount,
+  useDeleteTestimonial,
+} from "@/hooks/useTestimonials";
 
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
-type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 
 const TestimonialList = () => {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [testimonialToDelete, setTestimonialToDelete] =
     useState<Testimonial | null>(null);
-  const [loading, setLoading] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [testimonialToView, setTestimonialToView] =
     useState<Testimonial | null>(null);
+
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "published" | "draft"
+  >("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "rating">("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const fetchTestimonials = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from("testimonials")
-        .select("*")
-        .order("created_at", { ascending: false });
+  // TanStack Query hooks
+  const { data: testimonials = [], isLoading } = useTestimonials({
+    search: searchTerm,
+    status: selectedStatus,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-      if (selectedStatus !== "all") {
-        query = query.eq("status", selectedStatus);
-      }
+  const { data: total = 0 } = useTestimonialsCount({
+    search: searchTerm,
+    status: selectedStatus,
+  });
 
-      const { data, error } = await query;
-      if (error) throw error;
+  const deleteTestimonialMutation = useDeleteTestimonial();
 
-      setTestimonials(data || []);
-    } catch (error) {
-      console.error("Error fetching testimonials:", error);
-      toast.error("Failed to fetch testimonials");
-    } finally {
-      setLoading(false);
-    }
+  // Check if any filters are applied
+  const hasFilters: boolean =
+    !!searchTerm ||
+    selectedStatus !== "all" ||
+    sortBy !== "created_at" ||
+    sortOrder !== "desc" ||
+    itemsPerPage !== 10 ||
+    currentPage !== 1;
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
   };
 
-  useEffect(() => {
-    fetchTestimonials();
-  }, [selectedStatus]);
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value as "all" | "published" | "draft");
+    setCurrentPage(1);
+  };
 
-  const filteredTestimonials = useMemo(() => {
-    return testimonials.filter(
-      (testimonial) =>
-        testimonial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        testimonial.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (testimonial.role?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-          false),
-    );
-  }, [testimonials, searchTerm]);
+  const handleSortChange = (value: string) => {
+    const [sort, order] = value.split("-");
+    setSortBy(sort as any);
+    setSortOrder(order as "asc" | "desc");
+    setCurrentPage(1);
+  };
 
-  const paginatedTestimonials = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTestimonials.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredTestimonials, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredTestimonials.length / itemsPerPage);
+  const handleClearAll = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setSortBy("created_at");
+    setSortOrder("desc");
+    setItemsPerPage(10);
+    setCurrentPage(1);
+  };
 
   const handleDelete = async () => {
     if (!testimonialToDelete) return;
 
     try {
-      // Step 1: Delete image from storage if it exists
+      // Delete image from storage if it exists
       if (testimonialToDelete.image) {
         try {
           await deleteImage(testimonialToDelete.image);
         } catch (imageError) {
           console.warn("Failed to delete testimonial image:", imageError);
-          // Don't throw - continue with database deletion
         }
       }
 
-      // Step 2: Delete testimonial from database
-      const { error } = await supabase
-        .from("testimonials")
-        .delete()
-        .eq("id", testimonialToDelete.id);
+      // Delete testimonial using mutation
+      deleteTestimonialMutation.mutate(testimonialToDelete.id);
 
-      if (error) throw error;
-
-      // Step 3: Update local state
-      setTestimonials(
-        testimonials.filter((t) => t.id !== testimonialToDelete.id),
-      );
       setShowDeleteModal(false);
       setTestimonialToDelete(null);
-      toast.success("Testimonial deleted successfully");
     } catch (error) {
       console.error("Error deleting testimonial:", error);
       toast.error("Failed to delete testimonial");
-    }
-  };
-
-  const handleStatusToggle = async (testimonial: Testimonial) => {
-    try {
-      const newStatus = testimonial.status === "active" ? "inactive" : "active";
-
-      // Temporary bypass of type checking until database types are regenerated
-      const { error } = await supabase
-        .from("testimonials")
-        // @ts-ignore - Temporary fix for type mismatch
-        .update({ status: newStatus })
-        .eq("id", testimonial.id);
-
-      if (error) throw error;
-
-      setTestimonials(
-        testimonials.map((t) =>
-          t.id === testimonial.id ? { ...t, status: newStatus } : t,
-        ),
-      );
-      toast.success(
-        `Testimonial ${newStatus === "active" ? "activated" : "deactivated"}`,
-      );
-    } catch (error) {
-      console.error("Error updating testimonial status:", error);
-      toast.error("Failed to update testimonial status");
     }
   };
 
@@ -165,6 +133,8 @@ const TestimonialList = () => {
       </div>
     );
   };
+
+  const totalPages = Math.ceil(total / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -188,28 +158,42 @@ const TestimonialList = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search testimonials..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-          </div>
-        </div>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        status={selectedStatus}
+        onStatusChange={handleStatusChange}
+        sortBy={`${sortBy}-${sortOrder}`}
+        onSortChange={handleSortChange}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+        showStatusFilter={true}
+        showClearAll={hasFilters}
+        onClearAll={handleClearAll}
+        statusOptions={[
+          { value: "all", label: "All Status" },
+          { value: "published", label: "Published" },
+          { value: "draft", label: "Draft" },
+        ]}
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "rating-desc", label: "Highest Rating" },
+          { value: "rating-asc", label: "Lowest Rating" },
+        ]}
+        placeholder="Search testimonials..."
+        statusLabel="Status"
+      />
+
+      {/* Results count */}
+      <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        {isLoading ? (
+          "Loading..."
+        ) : (
+          <>
+            Showing {testimonials.length} of {total} testimonials
+          </>
+        )}
       </div>
 
       {/* Table */}
@@ -239,7 +223,7 @@ const TestimonialList = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center">
                     <div className="flex justify-center">
@@ -247,7 +231,7 @@ const TestimonialList = () => {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedTestimonials.length === 0 ? (
+              ) : testimonials.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -257,7 +241,7 @@ const TestimonialList = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedTestimonials.map((testimonial) => (
+                testimonials.map((testimonial) => (
                   <tr
                     key={testimonial.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -329,6 +313,17 @@ const TestimonialList = () => {
                           <Eye className="w-4 h-4" />
                         </button>
                         <Link
+                          href={`/testimonials/${testimonial.id}`}
+                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setTestimonialToView(testimonial);
+                            setShowViewModal(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                        <Link
                           href={`/testimonials/${testimonial.id}/edit`}
                           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                           onClick={() =>
@@ -337,18 +332,6 @@ const TestimonialList = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
-                        <button
-                          onClick={() => handleStatusToggle(testimonial)}
-                          className={`${
-                            testimonial.status === "active"
-                              ? "text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              : "text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                          }`}
-                        >
-                          {testimonial.status === "active"
-                            ? "Deactivate"
-                            : "Activate"}
-                        </button>
                         <button
                           onClick={() => {
                             setTestimonialToDelete(testimonial);
@@ -375,7 +358,7 @@ const TestimonialList = () => {
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           itemsPerPage={itemsPerPage}
-          totalItems={filteredTestimonials.length}
+          totalItems={total}
         />
       )}
 
