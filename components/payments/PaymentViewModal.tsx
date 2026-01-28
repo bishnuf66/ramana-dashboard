@@ -8,19 +8,34 @@ interface UserPaymentDisplay {
   id: string;
   order_id: string;
   payment_option_id: string;
-  amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  payment_type: string;
+  paid_amount_percentage: number;
+  remaining_amount_percentage: number;
   is_verified: boolean;
   transaction_id?: string;
   payment_method?: string;
   created_at: string;
   updated_at: string;
   payment_option?: PaymentOption | null;
-  order?: {
+  orders?: {
     id: string;
     customer_name: string;
     customer_email: string;
     total_amount: number;
     order_status: string;
+    created_at: string;
+    updated_at: string;
+    items?: Array<{
+      id: string;
+      slug: string;
+      price: number;
+      title: string;
+      quantity: number;
+      cover_image: string;
+      discount_price?: number;
+    }>;
   } | null;
 }
 
@@ -121,10 +136,28 @@ export default function PaymentViewModal({
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Amount
+                    Paid Amount
                   </p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {currency(payment.amount)}
+                    {currency(payment.paid_amount)}
+                  </p>
+                </div>
+                {payment.remaining_amount > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Remaining Amount
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {currency(payment.remaining_amount)}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Payment Type
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {payment.payment_type || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -168,7 +201,7 @@ export default function PaymentViewModal({
                     Customer Name
                   </p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {payment.order?.customer_name || "N/A"}
+                    {payment.orders?.customer_name || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -176,7 +209,7 @@ export default function PaymentViewModal({
                     Customer Email
                   </p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {payment.order?.customer_email || "N/A"}
+                    {payment.orders?.customer_email || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -184,7 +217,7 @@ export default function PaymentViewModal({
                     Order Total
                   </p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {currency(payment.order?.total_amount || 0)}
+                    {currency(payment.orders?.total_amount || 0)}
                   </p>
                 </div>
                 <div>
@@ -192,12 +225,69 @@ export default function PaymentViewModal({
                     Order Status
                   </p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {payment.order?.order_status || "N/A"}
+                    {payment.orders?.order_status || "N/A"}
                   </p>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Order Items */}
+          {payment.orders?.items && payment.orders.items.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+                Order Items ({payment.orders.items.length})
+              </h4>
+              <div className="space-y-3">
+                {payment.orders.items.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <img
+                      src={item.cover_image}
+                      alt={item.title}
+                      className="w-16 h-16 object-cover rounded-lg"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-product.png";
+                      }}
+                    />
+                    <div className="flex-1">
+                      <h5 className="font-medium text-gray-900 dark:text-white">
+                        {item.title}
+                      </h5>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Slug: {item.slug}
+                      </p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Quantity: {item.quantity}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {currency(item.price)}
+                        </span>
+                        {item.discount_price && (
+                          <span className="text-sm text-green-600 dark:text-green-400">
+                            Discount: {currency(item.discount_price)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {currency(item.price * item.quantity)}
+                      </p>
+                      {item.discount_price && (
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          {currency(item.discount_price * item.quantity)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Timestamps */}
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">

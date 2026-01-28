@@ -18,6 +18,7 @@ interface SearchFilterSortProps {
   statusOptions?: { value: string; label: string }[];
   sortOptions?: { value: string; label: string }[];
   placeholder?: string;
+  statusLabel?: string;
 }
 
 export default function SearchFilterSort({
@@ -49,6 +50,7 @@ export default function SearchFilterSort({
     { value: "updated_at-asc", label: "Least Recently Updated" },
   ],
   placeholder = "Search...",
+  statusLabel = "Status",
 }: SearchFilterSortProps) {
   const getGridCols = () => {
     const filters = [];
@@ -56,7 +58,7 @@ export default function SearchFilterSort({
     if (showRatingFilter) filters.push("rating");
     if (onSortChange) filters.push("sort");
     filters.push("itemsPerPage");
-    
+
     const totalFilters = filters.length + 1; // +1 for search
     if (totalFilters === 2) return "md:grid-cols-2";
     if (totalFilters === 3) return "md:grid-cols-3";
@@ -103,7 +105,9 @@ export default function SearchFilterSort({
           <div className="relative">
             <select
               value={rating || ""}
-              onChange={(e) => onRatingChange?.(e.target.value ? Number(e.target.value) : 0)}
+              onChange={(e) =>
+                onRatingChange?.(e.target.value ? Number(e.target.value) : 0)
+              }
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
               <option value="">All Ratings</option>

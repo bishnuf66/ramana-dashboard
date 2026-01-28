@@ -77,12 +77,12 @@ export default function UserPaymentList({
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<
-    "all" | "verified" | "pending" | "rejected"
+    "all" | "verified" | "pending"
   >("all");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [sortBy, setSortBy] = useState<"created_at" | "amount" | "updated_at">(
-    "created_at",
-  );
+  const [sortBy, setSortBy] = useState<
+    "created_at" | "paid_amount" | "updated_at"
+  >("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Pagination state
@@ -145,7 +145,7 @@ export default function UserPaymentList({
   };
 
   const handleStatusChange = (status: string) => {
-    setSelectedStatus(status as "all" | "verified" | "pending" | "rejected");
+    setSelectedStatus(status as "all" | "verified" | "pending");
     setCurrentPage(1);
   };
 
@@ -156,7 +156,7 @@ export default function UserPaymentList({
 
   const handleSortChange = (value: string) => {
     const [field, order] = value.split("-");
-    setSortBy(field as "created_at" | "amount" | "updated_at");
+    setSortBy(field as "created_at" | "paid_amount" | "updated_at");
     setSortOrder(order as "asc" | "desc");
     setCurrentPage(1);
   };
@@ -181,7 +181,7 @@ export default function UserPaymentList({
         payment.id.slice(0, 8),
         payment.order_id.slice(0, 8),
         payment.order?.customer_name || "N/A",
-        payment.amount.toString(),
+        payment.paid_amount ? payment.paid_amount.toString() : "0",
         payment.payment_option?.payment_type || "N/A",
         payment.is_verified ? "Verified" : "Pending",
         new Date(payment.created_at).toLocaleDateString(),
@@ -252,16 +252,15 @@ export default function UserPaymentList({
             showStatusFilter={true}
             placeholder="Search payments..."
             statusOptions={[
-              { value: "all", label: "All Status" },
+              { value: "all", label: "All Verification Status" },
               { value: "verified", label: "Verified" },
               { value: "pending", label: "Pending" },
-              { value: "rejected", label: "Rejected" },
             ]}
             sortOptions={[
               { value: "created_at-desc", label: "Newest First" },
               { value: "created_at-asc", label: "Oldest First" },
-              { value: "amount-desc", label: "Highest Amount" },
-              { value: "amount-asc", label: "Lowest Amount" },
+              { value: "paid_amount-desc", label: "Highest Amount" },
+              { value: "paid_amount-asc", label: "Lowest Amount" },
               { value: "updated_at-desc", label: "Recently Updated" },
               { value: "updated_at-asc", label: "Least Recently Updated" },
             ]}
@@ -331,19 +330,77 @@ export default function UserPaymentList({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   #{payment.order_id.slice(0, 8)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {payment.order?.customer_name || "N/A"}
+                    {payment.orders?.customer_name || "N/A"}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {payment.order?.customer_email || "N/A"}
+                    {payment.orders?.customer_email || "N/A"}
                   </div>
+                  {payment.orders?.total_amount && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      Order Total: ${payment.orders.total_amount}
+                    </div>
+                  )}
+                  {payment.orders?.order_status && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      Status: {payment.orders.order_status}
+                    </div>
+                  )}
+                  {payment.orders?.items && payment.orders.items.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                      <div className="font-medium">
+                        Items ({payment.orders.items.length}):
+                      </div>
+                      {payment.orders.items
+                        .slice(0, 2)
+                        .map((item: any, index: number) => (
+                          <div key={index} className="truncate">
+                            {item.quantity}x{" "}
+                            {item.title || item.name || "Product"}
+                          </div>
+                        ))}
+                      {payment.orders.items.length > 2 && (
+                        <div>+{payment.orders.items.length - 2} more</div>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {payment.amount ? payment.amount.toString() : "0"}
+                  <div className="font-medium">
+                    $
+                    {payment.paid_amount ? payment.paid_amount.toString() : "0"}
+                  </div>
+                  {payment.orders?.total_amount && payment.paid_amount && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      of ${payment.orders.total_amount}
+                    </div>
+                  )}
+                  {payment.orders?.total_amount && payment.paid_amount && (
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                      <div
+                        className="bg-blue-600 h-1.5 rounded-full"
+                        style={{
+                          width: `${Math.min((payment.paid_amount / payment.orders.total_amount) * 100, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                  )}
+                  {payment.paid_amount_percentage && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {payment.paid_amount_percentage}% paid
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {payment.payment_option?.payment_type || "N/A"}
+                  <div className="font-medium">
+                    {payment.payment_option?.payment_type || "N/A"}
+                  </div>
+                  {payment.payment_option?.payment_number && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {payment.payment_option.payment_number}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">

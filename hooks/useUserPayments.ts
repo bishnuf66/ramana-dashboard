@@ -10,7 +10,7 @@ interface UserPaymentQueryParams {
   search?: string;
   status?: "all" | "verified" | "pending" | "rejected";
   paymentMethod?: string;
-  sortBy?: "created_at" | "amount" | "updated_at";
+  sortBy?: "created_at" | "paid_amount" | "updated_at";
   sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
@@ -29,14 +29,24 @@ export function useUserPayments(params: UserPaymentQueryParams = {}) {
   } = params;
 
   return useQuery({
-    queryKey: ["userPayments", { search, status, paymentMethod, sortBy, sortOrder, page, limit }],
+    queryKey: [
+      "userPayments",
+      { search, status, paymentMethod, sortBy, sortOrder, page, limit },
+    ],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("user_payments")
-        .select(`
+      let query = (supabase as any).from("user_payments").select(`
           *,
           payment_option:payment_options(*),
-          orders(id, customer_name, customer_email, total_amount, order_status)
+          orders!user_payments_order_id_fkey(
+            id, 
+            customer_name, 
+            customer_email, 
+            total_amount, 
+            order_status,
+            created_at,
+            updated_at,
+            items
+          )
         `);
 
       // Apply search filter
@@ -80,7 +90,9 @@ export function useUserPayments(params: UserPaymentQueryParams = {}) {
 }
 
 // Fetch user payment count for pagination
-export function useUserPaymentsCount(params: Omit<UserPaymentQueryParams, 'page' | 'limit'> = {}) {
+export function useUserPaymentsCount(
+  params: Omit<UserPaymentQueryParams, "page" | "limit"> = {},
+) {
   const { search = "", status = "all", paymentMethod = "" } = params;
 
   return useQuery({
@@ -129,11 +141,22 @@ export function useUserPayment(id: string) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("user_payments")
-        .select(`
+        .select(
+          `
           *,
           payment_option:payment_options(*),
-          orders(id, customer_name, customer_email, total_amount, order_status)
-        `)
+          orders!user_payments_order_id_fkey(
+            id, 
+            customer_name, 
+            customer_email, 
+            total_amount, 
+            order_status,
+            created_at,
+            updated_at,
+            items
+          )
+        `,
+        )
         .eq("id", id)
         .single();
 
@@ -161,7 +184,9 @@ export function useVerifyPayment() {
       return data;
     },
     onSuccess: (_, { verified }) => {
-      toast.success(`Payment ${verified ? "verified" : "unverified"} successfully!`);
+      toast.success(
+        `Payment ${verified ? "verified" : "unverified"} successfully!`,
+      );
       queryClient.invalidateQueries({ queryKey: ["userPayments"] });
       queryClient.invalidateQueries({ queryKey: ["userPayments-count"] });
     },
@@ -177,7 +202,10 @@ export function useDeletePayment() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("user_payments").delete().eq("id", id);
+      const { error } = await (supabase as any)
+        .from("user_payments")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       return id;
     },
