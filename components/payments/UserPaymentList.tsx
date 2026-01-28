@@ -9,6 +9,7 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import PaymentViewModal from "./PaymentViewModal";
 import PaymentActionButtons from "./PaymentActionButtons";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
@@ -19,6 +20,7 @@ import {
   useUserPayments,
   useVerifyPayment,
   useUserPaymentsCount,
+  useDeletePayment,
 } from "@/hooks/useUserPayments";
 
 type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
@@ -74,6 +76,7 @@ export default function UserPaymentList({
   onPaymentEdit,
   onPaymentDelete,
 }: UserPaymentListProps) {
+  const router = useRouter();
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<
@@ -97,9 +100,12 @@ export default function UserPaymentList({
   const [verifyAction, setVerifyAction] = useState<"verify" | "unverify">(
     "verify",
   );
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<any>(null);
 
   // Mutations and queries
   const verifyPaymentMutation = useVerifyPayment();
+  const deletePaymentMutation = useDeletePayment();
   const {
     data: userPayments = [],
     isLoading,
@@ -123,8 +129,8 @@ export default function UserPaymentList({
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleDeletePayment = (payment: UserPaymentDisplay) => {
-    // Call the parent delete handler
-    // onPaymentDelete?.(payment);
+    setPaymentToDelete(payment);
+    setShowDeleteModal(true);
   };
 
   const handleVerifyPayment = () => {
@@ -137,6 +143,19 @@ export default function UserPaymentList({
 
     setShowVerifyModal(false);
     setPaymentToVerify(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!paymentToDelete) return;
+
+    deletePaymentMutation.mutate(paymentToDelete.id);
+
+    setShowDeleteModal(false);
+    setPaymentToDelete(null);
+  };
+
+  const handleEditPayment = (payment: UserPaymentDisplay) => {
+    router.push(`/payments/${payment.id}/edit`);
   };
 
   const handleSearch = (value: string) => {
@@ -250,6 +269,7 @@ export default function UserPaymentList({
             itemsPerPage={itemsPerPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             showStatusFilter={true}
+            statusLabel="Payment Verification Status"
             placeholder="Search payments..."
             statusOptions={[
               { value: "all", label: "All Verification Status" },
@@ -257,33 +277,11 @@ export default function UserPaymentList({
               { value: "pending", label: "Pending" },
             ]}
             sortOptions={[
-              { value: "created_at-desc", label: "Newest First" },
-              { value: "created_at-asc", label: "Oldest First" },
-              { value: "paid_amount-desc", label: "Highest Amount" },
-              { value: "paid_amount-asc", label: "Lowest Amount" },
-              { value: "updated_at-desc", label: "Recently Updated" },
-              { value: "updated_at-asc", label: "Least Recently Updated" },
+              { value: "created_at", label: "Created Date" },
+              { value: "paid_amount", label: "Paid Amount" },
+              { value: "updated_at", label: "Updated Date" },
             ]}
           />
-
-          {/* Payment Method Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Payment Method:
-            </label>
-            <select
-              value={selectedPaymentMethod}
-              onChange={(e) => handlePaymentMethodChange(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">All Methods</option>
-              <option value="credit_card">Credit Card</option>
-              <option value="debit_card">Debit Card</option>
-              <option value="paypal">PayPal</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cash">Cash</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -308,7 +306,7 @@ export default function UserPaymentList({
                 Payment Method
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Status
+                Payment Verification Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Date
@@ -430,24 +428,8 @@ export default function UserPaymentList({
                       setSelectedPayment(payment);
                       setShowViewModal(true);
                     }}
-                    onEdit={() => {
-                      // Navigate to edit page or open edit modal
-                      console.log("Edit payment:", payment.id);
-                    }}
-                    onDelete={() => {
-                      // Handle delete action
-                      console.log("Delete payment:", payment.id);
-                    }}
-                    onVerify={(payment: any) => {
-                      setPaymentToVerify(payment);
-                      setVerifyAction("verify");
-                      setShowVerifyModal(true);
-                    }}
-                    onUnverify={(payment: any) => {
-                      setPaymentToVerify(payment);
-                      setVerifyAction("unverify");
-                      setShowVerifyModal(true);
-                    }}
+                    onEdit={() => handleEditPayment(payment)}
+                    onDelete={() => handleDeletePayment(payment)}
                     size="sm"
                   />
                 </td>
@@ -482,19 +464,30 @@ export default function UserPaymentList({
         onClose={() => setShowViewModal(false)}
         payment={selectedPayment as any}
         onEdit={() => {}}
+        onDelete={(payment) => {
+          setPaymentToDelete(payment);
+          setShowDeleteModal(true);
+        }}
+        onVerify={(payment) => {
+          // Call the verify mutation directly
+          verifyPaymentMutation.mutate({
+            id: payment.id,
+            verified: true,
+          });
+        }}
       />
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
-        isOpen={false}
-        onClose={() => {}}
-        onConfirm={() => {}}
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
         title="Delete Payment"
-        message={`Are you sure you want to delete payment ? This action cannot be undone.`}
+        message={`Are you sure you want to delete payment #${paymentToDelete?.id?.slice(0, 8) || ""}? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         type="delete"
-        loading={verifyPaymentMutation.isPending}
+        loading={deletePaymentMutation.isPending}
       />
     </div>
   );

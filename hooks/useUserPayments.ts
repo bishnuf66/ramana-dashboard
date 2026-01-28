@@ -173,12 +173,15 @@ export function useVerifyPayment() {
 
   return useMutation({
     mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
+      console.log("Verifying payment with ID:", id);
+      console.log("Setting verified to:", verified);
+
       const { data, error } = await (supabase as any)
         .from("user_payments")
         .update({ is_verified: verified })
-        .eq("id", id)
-        .select()
-        .single();
+        .eq("id", id);
+
+      console.log("Update result:", { data, error });
 
       if (error) throw error;
       return data;
@@ -191,6 +194,7 @@ export function useVerifyPayment() {
       queryClient.invalidateQueries({ queryKey: ["userPayments-count"] });
     },
     onError: (error: any) => {
+      console.error("Verify payment error:", error);
       toast.error(error.message || "Failed to update payment status");
     },
   });

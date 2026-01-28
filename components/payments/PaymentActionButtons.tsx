@@ -136,17 +136,6 @@ export default function PaymentActionButtons({
           {showLabels && <span className="ml-1 text-xs">Verify</span>}
         </button>
       )}
-
-      {payment.is_verified && onUnverify && (
-        <button
-          onClick={handleUnverify}
-          className={`${buttonClasses[size]} text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors`}
-          title="Unverify Payment"
-        >
-          <XCircle className={sizeClasses[size]} />
-          {showLabels && <span className="ml-1 text-xs">Unverify</span>}
-        </button>
-      )}
     </div>
   );
 }
