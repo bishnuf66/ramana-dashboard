@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 import { uploadImage, generateBlogImagePath } from "@/lib/supabase/storage";
 import { Upload, X, ArrowLeft } from "lucide-react";
 import Image from "next/image";
-import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import Link from "next/link";
 import type { Database } from "@/types/database.types";
+import { useCreateBlog, useUpdateBlog, useBlog } from "@/hooks/useBlogs";
 
 type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
@@ -30,10 +29,15 @@ interface BlogFormProps {
 
 export default function BlogForm({ blogId, initialData }: BlogFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+
+  const createBlogMutation = useCreateBlog();
+  const updateBlogMutation = useUpdateBlog();
+  const { data: blogData, isLoading: isLoadingBlog } = useBlog(blogId || "");
+
+  const loading = createBlogMutation.isPending || updateBlogMutation.isPending;
 
   const [formData, setFormData] = useState<BlogFormData>({
     title: "",
@@ -56,6 +60,15 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
       }
     }
   }, [initialData]);
+
+  useEffect(() => {
+    if (blogData && !initialData) {
+      setFormData((prev) => ({ ...prev, ...blogData }));
+      if (blogData.cover_image_url) {
+        setCoverImagePreview(blogData.cover_image_url);
+      }
+    }
+  }, [blogData, initialData]);
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,7 +112,7 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
         content_md: `${prev.content_md}\n\n![](${url})\n`,
       }));
     } catch (error: any) {
-      toast.error(error.message || "Failed to upload image");
+      console.error("Failed to upload image:", error);
     } finally {
       setUploading(false);
     }
@@ -113,11 +126,9 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
       !formData.slug.trim() ||
       !formData.created_by?.trim()
     ) {
-      toast.error("Title, slug, and created by are required");
       return;
     }
 
-    setLoading(true);
     try {
       let coverImageUrl = formData.cover_image_url;
 
@@ -143,33 +154,15 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
         updated_at: new Date().toISOString(),
       };
 
-      let result;
       if (blogId) {
-        // Update existing blog
-        result = await (supabase as any)
-          .from("blogs")
-          .update(payload)
-          .eq("id", blogId);
+        updateBlogMutation.mutate({ id: blogId, ...payload });
       } else {
-        // Create new blog
-        result = await (supabase as any).from("blogs").insert([payload]);
+        createBlogMutation.mutate(payload);
       }
 
-      const { error } = result;
-      if (error) throw error;
-
-      toast.success(
-        blogId
-          ? "Blog post updated successfully!"
-          : "Blog post created successfully!",
-      );
       router.push("/dashboard?section=blog");
     } catch (error: any) {
-      toast.error(
-        error.message || `Failed to ${blogId ? "update" : "create"} blog post`,
-      );
-    } finally {
-      setLoading(false);
+      console.error("Error submitting blog:", error);
     }
   };
 

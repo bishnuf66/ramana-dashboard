@@ -1,13 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase/client";
-import { toast } from "react-toastify";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CategoryViewModal from "./CategoryViewModal";
 import Pagination from "@/components/ui/Pagination";
 import DeleteModal from "@/components/ui/DeleteModal";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
+import {
+  useCategories,
+  useDeleteCategory,
+  useCategoriesCount,
+} from "@/hooks/useCategories";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -22,69 +26,44 @@ export default function CategoryList({
   onDelete,
   showCreateButton = true,
 }: CategoryListProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
-    null,
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"created_at" | "name" | "updated_at">(
+    "created_at",
   );
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [categoryToView, setCategoryToView] = useState<Category | null>(null);
-  const [productCounts, setProductCounts] = useState<Record<string, number>>(
-    {},
-  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9); // Grid layout, so 9 items (3x3)
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("categories")
-          .select("*")
-          .order("created_at", { ascending: false });
+  // Modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [categoryToView, setCategoryToView] = useState<Category | null>(null);
 
-        if (error) throw error;
-        const categoriesData = (data as any) || [];
-        setCategories(categoriesData);
+  // Mutations and queries
+  const deleteCategoryMutation = useDeleteCategory();
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+  } = useCategories({
+    search: searchTerm,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-        // Load product counts for each category
-        const counts: Record<string, number> = {};
-        for (const category of categoriesData) {
-          const { data: products, error: productsError } = await supabase
-            .from("products")
-            .select("id")
-            .eq("category", category.name);
+  const { data: totalCount = 0 } = useCategoriesCount({
+    search: searchTerm,
+  });
 
-          if (!productsError) {
-            counts[category.id] = products?.length || 0;
-          } else {
-            counts[category.id] = 0;
-          }
-        }
-        setProductCounts(counts);
-      } catch (error: any) {
-        toast.error(error.message || "Failed to load categories");
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  // Pagination logic
-  const paginatedCategories = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return categories.slice(startIndex, endIndex);
-  }, [categories, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(categories.length / itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category);
@@ -103,36 +82,35 @@ export default function CategoryList({
     }
   };
 
-  const confirmDelete = async () => {
-    if (!categoryToDelete) return;
-
-    try {
-      setDeleteLoading(true);
-      const { error } = await (supabase as any)
-        .from("categories")
-        .delete()
-        .eq("id", categoryToDelete.id);
-
-      if (error) throw error;
-
-      toast.success("Category deleted successfully!");
-      setCategories((prev) =>
-        prev.filter((cat) => cat.id !== categoryToDelete.id),
-      );
+  const confirmDelete = () => {
+    if (categoryToDelete) {
+      deleteCategoryMutation.mutate(categoryToDelete.id);
       setShowDeleteModal(false);
       setCategoryToDelete(null);
-
-      if (onDelete) {
-        onDelete(categoryToDelete.id);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete category");
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
-  if (loading) {
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleSortChange = (field: "created_at" | "name" | "updated_at") => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("desc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -140,8 +118,44 @@ export default function CategoryList({
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 dark:text-red-400">
+          Failed to load categories. Please try again.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Search and Filters */}
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(value) => {
+          const [field, order] = value.split("-");
+          handleSortChange(field as "created_at" | "name" | "updated_at");
+          if (field !== sortBy) {
+            setSortOrder(order as "asc" | "desc");
+          }
+        }}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        placeholder="Search categories..."
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "name-asc", label: "Name A-Z" },
+          { value: "name-desc", label: "Name Z-A" },
+          { value: "updated_at-desc", label: "Recently Updated" },
+          { value: "updated_at-asc", label: "Least Recently Updated" },
+        ]}
+        itemsPerPageOptions={[6, 9, 12, 24]}
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
@@ -149,8 +163,7 @@ export default function CategoryList({
             Categories
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {categories.length}{" "}
-            {categories.length === 1 ? "category" : "categories"}
+            {totalCount} {totalCount === 1 ? "category" : "categories"}
           </p>
         </div>
 
@@ -178,7 +191,7 @@ export default function CategoryList({
       </div>
 
       {/* Categories Grid */}
-      {categories.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
@@ -220,7 +233,7 @@ export default function CategoryList({
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {paginatedCategories.map((category) => (
+          {categories.map((category) => (
             <div
               key={category.id}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
@@ -356,17 +369,16 @@ export default function CategoryList({
           ))}
         </div>
       )}
-      {categories.length > 0 && (
-        <div className="mt-8">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            itemsPerPage={itemsPerPage}
-            onItemsPerPageChange={setItemsPerPage}
-            totalItems={categories.length}
-          />
-        </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          showItemsPerPageSelector={false}
+        />
       )}
       {/* Category View Modal */}
       <CategoryViewModal
@@ -380,9 +392,7 @@ export default function CategoryList({
             handleDeleteClick(category);
           }
         }}
-        productCount={
-          categoryToView ? productCounts[categoryToView.id] || 0 : 0
-        }
+        productCount={0}
       />
 
       {/* Delete Confirmation Modal */}
@@ -398,7 +408,7 @@ export default function CategoryList({
           "All products in this category",
           "Related discounts and associations",
         ]}
-        isLoading={deleteLoading}
+        isLoading={deleteCategoryMutation.isPending}
       />
     </div>
   );

@@ -9,8 +9,21 @@ import { ToastContainer } from "react-toastify";
 import { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { admin, loading } = useAuth();
@@ -106,11 +119,13 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-light.ico" type="image/x-icon" />
       </head>
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
-        <AuthProvider>
-          <ThemeProvider>
-            <LayoutContent>{children}</LayoutContent>
-          </ThemeProvider>
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemeProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );

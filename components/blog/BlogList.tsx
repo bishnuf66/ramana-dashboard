@@ -1,13 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useState, useMemo } from "react";
 import { Edit, Trash2, Eye, Calendar, User, Clock } from "lucide-react";
 import Image from "next/image";
-import { toast } from "react-toastify";
 import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
 import Pagination from "@/components/ui/Pagination";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 import type { Database } from "@/types/database.types";
+import {
+  useBlogs,
+  useDeleteBlog,
+  useCreateBlog,
+  useUpdateBlog,
+  useBlogsCount,
+} from "@/hooks/useBlogs";
 
 type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
@@ -18,201 +24,83 @@ interface BlogListProps {
   showCreateButton?: boolean;
 }
 
-type BlogDraft = {
-  id?: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content_md: string;
-  cover_image_url: string;
-  published: boolean;
-  created_by: string;
-};
-
 export default function BlogList({
   onEdit,
   onDelete,
   showViewButton = true,
   showCreateButton = true,
 }: BlogListProps) {
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "published" | "draft"
+  >("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "title" | "updated_at">(
+    "created_at",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const limit = 10;
-  const [blogForm, setBlogForm] = useState<BlogDraft>({
-    title: "",
-    slug: "",
-    excerpt: "",
-    content_md: "",
-    cover_image_url: "",
-    published: false,
-    created_by: "",
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Mutations
+  const deleteBlogMutation = useDeleteBlog();
+  const createBlogMutation = useCreateBlog();
+  const updateBlogMutation = useUpdateBlog();
+
+  // Queries
+  const {
+    data: blogs = [],
+    isLoading,
+    error,
+  } = useBlogs({
+    search: searchTerm,
+    status: selectedStatus,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
   });
-  const [blogSaving, setBlogSaving] = useState(false);
-  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadBlogs = async () => {
-      try {
-        setLoading(true);
+  const { data: totalCount = 0 } = useBlogsCount({
+    search: searchTerm,
+    status: selectedStatus,
+  });
 
-        // Get total count first
-        const { count: totalCount } = await (supabase as any)
-          .from("blogs")
-          .select("*", { count: "exact", head: true });
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-        // Get paginated data
-        const from = (currentPage - 1) * limit;
-        const to = from + limit - 1;
-
-        const { data, error } = await (supabase as any)
-          .from("blogs")
-          .select(
-            "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
-          )
-          .order("created_at", { ascending: false })
-          .range(from, to);
-
-        if (error) throw error;
-
-        setBlogs((data as any) || []);
-        setTotalCount(totalCount || 0);
-        setTotalPages(Math.ceil((totalCount || 0) / limit));
-      } catch (error: any) {
-        toast.error(error.message || "Failed to load blogs");
-        setBlogs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBlogs();
-  }, [currentPage]);
-
-  const handleSaveBlog = async () => {
-    if (
-      !blogForm.title.trim() ||
-      !blogForm.slug.trim() ||
-      !blogForm.created_by.trim()
-    ) {
-      toast.error("Title, slug, and created by are required");
-      return;
-    }
-
-    setBlogSaving(true);
-    try {
-      const payload = {
-        title: blogForm.title.trim(),
-        slug: blogForm.slug.trim(),
-        excerpt: blogForm.excerpt.trim() || null,
-        content_md: blogForm.content_md || "",
-        cover_image_url: blogForm.cover_image_url || null,
-        published: blogForm.published,
-        created_by: blogForm.created_by.trim() || "Admin",
-        updated_at: new Date().toISOString(),
-      };
-
-      if (editingBlogId) {
-        const { error } = await (supabase as any)
-          .from("blogs")
-          .update(payload)
-          .eq("id", editingBlogId);
-        if (error) throw error;
-        toast.success("Blog updated");
-      } else {
-        const { error } = await (supabase as any).from("blogs").insert({
-          ...payload,
-          created_at: new Date().toISOString(),
-        });
-        if (error) throw error;
-        toast.success("Blog created");
-      }
-
-      const { data, error: reloadError } = await (supabase as any)
-        .from("blogs")
-        .select(
-          "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
-        )
-        .order("created_at", { ascending: false });
-      if (reloadError) throw reloadError;
-      setBlogs(data || []);
-
-      resetBlogForm();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save blog");
-    } finally {
-      setBlogSaving(false);
-    }
-  };
-
-  const resetBlogForm = () => {
-    setBlogForm({
-      title: "",
-      slug: "",
-      excerpt: "",
-      content_md: "",
-      cover_image_url: "",
-      published: false,
-      created_by: "",
-    });
-    setEditingBlogId(null);
-  };
-
-  const uploadBlogCover = async (file: File) => {
-    const blogId = editingBlogId || "draft";
-    const path = generateBlogImagePath(blogId, file.name, "cover");
-    const url = await uploadImage(file, path, "blog-images");
-    setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
-  };
-
-  const insertInlineImage = async (file: File) => {
-    const blogId = editingBlogId || "draft";
-    const path = generateBlogImagePath(blogId, file.name, "inline");
-    const url = await uploadImage(file, path, "blog-images");
-    setBlogForm((prev) => ({
-      ...prev,
-      content_md: `${prev.content_md}\n\n![](${url})\n`,
-    }));
-  };
-
-  const startEditBlog = (post: BlogPost) => {
-    setBlogForm({
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt || "",
-      content_md: post.content_md,
-      cover_image_url: post.cover_image_url || "",
-      published: post.published,
-      created_by: post.created_by || "",
-    });
-    setEditingBlogId(post.id);
-  };
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm("Are you sure you want to delete this blog post?")) return;
-
-    try {
-      const { error } = await (supabase as any)
-        .from("blogs")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast.success("Blog post deleted successfully!");
-      setBlogs((prev) => prev.filter((blog) => blog.id !== id));
-
-      if (onDelete) {
-        onDelete(id);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete blog post");
-    }
+    deleteBlogMutation.mutate(id);
   };
 
-  if (loading) {
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status as "all" | "published" | "draft");
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handleSortChange = (field: "created_at" | "title" | "updated_at") => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("desc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -220,8 +108,46 @@ export default function BlogList({
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 dark:text-red-400">
+          Failed to load blog posts. Please try again.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Search and Filters */}
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(value) => {
+          const [field, order] = value.split("-");
+          handleSortChange(field as "created_at" | "title" | "updated_at");
+          if (field !== sortBy) {
+            setSortOrder(order as "asc" | "desc");
+          }
+        }}
+        status={selectedStatus}
+        onStatusChange={handleStatusChange}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        showStatusFilter={true}
+        placeholder="Search blogs..."
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "title-asc", label: "Title A-Z" },
+          { value: "title-desc", label: "Title Z-A" },
+          { value: "updated_at-desc", label: "Recently Updated" },
+          { value: "updated_at-asc", label: "Least Recently Updated" },
+        ]}
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
@@ -229,7 +155,7 @@ export default function BlogList({
             Blog Posts
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {blogs.length} {blogs.length === 1 ? "post" : "posts"}
+            {totalCount} {totalCount === 1 ? "post" : "posts"}
           </p>
         </div>
 
@@ -257,7 +183,7 @@ export default function BlogList({
       </div>
 
       {/* Blog Posts Grid */}
-      {blogs.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
@@ -411,7 +337,7 @@ export default function BlogList({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalCount}
-          itemsPerPage={limit}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           showItemsPerPageSelector={false}
         />
