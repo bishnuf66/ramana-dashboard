@@ -97,28 +97,22 @@ export default function ReviewManager() {
       }
 
       // Transform data to match expected format using only generated types
-      const transformedReviews = (data as ProductReviewRow[]).map(
-        (review): Review => {
-          // Create the UI-specific fields
-          const product_name = `Product ${review.product_id}`;
-          const product_image = "/api/placeholder/100/100";
-          const title = "Review";
-          const content = review.comment || "";
-          const verified_purchase = review.is_verified || false;
-          const status = review.is_verified ? "approved" : "pending";
+      const transformedReviews = (data as any[]).map((review): Review => {
+        // Extract product data from the join
+        const product = review.products;
 
-          return {
-            ...review,
-            products: null, // Will be populated by the join
-            product_name,
-            product_image,
-            title,
-            content,
-            verified_purchase,
-            status,
-          };
-        },
-      );
+        return {
+          ...review,
+          products: product,
+          // Map database fields to expected UI fields
+          product_name: product?.title || `Product ${review.product_id}`,
+          product_image: product?.cover_image || "/api/placeholder/100/100",
+          title: "Review", // Since database uses 'comment' instead of 'title'
+          content: review.comment || "",
+          verified_purchase: review.is_verified || false,
+          status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
+        };
+      });
 
       // Apply client-side search filter (since it's text-based)
       let filteredReviews = transformedReviews;
