@@ -13,6 +13,19 @@ function OrderTable({
   onViewOrder?: (order: Order) => void;
   handleVerifyPayment?: (orderId: string) => void;
 }) {
+  const currency = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return "Rs.0.00";
+    }
+    try {
+      return new Intl.NumberFormat("en-NP", {
+        style: "currency",
+        currency: "NPR",
+      }).format(value);
+    } catch {
+      return `Rs.${value.toFixed(2)}`;
+    }
+  };
   return (
     <div>
       <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-900 dark:text-white">
@@ -67,7 +80,7 @@ function OrderTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    ${order.total_amount.toFixed(2)}
+                    {currency(order.total_amount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
@@ -143,7 +156,7 @@ function OrderTable({
                           {order.payment_status}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          ${order.total_amount.toFixed(2)}
+                          {currency(order.total_amount)}
                         </span>
                       </div>
                       {order.payment_status === "pending" &&

@@ -299,14 +299,17 @@ export default function OrderViewModal({
     }
   };
 
-  const currency = (value: number) => {
+  const currency = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return "Rs.0.00";
+    }
     try {
-      return new Intl.NumberFormat("en-US", {
+      return new Intl.NumberFormat("en-NP", {
         style: "currency",
-        currency: "USD",
+        currency: "NPR",
       }).format(value);
     } catch {
-      return `$${value.toFixed(2)}`;
+      return `Rs.${value.toFixed(2)}`;
     }
   };
 
@@ -616,14 +619,14 @@ export default function OrderViewModal({
                 </h4>
                 <div className="space-y-3">
                   {Array.isArray(order.items) ? (
-                    order.items.map((item: any) => (
+                    order.items.map((item: any, index: number) => (
                       <div
-                        key={item.id || Math.random().toString()}
+                        key={item.id || `item-${index}`}
                         className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg"
                       >
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                           <Image
-                            src={item.product_image || "/placeholder.jpg"}
+                            src={item.cover_image || "/placeholder.jpg"}
                             alt={item.product_name || "Product image"}
                             fill
                             className="object-cover"
@@ -631,16 +634,20 @@ export default function OrderViewModal({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 dark:text-white">
-                            {item.product_name}
+                            {item.product_name || "Unknown Product"}
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Quantity: {item.quantity} ×{" "}
-                            {currency(item.unit_price)}
+                            Quantity: {item.quantity || 0} ×{" "}
+                            {currency(item.unit_price || item.price || 0)}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-gray-900 dark:text-white">
-                            {currency(item.total_price)}
+                            {currency(
+                              item.total_price ||
+                                (item.quantity || 0) *
+                                  (item.unit_price || item.price || 0),
+                            )}
                           </div>
                         </div>
                       </div>
