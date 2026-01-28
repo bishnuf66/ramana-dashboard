@@ -672,21 +672,25 @@ export default function OrderViewModal({
                       Subtotal:
                     </span>
                     <span className="text-gray-900 dark:text-white">
-                      {currency(order.total_amount)}
+                      {currency(order.subtotal_amount || 0)}
                     </span>
                   </div>
+                  {order.discount_amount && order.discount_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Discount:
+                      </span>
+                      <span className="text-green-600 dark:text-green-400">
+                        -{currency(order.discount_amount)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
                       Shipping:
                     </span>
-                    <span className="text-gray-900 dark:text-white">Free</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Tax:
-                    </span>
                     <span className="text-gray-900 dark:text-white">
-                      Included
+                      {currency(order.delivery_charge || 0)}
                     </span>
                   </div>
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-2">

@@ -35,7 +35,7 @@ function OrderTable({
       {/* Orders Table - Responsive */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         {/* Desktop Table */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -46,7 +46,16 @@ function OrderTable({
                   Customer
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Amount
+                  Subtotal
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Discount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Shipping
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Status
@@ -78,6 +87,15 @@ function OrderTable({
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       {order.customer_email}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {currency(order.subtotal_amount || 0)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {currency(order.discount_amount || 0)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {currency(order.delivery_charge || 0)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {currency(order.total_amount)}
@@ -211,7 +229,18 @@ function OrderTable({
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      ${order.total_amount.toFixed(2)}
+                      Subtotal: {currency(order.subtotal_amount || 0)}
+                    </div>
+                    {order.discount_amount && order.discount_amount > 0 && (
+                      <div className="text-xs text-green-600 dark:text-green-400">
+                        Discount: -{currency(order.discount_amount)}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Shipping: {currency(order.delivery_charge || 0)}
+                    </div>
+                    <div className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                      Total: {currency(order.total_amount)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {order.created_at
@@ -264,10 +293,36 @@ function OrderTable({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Amount:
+                      Subtotal:
                     </span>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      ${order.total_amount.toFixed(2)}
+                      {currency(order.subtotal_amount || 0)}
+                    </span>
+                  </div>
+                  {order.discount_amount && order.discount_amount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Discount:
+                      </span>
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                        -{currency(order.discount_amount)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Shipping:
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {currency(order.delivery_charge || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Total:
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {currency(order.total_amount)}
                     </span>
                   </div>
                   {order.payment_status === "pending" &&
