@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import {
@@ -32,6 +31,7 @@ import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
+import { useDiscounts, useDiscountsCount } from "@/hooks/useDiscounts";
 
 type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
 type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
@@ -50,44 +50,6 @@ interface CouponFormData {
   is_product_specific: boolean;
   product_inclusion_type: "include" | "exclude";
 }
-
-// Fetch discounts with TanStack Query
-const fetchDiscounts = async ({
-  search,
-  status,
-  type,
-  sortBy,
-  sortOrder,
-  page,
-  limit,
-}: {
-  search: string;
-  status: string;
-  type: string;
-  sortBy: string;
-  sortOrder: string;
-  page: number;
-  limit: number;
-}) => {
-  const params = new URLSearchParams({
-    search,
-    status,
-    type,
-    sortBy,
-    sortOrder,
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-
-  const response = await fetch(`/api/discounts?${params}`);
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to fetch discounts");
-  }
-
-  return data;
-};
 
 export default function DiscountManager() {
   const [showModal, setShowModal] = useState(false);
@@ -115,37 +77,23 @@ export default function DiscountManager() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // TanStack Query for fetching discounts
-  const {
-    data: discountsData,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: [
-      "discounts",
-      searchTerm,
-      selectedStatus,
-      selectedType,
-      sortBy,
-      sortOrder,
-      currentPage,
-      itemsPerPage,
-    ],
-    queryFn: () =>
-      fetchDiscounts({
-        search: searchTerm,
-        status: selectedStatus,
-        type: selectedType,
-        sortBy,
-        sortOrder,
-        page: currentPage,
-        limit: itemsPerPage,
-      }),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+  const { data: coupons = [], isLoading } = useDiscounts({
+    search: searchTerm,
+    status: selectedStatus,
+    type: selectedType,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
   });
 
-  const coupons = discountsData?.data || [];
-  const total = discountsData?.pagination?.total || 0;
+  const { data: total = 0 } = useDiscountsCount({
+    search: searchTerm,
+    status: selectedStatus,
+    type: selectedType,
+  });
+
+  const totalPages = Math.ceil(total / itemsPerPage);
 
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
@@ -162,66 +110,8 @@ export default function DiscountManager() {
   });
 
   useEffect(() => {
-    fetchCoupons();
     fetchProducts();
   }, []);
-
-  // Filter and sort coupons
-  const filteredAndSortedCoupons = useMemo(() => {
-    return coupons
-      .filter((coupon) => {
-        // Search filter
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
-          return (
-            coupon.code?.toLowerCase().includes(searchLower) ||
-            coupon.description?.toLowerCase().includes(searchLower)
-          );
-        }
-        return true;
-      })
-      .filter((coupon) => {
-        // Status filter
-        if (selectedStatus === "all") return true;
-        return selectedStatus === "active"
-          ? coupon.is_active
-          : !coupon.is_active;
-      })
-      .filter((coupon) => {
-        // Type filter
-        if (selectedType === "all") return true;
-        return coupon.discount_type === selectedType;
-      })
-      .sort((a, b) => {
-        // Sorting
-        let comparison = 0;
-        switch (sortBy) {
-          case "created_at":
-            comparison =
-              new Date(a.created_at || "").getTime() -
-              new Date(b.created_at || "").getTime();
-            break;
-          case "expires_at":
-            comparison =
-              new Date(a.expires_at || "").getTime() -
-              new Date(b.expires_at || "").getTime();
-            break;
-          case "discount_value":
-            comparison = a.discount_value - b.discount_value;
-            break;
-        }
-        return sortOrder === "asc" ? comparison : -comparison;
-      });
-  }, [coupons, searchTerm, selectedStatus, selectedType, sortBy, sortOrder]);
-
-  // Pagination logic
-  const paginatedCoupons = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredAndSortedCoupons.slice(startIndex, endIndex);
-  }, [filteredAndSortedCoupons, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredAndSortedCoupons.length / itemsPerPage);
 
   const handleClearAll = () => {
     setSearchTerm("");
@@ -242,31 +132,14 @@ export default function DiscountManager() {
         .order("title");
 
       if (error) throw error;
-      setProducts(data || []);
+      setProducts((data as any) || []);
     } catch (error: any) {
       console.error("Failed to fetch products:", error);
     }
   };
 
-  const fetchCoupons = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setCoupons(data || []);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to fetch coupons");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       const submitData = {
@@ -345,11 +218,8 @@ export default function DiscountManager() {
 
       setShowModal(false);
       resetForm();
-      fetchCoupons();
     } catch (error: any) {
       toast.error(error.message || "Failed to save coupon");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -385,7 +255,7 @@ export default function DiscountManager() {
 
       if (error) throw error;
       toast.success("Coupon deleted successfully");
-      fetchCoupons();
+      setCurrentPage(1);
     } catch (error: any) {
       toast.error(error.message || "Failed to delete coupon");
     }
@@ -451,15 +321,15 @@ export default function DiscountManager() {
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         status={selectedStatus}
-        onStatusChange={setSelectedStatus}
+        onStatusChange={(value: string) =>
+          setSelectedStatus(value as "all" | "active" | "inactive")
+        }
         sortBy={`${sortBy}-${sortOrder}`}
         onSortChange={(value) => {
           const [field, order] = value.split("-");
           setSortBy(field as "created_at" | "expires_at" | "discount_value");
           setSortOrder(order as "asc" | "desc");
         }}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
         showStatusFilter={true}
         showClearAll={true}
         onClearAll={handleClearAll}
@@ -482,8 +352,7 @@ export default function DiscountManager() {
 
       {/* Results count */}
       <div className="text-sm text-gray-600 dark:text-gray-400">
-        Showing {paginatedCoupons.length} of {filteredAndSortedCoupons.length}{" "}
-        coupons
+        Showing {coupons.length} of {total} coupons
       </div>
 
       {/* Stats Cards */}
@@ -512,7 +381,7 @@ export default function DiscountManager() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
               <p className="text-xl font-bold text-gray-900 dark:text-white">
-                {coupons.filter((c) => c.is_active).length}
+                {coupons.filter((c: CouponRow) => c.is_active).length}
               </p>
             </div>
           </div>
@@ -528,7 +397,7 @@ export default function DiscountManager() {
                 First-Time
               </p>
               <p className="text-xl font-bold text-gray-900 dark:text-white">
-                {coupons.filter((c) => c.first_time_only).length}
+                {coupons.filter((c: CouponRow) => c.first_time_only).length}
               </p>
             </div>
           </div>
@@ -546,7 +415,8 @@ export default function DiscountManager() {
               <p className="text-xl font-bold text-gray-900 dark:text-white">
                 {
                   coupons.filter(
-                    (c) => c.expires_at && new Date(c.expires_at) < new Date(),
+                    (c: CouponRow) =>
+                      c.expires_at && new Date(c.expires_at) < new Date(),
                   ).length
                 }
               </p>
@@ -582,7 +452,7 @@ export default function DiscountManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedCoupons.map((coupon) => (
+              {coupons.map((coupon: CouponRow) => (
                 <tr
                   key={coupon.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -693,7 +563,8 @@ export default function DiscountManager() {
               onPageChange={setCurrentPage}
               itemsPerPage={itemsPerPage}
               onItemsPerPageChange={setItemsPerPage}
-              totalItems={coupons.length}
+              totalItems={total}
+              showItemsPerPageSelector={true}
             />
           </div>
         )}
@@ -999,10 +870,10 @@ export default function DiscountManager() {
                   </button>
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={isLoading}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                   >
-                    {loading
+                    {isLoading
                       ? "Saving..."
                       : editingCoupon
                         ? "Update"
