@@ -1,36 +1,39 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signOutAdmin } from "@/lib/supabase/auth";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
 import {
+  Menu,
+  X,
+  LayoutDashboard,
   Package,
   ShoppingCart,
   Users,
   DollarSign,
   Edit,
   Trash2,
-  X,
+  X as XIcon,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { toast } from "react-toastify";
 import OrderTable from "@/components/orders/OrderTable";
 import OrderViewModal from "@/components/orders/OrderViewModal";
-import ReviewManager from "@/components/reviews/ReviewManager";
-import BlogList from "@/components/blog/BlogList";
-import CategoryList from "@/components/categories/CategoryList";
-import Support from "@/components/support/Support";
-import DiscountManager from "@/components/discounts/DiscountManager";
-import TestimonialList from "@/components/testimonials/TestimonialList";
-import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import CustomersTab from "@/components/customers/CustomersTab";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
-import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 import ProductsPage from "../../components/products/ProductPage";
 import SettingPage from "@/components/setting/SettingPage";
+import BlogList from "@/components/blog/BlogList";
+import CategoryList from "@/components/categories/CategoryList";
+import DiscountManager from "@/components/discounts/DiscountManager";
+import ReviewManager from "@/components/reviews/ReviewManager";
+import Support from "@/components/support/Support";
+import TestimonialList from "@/components/testimonials/TestimonialList";
+import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 // Use generated types
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -91,43 +94,6 @@ function DashboardContent() {
     };
   } | null>(null);
 
-  type BlogDraft = {
-    id?: string;
-    title: string;
-    slug: string;
-    excerpt: string;
-    content_md: string;
-    cover_image_url: string;
-    published: boolean;
-    created_by: string;
-  };
-
-  type BlogRow = {
-    id: string;
-    title: string;
-    slug: string;
-    excerpt: string | null;
-    content_md: string;
-    cover_image_url: string | null;
-    published: boolean;
-    created_by: string | null;
-    created_at: string | null;
-    updated_at: string | null;
-  };
-
-  const [blogs, setBlogs] = useState<BlogRow[]>([]);
-  const [blogForm, setBlogForm] = useState<BlogDraft>({
-    title: "",
-    slug: "",
-    excerpt: "",
-    content_md: "",
-    cover_image_url: "",
-    published: false,
-    created_by: "",
-  });
-  const [blogSaving, setBlogSaving] = useState(false);
-  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -139,28 +105,6 @@ function DashboardContent() {
     };
     loadData();
   }, []);
-
-  useEffect(() => {
-    if (activeSection !== "blog") return;
-    const loadBlogs = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("blogs" as any)
-          .select(
-            "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
-          )
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setBlogs((data as any) || []);
-      } catch (e: any) {
-        // blogs table may not exist yet; keep UI but show toast
-        toast.error(e?.message || "Failed to load blogs");
-        setBlogs([]);
-      }
-    };
-    loadBlogs();
-  }, [activeSection]);
 
   useEffect(() => {
     if (activeSection !== "settings") return;
@@ -181,38 +125,6 @@ function DashboardContent() {
     };
     loadSettings();
   }, [activeSection]);
-
-  const uploadBlogCover = async (file: File) => {
-    const blogId = editingBlogId || "draft";
-    const path = generateBlogImagePath(blogId, file.name, "cover");
-    const url = await uploadImage(file, path, "blog-images");
-    setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
-  };
-
-  const insertInlineImage = async (file: File) => {
-    const blogId = editingBlogId || "draft";
-    const path = generateBlogImagePath(blogId, file.name, "inline");
-    const url = await uploadImage(file, path, "blog-images");
-    setBlogForm((prev) => ({
-      ...prev,
-      content_md: `${prev.content_md}\n\n![](${url})\n`,
-    }));
-  };
-
-  const handleDeleteBlog = async (id: string) => {
-    if (!confirm("Delete this post?")) return;
-    try {
-      const { error } = await (supabase as any)
-        .from("blogs")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      toast.success("Blog deleted");
-      setBlogs((prev) => prev.filter((b) => b.id !== id));
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to delete blog");
-    }
-  };
 
   const fetchProducts = async () => {
     try {
@@ -800,9 +712,7 @@ function DashboardContent() {
 
             {activeSection === "reviews" && <ReviewManager />}
 
-            {activeSection === "blog" && (
-              <BlogList onDelete={(id) => handleDeleteBlog(id)} />
-            )}
+            {activeSection === "blog" && <BlogList />}
 
             {activeSection === "categories" && <CategoryList />}
 

@@ -19,19 +19,20 @@ import {
   Send,
 } from "lucide-react";
 import Image from "next/image";
-import { Order, OrderItem } from "@/app/dashboard/page";
+import { Order, OrderItem, OrderStatus } from "@/app/dashboard/page";
+import type { Database } from "@/types/database.types";
 import { EmailService } from "@/lib/emails/EmailService";
-import { useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
+
+type PaymentStatus = Database["public"]["Enums"]["payment_status_enum"];
 
 interface OrderViewModalProps {
   order: Order | null;
   isOpen: boolean;
   onClose: () => void;
-  onStatusUpdate?: (orderId: string, newStatus: Order["status"]) => void;
-  onPaymentStatusUpdate?: (
-    orderId: string,
-    newStatus: Order["payment_status"],
-  ) => void;
+  onStatusUpdate?: (orderId: string, newStatus: OrderStatus) => void;
+  onPaymentStatusUpdate?: (orderId: string, newStatus: PaymentStatus) => void;
 }
 
 export default function OrderViewModal({
@@ -43,9 +44,31 @@ export default function OrderViewModal({
 }: OrderViewModalProps) {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<
+    Database["public"]["Tables"]["payment_options"]["Row"][]
+  >([]);
+
+  // Fetch payment options
+  useEffect(() => {
+    const fetchPaymentOptions = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from("payment_options")
+          .select("id, name")
+          .order("name");
+
+        if (error) throw error;
+        setPaymentOptions(data || []);
+      } catch (error) {
+        console.error("Failed to fetch payment options:", error);
+      }
+    };
+
+    fetchPaymentOptions();
+  }, []);
 
   // Send email notification for status change
-  const handleStatusChangeWithEmail = async (newStatus: Order["status"]) => {
+  const handleStatusChangeWithEmail = async (newStatus: OrderStatus) => {
     if (!onStatusUpdate || !order) return;
 
     // First update the status
@@ -54,7 +77,9 @@ export default function OrderViewModal({
     // Then send email notification
     try {
       setEmailLoading(true);
-      const orderItems = order.items.map((item) => ({
+      // Safely handle order.items which is Json type
+      const itemsArray = Array.isArray(order.items) ? order.items : [];
+      const orderItems = itemsArray.map((item: any) => ({
         name: item.product_name || "Product",
         quantity: item.quantity || 1,
         price: item.unit_price || 0,
@@ -64,7 +89,7 @@ export default function OrderViewModal({
         order.customer_email,
         order.customer_name,
         order.id,
-        newStatus,
+        newStatus as any, // Type assertion to handle "returned" status
         orderItems,
         order.total_amount || 0,
         {
@@ -103,6 +128,8 @@ export default function OrderViewModal({
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "cancelled":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "returned":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
       case "paid":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "failed":
@@ -112,6 +139,24 @@ export default function OrderViewModal({
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
+  };
+
+  const getPaymentStatusColor = (status: PaymentStatus) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "paid":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "failed":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
+  };
+
+  const getPaymentOptionName = (paymentMethod: string) => {
+    const option = paymentOptions.find((opt) => opt.id === paymentMethod);
+    return option?.payment_type || paymentMethod;
   };
 
   const getStatusIcon = (status: string) => {
@@ -125,6 +170,8 @@ export default function OrderViewModal({
       case "delivered":
         return <CheckCircle className="w-4 h-4" />;
       case "cancelled":
+        return <AlertCircle className="w-4 h-4" />;
+      case "returned":
         return <AlertCircle className="w-4 h-4" />;
       case "paid":
         return <CheckCircle className="w-4 h-4" />;
@@ -164,8 +211,13 @@ export default function OrderViewModal({
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               #{order.id.slice(0, 8)} • Placed on{" "}
-              {new Date(order.created_at).toLocaleDateString()} at{" "}
-              {new Date(order.created_at).toLocaleTimeString()}
+              {order.created_at
+                ? new Date(order.created_at).toLocaleDateString()
+                : "Unknown date"}{" "}
+              at{" "}
+              {order.created_at
+                ? new Date(order.created_at).toLocaleTimeString()
+                : "Unknown time"}
             </p>
           </div>
           <button
@@ -230,14 +282,14 @@ export default function OrderViewModal({
                     {onStatusUpdate ? (
                       <div className="flex items-center gap-2">
                         <select
-                          value={order.status}
+                          value={order.order_status}
                           onChange={(e) =>
                             handleStatusChangeWithEmail(
-                              e.target.value as Order["status"],
+                              e.target.value as OrderStatus,
                             )
                           }
                           className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getStatusColor(
-                            order.status,
+                            order.order_status,
                           )}`}
                           disabled={emailLoading}
                         >
@@ -246,6 +298,7 @@ export default function OrderViewModal({
                           <option value="shipped">Shipped</option>
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
+                          <option value="returned">Returned</option>
                         </select>
                         {emailLoading && (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -260,11 +313,11 @@ export default function OrderViewModal({
                     ) : (
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          order.status,
+                          order.order_status,
                         )}`}
                       >
-                        {getStatusIcon(order.status)}
-                        {order.status}
+                        {getStatusIcon(order.order_status)}
+                        {order.order_status}
                       </span>
                     )}
                   </div>
@@ -278,10 +331,10 @@ export default function OrderViewModal({
                         onChange={(e) =>
                           onPaymentStatusUpdate(
                             order.id,
-                            e.target.value as Order["payment_status"],
+                            e.target.value as PaymentStatus,
                           )
                         }
-                        className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getStatusColor(
+                        className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getPaymentStatusColor(
                           order.payment_status,
                         )}`}
                       >
@@ -292,7 +345,7 @@ export default function OrderViewModal({
                       </select>
                     ) : (
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(
                           order.payment_status,
                         )}`}
                       >
@@ -306,7 +359,7 @@ export default function OrderViewModal({
                       Method:
                     </span>
                     <span className="text-sm text-gray-900 dark:text-white">
-                      {order.payment_method}
+                      {getPaymentOptionName(order.payment_method)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -314,16 +367,101 @@ export default function OrderViewModal({
                       Order Date:
                     </span>
                     <span className="text-sm text-gray-900 dark:text-white">
-                      {new Date(order.created_at).toLocaleDateString()}
+                      {order.created_at
+                        ? new Date(order.created_at).toLocaleDateString()
+                        : "Unknown date"}
                     </span>
                   </div>
-                  {order.delivery_date && (
+                  {order.cancellation_request && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Cancellation:
+                      </span>
+                      <div className="text-right">
+                        <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-xs font-medium">
+                          Requested
+                        </span>
+                        {order.cancellation_requested_at && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {new Date(
+                              order.cancellation_requested_at,
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                        {order.cancellation_reason && (
+                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 max-w-xs">
+                            Reason: {order.cancellation_reason}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {order.return_request && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Return:
+                      </span>
+                      <div className="text-right">
+                        <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-xs font-medium">
+                          Requested
+                        </span>
+                        {order.return_requested_at && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {new Date(
+                              order.return_requested_at,
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                        {order.return_reason && (
+                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 max-w-xs">
+                            Reason: {order.return_reason}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {order.coupon_code && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Delivery Date:
+                        Coupon:
                       </span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {new Date(order.delivery_date).toLocaleDateString()}
+                        {order.coupon_code}
+                      </span>
+                    </div>
+                  )}
+                  {order.notes && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Notes:
+                      </span>
+                      <div className="text-sm text-gray-900 dark:text-white max-w-xs text-right">
+                        {order.notes}
+                      </div>
+                    </div>
+                  )}
+                  {order.partial_payment_amount && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Partial Payment:
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        ${order.partial_payment_amount.toFixed(2)}
+                        {order.partial_payment_percentage && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            ({order.partial_payment_percentage}%)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {order.remaining_amount && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Remaining:
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        ${order.remaining_amount.toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -375,38 +513,45 @@ export default function OrderViewModal({
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <Package className="w-4 h-4" />
-                  Order Items ({order.items?.length || 0})
+                  Order Items (
+                  {Array.isArray(order.items) ? order.items.length : 0})
                 </h4>
                 <div className="space-y-3">
-                  {order.items?.map((item: OrderItem) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg"
-                    >
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={item.product_image || "/placeholder.jpg"}
-                          alt={item.product_name || "Product image"}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {item.product_name}
+                  {Array.isArray(order.items) ? (
+                    order.items.map((item: any) => (
+                      <div
+                        key={item.id || Math.random().toString()}
+                        className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg"
+                      >
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={item.product_image || "/placeholder.jpg"}
+                            alt={item.product_name || "Product image"}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          Quantity: {item.quantity} ×{" "}
-                          {currency(item.unit_price)}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {item.product_name}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Quantity: {item.quantity} ×{" "}
+                            {currency(item.unit_price)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {currency(item.total_price)}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {currency(item.total_price)}
-                        </div>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                      No items found
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -479,14 +624,16 @@ export default function OrderViewModal({
           {onStatusUpdate && (
             <button
               onClick={() => {
-                if (order.status !== "delivered") {
+                if (order.order_status !== "delivered") {
                   onStatusUpdate(order.id, "delivered");
                 }
               }}
-              disabled={order.status === "delivered"}
+              disabled={order.order_status === "delivered"}
               className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {order.status === "delivered" ? "Delivered" : "Mark as Delivered"}
+              {order.order_status === "delivered"
+                ? "Delivered"
+                : "Mark as Delivered"}
             </button>
           )}
         </div>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
+import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
 
 interface BlogPost {
   id: string;
@@ -26,6 +27,17 @@ interface BlogListProps {
   showCreateButton?: boolean;
 }
 
+type BlogDraft = {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content_md: string;
+  cover_image_url: string;
+  published: boolean;
+  created_by: string;
+};
+
 export default function BlogList({
   onEdit,
   onDelete,
@@ -34,6 +46,17 @@ export default function BlogList({
 }: BlogListProps) {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [blogForm, setBlogForm] = useState<BlogDraft>({
+    title: "",
+    slug: "",
+    excerpt: "",
+    content_md: "",
+    cover_image_url: "",
+    published: false,
+    created_by: "",
+  });
+  const [blogSaving, setBlogSaving] = useState(false);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBlogs = async () => {
@@ -57,6 +80,105 @@ export default function BlogList({
 
     loadBlogs();
   }, []);
+
+  const handleSaveBlog = async () => {
+    if (
+      !blogForm.title.trim() ||
+      !blogForm.slug.trim() ||
+      !blogForm.created_by.trim()
+    ) {
+      toast.error("Title, slug, and created by are required");
+      return;
+    }
+
+    setBlogSaving(true);
+    try {
+      const payload = {
+        title: blogForm.title.trim(),
+        slug: blogForm.slug.trim(),
+        excerpt: blogForm.excerpt.trim() || null,
+        content_md: blogForm.content_md || "",
+        cover_image_url: blogForm.cover_image_url || null,
+        published: blogForm.published,
+        created_by: blogForm.created_by.trim() || "Admin",
+        updated_at: new Date().toISOString(),
+      };
+
+      if (editingBlogId) {
+        const { error } = await (supabase as any)
+          .from("blogs")
+          .update(payload)
+          .eq("id", editingBlogId);
+        if (error) throw error;
+        toast.success("Blog updated");
+      } else {
+        const { error } = await (supabase as any).from("blogs").insert({
+          ...payload,
+          created_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+        toast.success("Blog created");
+      }
+
+      const { data, error: reloadError } = await (supabase as any)
+        .from("blogs")
+        .select(
+          "id, title, slug, excerpt, content_md, cover_image_url, published, created_at, updated_at",
+        )
+        .order("created_at", { ascending: false });
+      if (reloadError) throw reloadError;
+      setBlogs(data || []);
+
+      resetBlogForm();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save blog");
+    } finally {
+      setBlogSaving(false);
+    }
+  };
+
+  const resetBlogForm = () => {
+    setBlogForm({
+      title: "",
+      slug: "",
+      excerpt: "",
+      content_md: "",
+      cover_image_url: "",
+      published: false,
+      created_by: "",
+    });
+    setEditingBlogId(null);
+  };
+
+  const uploadBlogCover = async (file: File) => {
+    const blogId = editingBlogId || "draft";
+    const path = generateBlogImagePath(blogId, file.name, "cover");
+    const url = await uploadImage(file, path, "blog-images");
+    setBlogForm((prev) => ({ ...prev, cover_image_url: url }));
+  };
+
+  const insertInlineImage = async (file: File) => {
+    const blogId = editingBlogId || "draft";
+    const path = generateBlogImagePath(blogId, file.name, "inline");
+    const url = await uploadImage(file, path, "blog-images");
+    setBlogForm((prev) => ({
+      ...prev,
+      content_md: `${prev.content_md}\n\n![](${url})\n`,
+    }));
+  };
+
+  const startEditBlog = (post: BlogPost) => {
+    setBlogForm({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || "",
+      content_md: post.content_md,
+      cover_image_url: post.cover_image_url || "",
+      published: post.published,
+      created_by: post.created_by || "",
+    });
+    setEditingBlogId(post.id);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this blog post?")) return;

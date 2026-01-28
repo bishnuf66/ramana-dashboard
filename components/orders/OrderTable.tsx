@@ -1,4 +1,4 @@
-import { Order, OrderItem } from "@/app/dashboard/page";
+import { Order, OrderItem, OrderStatus } from "@/app/dashboard/page";
 
 import ActionButtons from "@/components/ui/ActionButtons";
 
@@ -8,7 +8,7 @@ function OrderTable({
   onViewOrder,
 }: {
   orders: Order[];
-  handleUpdateOrderStatus: (id: string, status: Order["status"]) => void;
+  handleUpdateOrderStatus: (id: string, status: OrderStatus) => void;
   onViewOrder?: (order: Order) => void;
 }) {
   return (
@@ -66,23 +66,25 @@ function OrderTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
-                      value={order.status}
+                      value={order.order_status}
                       onChange={(e) =>
                         handleUpdateOrderStatus(
                           order.id,
-                          e.target.value as Order["status"],
+                          e.target.value as OrderStatus,
                         )
                       }
                       className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
-                        order.status === "pending"
+                        order.order_status === "pending"
                           ? "bg-yellow-100 text-yellow-800"
-                          : order.status === "processing"
+                          : order.order_status === "processing"
                             ? "bg-blue-100 text-blue-800"
-                            : order.status === "shipped"
+                            : order.order_status === "shipped"
                               ? "bg-purple-100 text-purple-800"
-                              : order.status === "delivered"
+                              : order.order_status === "delivered"
                                 ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                                : order.order_status === "returned"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-red-100 text-red-800"
                       }`}
                     >
                       <option value="pending">Pending</option>
@@ -90,6 +92,7 @@ function OrderTable({
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
+                      <option value="returned">Returned</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -121,7 +124,9 @@ function OrderTable({
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(order.created_at).toLocaleDateString()}
+                    {order.created_at
+                      ? new Date(order.created_at).toLocaleDateString()
+                      : "Unknown date"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {onViewOrder && (
@@ -162,7 +167,9 @@ function OrderTable({
                       ${order.total_amount.toFixed(2)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(order.created_at).toLocaleDateString()}
+                      {order.created_at
+                        ? new Date(order.created_at).toLocaleDateString()
+                        : "Unknown date"}
                     </div>
                   </div>
                 </div>
@@ -192,23 +199,25 @@ function OrderTable({
 
                 <div className="flex justify-between items-center">
                   <select
-                    value={order.status}
+                    value={order.order_status}
                     onChange={(e) =>
                       handleUpdateOrderStatus(
                         order.id,
-                        e.target.value as Order["status"],
+                        e.target.value as OrderStatus,
                       )
                     }
                     className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
-                      order.status === "pending"
+                      order.order_status === "pending"
                         ? "bg-yellow-100 text-yellow-800"
-                        : order.status === "processing"
+                        : order.order_status === "processing"
                           ? "bg-blue-100 text-blue-800"
-                          : order.status === "shipped"
+                          : order.order_status === "shipped"
                             ? "bg-purple-100 text-purple-800"
-                            : order.status === "delivered"
+                            : order.order_status === "delivered"
                               ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              : order.order_status === "returned"
+                                ? "bg-orange-100 text-orange-800"
+                                : "bg-red-100 text-red-800"
                     }`}
                   >
                     <option value="pending">Pending</option>
@@ -216,6 +225,7 @@ function OrderTable({
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="returned">Returned</option>
                   </select>
 
                   {onViewOrder && (
