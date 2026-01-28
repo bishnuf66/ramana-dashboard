@@ -1,4 +1,4 @@
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import type { Database } from "@/types/database.types";
 
 type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
@@ -29,6 +29,8 @@ interface PaymentActionButtonsProps {
   onView?: (payment: UserPaymentDisplay) => void;
   onEdit?: (payment: UserPaymentDisplay) => void;
   onDelete?: (payment: UserPaymentDisplay) => void;
+  onVerify?: (payment: UserPaymentDisplay) => void;
+  onUnverify?: (payment: UserPaymentDisplay) => void;
   size?: "sm" | "md" | "lg";
   showLabels?: boolean;
 }
@@ -38,6 +40,8 @@ export default function PaymentActionButtons({
   onView,
   onEdit,
   onDelete,
+  onVerify,
+  onUnverify,
   size = "sm",
   showLabels = false,
 }: PaymentActionButtonsProps) {
@@ -68,6 +72,18 @@ export default function PaymentActionButtons({
   const handleDelete = () => {
     if (onDelete) {
       onDelete(payment);
+    }
+  };
+
+  const handleVerify = () => {
+    if (onVerify) {
+      onVerify(payment);
+    }
+  };
+
+  const handleUnverify = () => {
+    if (onUnverify) {
+      onUnverify(payment);
     }
   };
 
@@ -106,6 +122,29 @@ export default function PaymentActionButtons({
         >
           <Trash2 className={sizeClasses[size]} />
           {showLabels && <span className="ml-1 text-xs">Delete</span>}
+        </button>
+      )}
+
+      {/* Verify/Unverify Button */}
+      {!payment.is_verified && onVerify && (
+        <button
+          onClick={handleVerify}
+          className={`${buttonClasses[size]} text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors`}
+          title="Verify Payment"
+        >
+          <CheckCircle className={sizeClasses[size]} />
+          {showLabels && <span className="ml-1 text-xs">Verify</span>}
+        </button>
+      )}
+
+      {payment.is_verified && onUnverify && (
+        <button
+          onClick={handleUnverify}
+          className={`${buttonClasses[size]} text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors`}
+          title="Unverify Payment"
+        >
+          <XCircle className={sizeClasses[size]} />
+          {showLabels && <span className="ml-1 text-xs">Unverify</span>}
         </button>
       )}
     </div>

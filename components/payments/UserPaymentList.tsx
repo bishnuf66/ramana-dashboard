@@ -340,7 +340,7 @@ export default function UserPaymentList({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {payment.amount.toString()}
+                  {payment.amount ? payment.amount.toString() : "0"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {payment.payment_option?.payment_type || "N/A"}
@@ -369,9 +369,28 @@ export default function UserPaymentList({
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <PaymentActionButtons
                     payment={payment}
-                    onView={() => setShowViewModal(true)}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
+                    onView={() => {
+                      setSelectedPayment(payment);
+                      setShowViewModal(true);
+                    }}
+                    onEdit={() => {
+                      // Navigate to edit page or open edit modal
+                      console.log("Edit payment:", payment.id);
+                    }}
+                    onDelete={() => {
+                      // Handle delete action
+                      console.log("Delete payment:", payment.id);
+                    }}
+                    onVerify={(payment: any) => {
+                      setPaymentToVerify(payment);
+                      setVerifyAction("verify");
+                      setShowVerifyModal(true);
+                    }}
+                    onUnverify={(payment: any) => {
+                      setPaymentToVerify(payment);
+                      setVerifyAction("unverify");
+                      setShowVerifyModal(true);
+                    }}
                     size="sm"
                   />
                 </td>
