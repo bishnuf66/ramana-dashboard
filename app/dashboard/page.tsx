@@ -34,6 +34,7 @@ import ReviewManager from "@/components/reviews/ReviewManager";
 import Support from "@/components/support/Support";
 import TestimonialList from "@/components/testimonials/TestimonialList";
 import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
+import UserPaymentList from "@/components/payments/UserPaymentList";
 // Use generated types
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -73,6 +74,7 @@ function DashboardContent() {
       | "discounts"
       | "testimonials"
       | "payment-options"
+      | "payments"
       | "support"
       | "settings") || "analytics";
   const [products, setProducts] = useState<Product[]>([]);
@@ -746,6 +748,37 @@ function DashboardContent() {
             {activeSection === "testimonials" && <TestimonialList />}
 
             {activeSection === "payment-options" && <PaymentOptionList />}
+
+            {activeSection === "payments" && (
+              <div className="p-6">
+                <div className="mb-8">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    User Payments Management
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    View and manage all user payments, verification status, and
+                    transaction history.
+                  </p>
+                </div>
+                <UserPaymentList
+                  limit={20}
+                  showFilters={true}
+                  onPaymentSelect={(payment) => {
+                    console.log("Selected payment:", payment);
+                  }}
+                  onPaymentEdit={(payment) => {
+                    console.log("Edit payment:", payment);
+                    // TODO: Implement edit functionality
+                    toast.info("Edit functionality coming soon!");
+                  }}
+                  onPaymentDelete={(payment) => {
+                    console.log("Delete payment:", payment);
+                    // TODO: Implement delete functionality
+                    toast.info("Delete functionality coming soon!");
+                  }}
+                />
+              </div>
+            )}
 
             {activeSection === "support" && <Support />}
 

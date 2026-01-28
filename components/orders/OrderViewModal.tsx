@@ -26,6 +26,8 @@ import { supabase } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import PaymentDetail from "@/components/payments/PaymentDetail";
 import PaymentList from "@/components/payments/PaymentList";
+import UserPaymentList from "@/components/payments/UserPaymentList";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type PaymentStatus = Database["public"]["Enums"]["payment_status_enum"];
 
@@ -46,6 +48,10 @@ export default function OrderViewModal({
 }: OrderViewModalProps) {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] =
+    useState<OrderStatus | null>(null);
+  const [loading, setLoading] = useState(false);
   const [paymentOptions, setPaymentOptions] = useState<
     Database["public"]["Tables"]["payment_options"]["Row"][]
   >([]);
@@ -172,8 +178,18 @@ export default function OrderViewModal({
   const handleStatusChangeWithEmail = async (newStatus: OrderStatus) => {
     if (!onStatusUpdate || !order) return;
 
+    // Show confirmation modal first
+    setPendingStatusChange(newStatus);
+    setShowStatusModal(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange || !onStatusUpdate || !order) return;
+
+    setLoading(true);
+
     // First update the status
-    onStatusUpdate(order.id, newStatus);
+    onStatusUpdate(order.id, pendingStatusChange);
 
     // Then send email notification
     try {
@@ -190,15 +206,16 @@ export default function OrderViewModal({
         order.customer_email,
         order.customer_name,
         order.id,
-        newStatus as any, // Type assertion to handle "returned" status
+        pendingStatusChange as any, // Type assertion to handle "returned" status
         orderItems,
         order.total_amount || 0,
         {
-          trackingNumber: newStatus === "shipped" ? "TRACK123456" : undefined, // You can add tracking number logic here
+          trackingNumber:
+            pendingStatusChange === "shipped" ? "TRACK123456" : undefined, // You can add tracking number logic here
           estimatedDelivery:
-            newStatus === "shipped" ? "3-5 business days" : undefined,
+            pendingStatusChange === "shipped" ? "3-5 business days" : undefined,
           cancellationReason:
-            newStatus === "cancelled"
+            pendingStatusChange === "cancelled"
               ? "Order cancelled by customer request"
               : undefined,
         },
@@ -212,6 +229,9 @@ export default function OrderViewModal({
       console.error("Failed to send email notification:", error);
     } finally {
       setEmailLoading(false);
+      setLoading(false);
+      setShowStatusModal(false);
+      setPendingStatusChange(null);
     }
   };
 
@@ -409,7 +429,7 @@ export default function OrderViewModal({
                           className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${getStatusColor(
                             order.order_status,
                           )}`}
-                          disabled={emailLoading}
+                          disabled={emailLoading || loading}
                         >
                           <option value="pending">Pending</option>
                           <option value="processing">Processing</option>
@@ -479,6 +499,23 @@ export default function OrderViewModal({
                     <span className="text-sm text-gray-900 dark:text-white">
                       {getPaymentMethodName()}
                     </span>
+                  </div>
+
+                  {/* User Payments Section */}
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      User Payment History
+                    </h4>
+                    <UserPaymentList
+                      orderId={order.id}
+                      limit={5}
+                      showFilters={false}
+                      onPaymentSelect={(payment) => {
+                        // Handle payment selection if needed
+                        console.log("Selected payment:", payment);
+                      }}
+                    />
                   </div>
 
                   {/* Payment Details Component */}
@@ -746,6 +783,22 @@ export default function OrderViewModal({
             </button>
           )}
         </div>
+
+        {/* Status Change Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showStatusModal}
+          onClose={() => {
+            setShowStatusModal(false);
+            setPendingStatusChange(null);
+          }}
+          onConfirm={confirmStatusChange}
+          title="Change Order Status"
+          message={`Are you sure you want to change the order status to ${pendingStatusChange}? This will send an email notification to the customer.`}
+          confirmText="Change Status"
+          cancelText="Cancel"
+          type="status"
+          loading={loading}
+        />
       </motion.div>
     </div>
   );

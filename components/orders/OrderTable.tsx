@@ -1,6 +1,8 @@
 import { Order, OrderStatus } from "@/app/dashboard/page";
 
 import ActionButtons from "@/components/ui/ActionButtons";
+import { useState } from "react";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 function OrderTable({
   orders,
@@ -13,6 +15,12 @@ function OrderTable({
   onViewOrder?: (order: Order) => void;
   handleVerifyPayment?: (orderId: string) => void;
 }) {
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    id: string;
+    status: OrderStatus;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
   const currency = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) {
       return "Rs.0.00";
@@ -24,6 +32,26 @@ function OrderTable({
       }).format(value);
     } catch {
       return `Rs.${value.toFixed(2)}`;
+    }
+  };
+
+  const handleStatusChange = (id: string, status: OrderStatus) => {
+    setPendingStatusChange({ id, status });
+    setShowStatusModal(true);
+  };
+
+  const confirmStatusChange = () => {
+    if (pendingStatusChange) {
+      setLoading(true);
+      handleUpdateOrderStatus(
+        pendingStatusChange.id,
+        pendingStatusChange.status,
+      );
+      setTimeout(() => {
+        setLoading(false);
+        setShowStatusModal(false);
+        setPendingStatusChange(null);
+      }, 500);
     }
   };
   return (
@@ -104,7 +132,7 @@ function OrderTable({
                     <select
                       value={order.order_status}
                       onChange={(e) =>
-                        handleUpdateOrderStatus(
+                        handleStatusChange(
                           order.id,
                           e.target.value as OrderStatus,
                         )
@@ -340,7 +368,7 @@ function OrderTable({
                   <select
                     value={order.order_status}
                     onChange={(e) =>
-                      handleUpdateOrderStatus(
+                      handleStatusChange(
                         order.id,
                         e.target.value as OrderStatus,
                       )
@@ -388,6 +416,22 @@ function OrderTable({
           </div>
         )}
       </div>
+
+      {/* Status Change Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showStatusModal}
+        onClose={() => {
+          setShowStatusModal(false);
+          setPendingStatusChange(null);
+        }}
+        onConfirm={confirmStatusChange}
+        title="Change Order Status"
+        message={`Are you sure you want to change the order status to ${pendingStatusChange?.status}?`}
+        confirmText="Change Status"
+        cancelText="Cancel"
+        type="status"
+        loading={loading}
+      />
     </div>
   );
 }
