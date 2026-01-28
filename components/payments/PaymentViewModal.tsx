@@ -19,10 +19,12 @@ interface UserPaymentDisplay {
   paid_amount_percentage: number;
   remaining_amount_percentage: number;
   is_verified: boolean;
+  payment_screenshot?: string;
   transaction_id?: string;
   payment_method?: string;
   created_at: string;
   updated_at: string;
+  user_id?: string;
   payment_option?: PaymentOption | null;
   orders?: {
     id: string;
@@ -32,13 +34,13 @@ interface UserPaymentDisplay {
     order_status: string;
     created_at: string;
     updated_at: string;
-    items?: Array<{
+    items: Array<{
       id: string;
       slug: string;
-      price: number;
       title: string;
+      price: number;
       quantity: number;
-      cover_image: string;
+      cover_image?: string;
       discount_price?: number;
     }>;
   } | null;
@@ -55,15 +57,17 @@ interface PaymentViewModalProps {
 
 const currency = (value: number | undefined | null) => {
   if (value === undefined || value === null || isNaN(value)) {
-    return "Rs.0.00";
+    return "NRS 0.00";
   }
   try {
     return new Intl.NumberFormat("en-NP", {
       style: "currency",
       currency: "NPR",
-    }).format(value);
+    })
+      .format(value)
+      .replace("NPR", "NRS");
   } catch {
-    return `Rs.${value.toFixed(2)}`;
+    return `NRS ${value.toFixed(2)}`;
   }
 };
 
@@ -243,6 +247,23 @@ export default function PaymentViewModal({
                     <p className="font-medium text-gray-900 dark:text-white">
                       {payment.transaction_id}
                     </p>
+                  </div>
+                )}
+                {payment.payment_screenshot && (
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Payment Screenshot
+                    </p>
+                    <div className="mt-2">
+                      <img
+                        src={payment.payment_screenshot}
+                        alt="Payment Screenshot"
+                        className="w-full max-w-md h-auto rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() =>
+                          window.open(payment.payment_screenshot, "_blank")
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>

@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/database.types";
+import { useVerifyPayment } from "@/hooks/useUserPayments";
 
 type Payment = Database["public"]["Tables"]["user_payments"]["Row"];
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
@@ -18,6 +19,7 @@ export default function EditPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
+  const verifyPaymentMutation = useVerifyPayment();
 
   const [formData, setFormData] = useState({
     order_id: "",
@@ -124,6 +126,24 @@ export default function EditPaymentPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleVerifyPayment = () => {
+    if (!payment) return;
+
+    verifyPaymentMutation.mutate({
+      id: payment.id,
+      verified: true,
+    });
+  };
+
+  const handleUnverifyPayment = () => {
+    if (!payment) return;
+
+    verifyPaymentMutation.mutate({
+      id: payment.id,
+      verified: false,
+    });
   };
 
   if (loading) {
@@ -293,21 +313,51 @@ export default function EditPaymentPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Link
-              href="/payments"
-              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? "Updating..." : "Update Payment"}
-            </button>
+          <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-2">
+              {!payment?.is_verified && (
+                <button
+                  type="button"
+                  onClick={handleVerifyPayment}
+                  disabled={verifyPaymentMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {verifyPaymentMutation.isPending
+                    ? "Verifying..."
+                    : "Verify Payment"}
+                </button>
+              )}
+              {payment?.is_verified && (
+                <button
+                  type="button"
+                  onClick={handleUnverifyPayment}
+                  disabled={verifyPaymentMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <XCircle className="w-4 h-4" />
+                  {verifyPaymentMutation.isPending
+                    ? "Unverifying..."
+                    : "Unverify Payment"}
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/payments"
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? "Updating..." : "Update Payment"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

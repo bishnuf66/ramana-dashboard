@@ -200,7 +200,7 @@ export default function UserPaymentList({
         payment.id.slice(0, 8),
         payment.order_id.slice(0, 8),
         payment.order?.customer_name || "N/A",
-        payment.paid_amount ? payment.paid_amount.toString() : "0",
+        `NRS ${payment.paid_amount ? payment.paid_amount.toString() : "0"}`,
         payment.payment_option?.payment_type || "N/A",
         payment.is_verified ? "Verified" : "Pending",
         new Date(payment.created_at).toLocaleDateString(),
@@ -366,12 +366,12 @@ export default function UserPaymentList({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <div className="font-medium">
-                    $
+                    NRS{" "}
                     {payment.paid_amount ? payment.paid_amount.toString() : "0"}
                   </div>
                   {payment.orders?.total_amount && payment.paid_amount && (
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      of ${payment.orders.total_amount}
+                      of NRS {payment.orders.total_amount}
                     </div>
                   )}
                   {payment.orders?.total_amount && payment.paid_amount && (
