@@ -5,19 +5,9 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import BlogForm from "@/components/blog/BlogForm";
+import type { Database } from "@/types/database.types";
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  content_md: string;
-  cover_image_url: string | null;
-  published: boolean;
-  created_by: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
 export default function EditBlogPage() {
   const params = useParams();

@@ -1,24 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { ArrowLeft, Edit, Trash2, Calendar, User, Eye } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Calendar,
+  User,
+  Eye,
+  Clock,
+} from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
+import type { Database } from "@/types/database.types";
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  content_md: string;
-  cover_image_url: string | null;
-  published: boolean;
-  created_by: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
 interface BlogViewProps {
   blogId?: string;
@@ -155,6 +153,24 @@ export default function BlogView({
                   ? new Date(blog.created_at).toLocaleDateString()
                   : "No date"}
               </span>
+              {blog.read_min && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {blog.read_min} min read
+                </span>
+              )}
+              {blog.tags && blog.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {blog.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <span
                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                   blog.published

@@ -7,20 +7,25 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import Link from "next/link";
+import type { Database } from "@/types/database.types";
+
+type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
 interface BlogFormData {
   title: string;
   slug: string;
-  excerpt: string;
+  excerpt: string | null;
   content_md: string;
   published: boolean;
-  created_by: string;
-  cover_image_url: string;
+  created_by: string | null;
+  cover_image_url: string | null;
+  read_min: number | null;
+  tags: string[] | null;
 }
 
 interface BlogFormProps {
   blogId?: string;
-  initialData?: any;
+  initialData?: Partial<BlogPost>;
 }
 
 export default function BlogForm({ blogId, initialData }: BlogFormProps) {
@@ -33,11 +38,13 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
   const [formData, setFormData] = useState<BlogFormData>({
     title: "",
     slug: "",
-    excerpt: "",
+    excerpt: null,
     content_md: "",
     published: false,
-    created_by: "",
-    cover_image_url: "",
+    created_by: null,
+    cover_image_url: null,
+    read_min: null,
+    tags: [],
     ...initialData,
   });
 
@@ -104,7 +111,7 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
     if (
       !formData.title.trim() ||
       !formData.slug.trim() ||
-      !formData.created_by.trim()
+      !formData.created_by?.trim()
     ) {
       toast.error("Title, slug, and created by are required");
       return;
@@ -126,11 +133,13 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
       const payload = {
         title: formData.title.trim(),
         slug: formData.slug.trim(),
-        excerpt: formData.excerpt.trim() || null,
+        excerpt: formData.excerpt?.trim() || null,
         content_md: formData.content_md || "",
         cover_image_url: coverImageUrl || null,
         published: formData.published,
-        created_by: formData.created_by.trim() || "Admin",
+        created_by: formData.created_by?.trim() || "Admin",
+        read_min: formData.read_min,
+        tags: formData.tags,
         updated_at: new Date().toISOString(),
       };
 
@@ -230,9 +239,12 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
             </label>
             <input
               type="text"
-              value={formData.created_by}
+              value={formData.created_by || ""}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, created_by: e.target.value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  created_by: e.target.value || null,
+                }))
               }
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="Author name"
@@ -246,14 +258,64 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
               Excerpt
             </label>
             <textarea
-              value={formData.excerpt}
+              value={formData.excerpt || ""}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, excerpt: e.target.value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  excerpt: e.target.value || null,
+                }))
               }
               rows={3}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
               placeholder="Brief excerpt"
             />
+          </div>
+
+          {/* Reading Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Reading Time (minutes)
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={formData.read_min || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  read_min: e.target.value ? parseInt(e.target.value) : null,
+                }))
+              }
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              placeholder="Estimated reading time in minutes"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tags
+            </label>
+            <input
+              type="text"
+              value={formData.tags?.join(", ") || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  tags: e.target.value
+                    ? e.target.value
+                        .split(",")
+                        .map((tag) => tag.trim())
+                        .filter((tag) => tag)
+                    : [],
+                }))
+              }
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              placeholder="Enter tags separated by commas (e.g., technology, web development, tutorial)"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Separate multiple tags with commas
+            </p>
           </div>
 
           {/* Cover Image */}
