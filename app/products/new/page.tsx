@@ -223,7 +223,7 @@ export default function NewProductPage() {
             Add New Product
           </h1>
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/dashboard?section=products")}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
           >
             <X className="h-6 w-6" />
@@ -640,7 +640,7 @@ export default function NewProductPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push("/dashboard?section=products")}
               className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
             >
               Cancel

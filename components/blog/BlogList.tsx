@@ -159,7 +159,7 @@ export default function BlogList({
 
         {showCreateButton && (
           <Link
-            href="/blog/new"
+            href="/blog/new?section=blog"
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm"
           >
             <svg
@@ -213,7 +213,7 @@ export default function BlogList({
                 Start creating your first blog post to see it appear here.
               </p>
               <Link
-                href="/blog/new"
+                href="/blog/new?section=blog"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Create Your First Blog

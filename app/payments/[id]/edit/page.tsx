@@ -64,7 +64,7 @@ export default function EditPaymentPage() {
       });
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch payment");
-      router.push("/payments");
+      router.push("/dashboard?section=payments");
     } finally {
       setLoading(false);
     }
@@ -120,7 +120,7 @@ export default function EditPaymentPage() {
       if (error) throw error;
 
       toast.success("Payment updated successfully!");
-      router.push("/payments");
+      router.push("/dashboard?section=payments");
     } catch (error: any) {
       toast.error(error.message || "Failed to update payment");
     } finally {
@@ -173,7 +173,7 @@ export default function EditPaymentPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <Link
-              href="/payments"
+              href="/dashboard?section=payments"
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -344,7 +344,7 @@ export default function EditPaymentPage() {
             </div>
             <div className="flex gap-3">
               <Link
-                href="/payments"
+                href="/dashboard?section=payments"
                 className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel

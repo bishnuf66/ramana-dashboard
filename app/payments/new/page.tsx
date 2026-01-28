@@ -76,7 +76,7 @@ export default function NewPaymentPage() {
       if (error) throw error;
 
       toast.success("Payment created successfully!");
-      router.push("/payments");
+      router.push("/dashboard?section=payments");
     } catch (error: any) {
       toast.error(error.message || "Failed to create payment");
     } finally {
@@ -91,7 +91,7 @@ export default function NewPaymentPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <Link
-              href="/payments"
+              href="/dashboard?section=payments"
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -260,7 +260,7 @@ export default function NewPaymentPage() {
           {/* Actions */}
           <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Link
-              href="/payments"
+              href="/dashboard?section=payments"
               className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel

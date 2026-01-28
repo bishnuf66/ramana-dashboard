@@ -100,7 +100,7 @@ export default function NewDiscountPage() {
       }
 
       toast.success("Coupon created successfully");
-      router.push("/dashboard");
+      router.push("/dashboard?section=discounts");
     } catch (error: any) {
       toast.error(error.message || "Failed to create coupon");
     } finally {
@@ -116,7 +116,7 @@ export default function NewDiscountPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="/dashboard"
+                href="/dashboard?section=discounts"
                 className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -415,7 +415,7 @@ export default function NewDiscountPage() {
 
             <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Link
-                href="/dashboard"
+                href="/dashboard?section=discounts"
                 className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel

@@ -31,7 +31,7 @@ export default function EditTestimonialPage({
       if (!id || id === "undefined") {
         console.error("Invalid testimonial ID:", id);
         toast.error("Invalid testimonial ID");
-        router.push("/testimonials");
+        router.push("/dashboard?section=testimonials");
         return;
       }
 
@@ -53,7 +53,7 @@ export default function EditTestimonialPage({
       } catch (error) {
         console.error("Error fetching testimonial:", error);
         toast.error("Failed to fetch testimonial");
-        router.push("/testimonials");
+        router.push("/dashboard?section=testimonials");
       } finally {
         setLoading(false);
       }
@@ -63,11 +63,11 @@ export default function EditTestimonialPage({
   }, [id, router]);
 
   const handleSuccess = () => {
-    router.push("/testimonials");
+    router.push("/dashboard?section=testimonials");
   };
 
   const handleCancel = () => {
-    router.push("/testimonials");
+    router.push("/dashboard?section=testimonials");
   };
 
   if (loading) {

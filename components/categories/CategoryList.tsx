@@ -166,7 +166,7 @@ export default function CategoryList({
 
         {showCreateButton && (
           <Link
-            href="/categories/new"
+            href="/categories/new?section=categories"
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm"
           >
             <svg
@@ -220,7 +220,7 @@ export default function CategoryList({
                 Start creating your first category to organize your products.
               </p>
               <Link
-                href="/categories/new"
+                href="/categories/new?section=categories"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Create Your First Category
@@ -322,7 +322,7 @@ export default function CategoryList({
                       </svg>
                     </button>
                     <Link
-                      href={`/categories/${category.id}/edit`}
+                      href={`/categories/${category.id}/edit?section=categories`}
                       className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors"
                       title="Edit category"
                     >

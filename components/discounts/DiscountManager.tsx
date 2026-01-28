@@ -147,7 +147,7 @@ export default function DiscountManager() {
           Coupon Management
         </h2>
         <Link
-          href="/discounts/new"
+          href="/discounts/new?section=discounts"
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -374,7 +374,7 @@ export default function DiscountManager() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <Link
-                        href={`/discounts/${coupon.id}/edit`}
+                        href={`/discounts/${coupon.id}/edit?section=discounts`}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         <Edit2 className="w-4 h-4" />

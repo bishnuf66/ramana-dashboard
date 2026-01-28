@@ -155,7 +155,7 @@ export default function UserPaymentList({
   };
 
   const handleEditPayment = (payment: UserPaymentDisplay) => {
-    router.push(`/payments/${payment.id}/edit`);
+    router.push(`/payments/${payment.id}/edit?section=payments`);
   };
 
   const handleSearch = (value: string) => {

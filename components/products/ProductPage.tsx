@@ -208,7 +208,7 @@ const ProductsPage = () => {
             Manage your product catalog
           </p>
         </div>
-        <Link href="/products/new">
+        <Link href="/products/new?section=products">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -406,7 +406,9 @@ const ProductsPage = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <Link href={`/products/${product.id}/edit`}>
+                      <Link
+                        href={`/products/${product.id}/edit?section=products`}
+                      >
                         <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1">
                           <Edit className="w-4 h-4" />
                         </button>
@@ -453,7 +455,7 @@ const ProductsPage = () => {
                 ? "Try adjusting your search or filters"
                 : "Get started by adding your first product"}
             </p>
-            <Link href="/products/new">
+            <Link href="/products/new?section=products">
               <button className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                 <Plus className="w-4 h-4" />
                 Add Product

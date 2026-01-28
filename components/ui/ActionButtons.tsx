@@ -44,9 +44,9 @@ export default function ActionButtons({
   const getRoute = (action: "view" | "edit") => {
     switch (type) {
       case "blog":
-        return `/blog/${id}${action === "edit" ? "/edit" : ""}`;
+        return `/blog/${id}${action === "edit" ? "/edit?section=blog" : ""}`;
       case "product":
-        return `/products/${id}${action === "edit" ? "/edit" : ""}`;
+        return `/products/${id}${action === "edit" ? "/edit?section=products" : ""}`;
       case "order":
         return `/orders/${id}`;
       case "customer":
@@ -54,7 +54,7 @@ export default function ActionButtons({
       case "review":
         return `/reviews/${id}`;
       case "category":
-        return `/categories/${id}${action === "edit" ? "/edit" : ""}`;
+        return `/categories/${id}${action === "edit" ? "/edit?section=categories" : ""}`;
       default:
         return `/${type}/${id}${action === "edit" ? "/edit" : ""}`;
     }

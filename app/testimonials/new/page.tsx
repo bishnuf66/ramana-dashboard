@@ -7,11 +7,11 @@ export default function NewTestimonialPage() {
   const router = useRouter();
 
   const handleSuccess = () => {
-    router.push("/testimonials");
+    router.push("/dashboard?section=testimonials");
   };
 
   const handleCancel = () => {
-    router.push("/testimonials");
+    router.push("/dashboard?section=testimonials");
   };
 
   return (

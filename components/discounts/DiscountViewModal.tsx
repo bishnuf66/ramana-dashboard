@@ -410,7 +410,7 @@ export default function DiscountViewModal({
                 {showActions && (
                   <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Link
-                      href={`/discounts/${discount.id}/edit`}
+                      href={`/discounts/${discount.id}/edit?section=discounts`}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       <Edit className="w-4 h-4" />
