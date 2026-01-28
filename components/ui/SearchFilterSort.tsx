@@ -1,4 +1,4 @@
-import { Search, Filter, ArrowUpDown } from "lucide-react";
+import { Search, Filter, ArrowUpDown, X } from "lucide-react";
 
 interface SearchFilterSortProps {
   searchTerm: string;
@@ -15,6 +15,8 @@ interface SearchFilterSortProps {
   itemsPerPageOptions?: number[];
   showStatusFilter?: boolean;
   showRatingFilter?: boolean;
+  showClearAll?: boolean;
+  onClearAll?: () => void;
   statusOptions?: { value: string; label: string }[];
   sortOptions?: { value: string; label: string }[];
   placeholder?: string;
@@ -36,6 +38,8 @@ export default function SearchFilterSort({
   itemsPerPageOptions = [6, 10, 20, 50],
   showStatusFilter = false,
   showRatingFilter = false,
+  showClearAll = false,
+  onClearAll,
   statusOptions = [
     { value: "all", label: "All Status" },
     { value: "published", label: "Published" },
@@ -58,12 +62,14 @@ export default function SearchFilterSort({
     if (showRatingFilter) filters.push("rating");
     if (onSortChange) filters.push("sort");
     filters.push("itemsPerPage");
+    if (showClearAll) filters.push("clearAll");
 
     const totalFilters = filters.length + 1; // +1 for search
     if (totalFilters === 2) return "md:grid-cols-2";
     if (totalFilters === 3) return "md:grid-cols-3";
     if (totalFilters === 4) return "md:grid-cols-4";
     if (totalFilters === 5) return "md:grid-cols-5";
+    if (totalFilters === 6) return "md:grid-cols-6";
     return "lg:grid-cols-4";
   };
 
@@ -152,6 +158,17 @@ export default function SearchFilterSort({
             ))}
           </select>
         </div>
+
+        {/* Clear All Filters */}
+        {showClearAll && (
+          <button
+            onClick={onClearAll}
+            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            <X className="h-4 w-4" />
+            Clear All
+          </button>
+        )}
       </div>
     </div>
   );

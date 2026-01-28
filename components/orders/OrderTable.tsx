@@ -9,50 +9,121 @@ type OrderStatus =
   | "returned";
 
 import ActionButtons from "@/components/ui/ActionButtons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
+import { supabase } from "@/lib/supabase/client";
 
 function OrderTable({
-  orders,
   handleUpdateOrderStatus,
   onViewOrder,
   handleVerifyPayment,
+  searchTerm,
+  selectedStatus,
+  sortBy,
+  sortOrder,
+  itemsPerPage,
+  currentPage,
+  onSearchChange,
+  onStatusChange,
+  onSortChange,
+  onItemsPerPageChange,
+  onPageChange,
+  onClearAll,
+  loading = false,
 }: {
-  orders: Order[];
   handleUpdateOrderStatus: (id: string, status: OrderStatus) => void;
   onViewOrder?: (order: Order) => void;
   handleVerifyPayment?: (orderId: string) => void;
+  // Search, filter, and sort props
+  searchTerm: string;
+  selectedStatus: OrderStatus | "all";
+  sortBy: "created_at" | "updated_at" | "total_amount";
+  sortOrder: "asc" | "desc";
+  itemsPerPage: number;
+  currentPage: number;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onSortChange: (value: string) => void;
+  onItemsPerPageChange: (value: number) => void;
+  onPageChange: (value: number) => void;
+  onClearAll: () => void;
+  loading?: boolean;
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{
     id: string;
     status: OrderStatus;
   } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  const currency = (value: number | undefined | null) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return "Rs.0.00";
-    }
+  // Check if any filters are applied
+  const hasFilters =
+    searchTerm ||
+    selectedStatus !== "all" ||
+    sortBy !== "created_at" ||
+    sortOrder !== "desc" ||
+    itemsPerPage !== 10 ||
+    currentPage !== 1;
+
+  // Fetch orders from database with search, filter, and sort
+  const fetchOrders = async () => {
     try {
-      return new Intl.NumberFormat("en-NP", {
-        style: "currency",
-        currency: "NPR",
-      }).format(value);
-    } catch {
-      return `Rs.${value.toFixed(2)}`;
+      setError(null);
+
+      let query = supabase.from("orders").select("*", { count: "exact" });
+
+      // Apply search filter
+      if (searchTerm) {
+        query = query.or(
+          `customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`,
+        );
+      }
+
+      // Apply status filter
+      if (selectedStatus !== "all") {
+        query = query.eq("order_status", selectedStatus);
+      }
+
+      // Apply sorting
+      const sortColumn =
+        sortBy === "total_amount"
+          ? "total_amount"
+          : sortBy === "updated_at"
+            ? "updated_at"
+            : "created_at";
+      query = query.order(sortColumn, { ascending: sortOrder === "asc" });
+
+      // Apply pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data: ordersData, error, count } = await query;
+
+      if (error) throw error;
+
+      setOrders(ordersData || []);
+      setTotal(count || 0);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      setError(error.message || "Failed to fetch orders");
     }
   };
 
-  // Pagination logic
-  const paginatedOrders = orders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  useEffect(() => {
+    fetchOrders();
+  }, [
+    searchTerm,
+    selectedStatus,
+    sortBy,
+    sortOrder,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   const handleStatusChange = (id: string, status: OrderStatus) => {
     setPendingStatusChange({ id, status });
@@ -61,23 +132,93 @@ function OrderTable({
 
   const confirmStatusChange = () => {
     if (pendingStatusChange) {
-      setLoading(true);
       handleUpdateOrderStatus(
         pendingStatusChange.id,
         pendingStatusChange.status,
       );
       setTimeout(() => {
-        setLoading(false);
         setShowStatusModal(false);
         setPendingStatusChange(null);
       }, 500);
     }
   };
+
+  const currency = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return "NRS 0.00";
+    }
+    try {
+      return new Intl.NumberFormat("en-NP", {
+        style: "currency",
+        currency: "NPR",
+      })
+        .format(value)
+        .replace("NPR", "NRS");
+    } catch {
+      return `NRS ${value.toFixed(2)}`;
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
+        <button
+          onClick={fetchOrders}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  const totalPages = Math.ceil(total / itemsPerPage);
+
   return (
     <div>
       <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-900 dark:text-white">
         Order Management
       </h2>
+
+      {/* Search, Filter, and Sort */}
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={onSearchChange}
+        status={selectedStatus}
+        onStatusChange={onStatusChange}
+        sortBy={`${sortBy}-${sortOrder}`}
+        onSortChange={onSortChange}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={onItemsPerPageChange}
+        showStatusFilter={true}
+        showClearAll={hasFilters}
+        onClearAll={onClearAll}
+        statusOptions={[
+          { value: "all", label: "All Status" },
+          { value: "pending", label: "Pending" },
+          { value: "processing", label: "Processing" },
+          { value: "shipped", label: "Shipped" },
+          { value: "delivered", label: "Delivered" },
+          { value: "cancelled", label: "Cancelled" },
+          { value: "returned", label: "Returned" },
+        ]}
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "total_amount-desc", label: "Highest Total First" },
+          { value: "total_amount-asc", label: "Lowest Total First" },
+          { value: "updated_at-desc", label: "Recently Updated" },
+          { value: "updated_at-asc", label: "Least Recently Updated" },
+        ]}
+        placeholder="Search by customer name, email, or order ID..."
+        statusLabel="Order Status"
+      />
+
+      {/* Results count */}
+      <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        Showing {orders.length} of {total} orders
+      </div>
 
       {/* Orders Table - Responsive */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -122,7 +263,7 @@ function OrderTable({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedOrders.map((order) => (
+              {orders.map((order: any, index: number) => (
                 <tr key={order.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     #{order.id.slice(0, 8)}
@@ -260,7 +401,7 @@ function OrderTable({
         {/* Mobile/Tablet Cards */}
         <div className="lg:hidden">
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {orders.map((order) => (
+            {paginatedOrders.map((order) => (
               <div key={order.id} className="p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>

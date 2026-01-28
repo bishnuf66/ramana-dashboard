@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import {
@@ -28,6 +29,7 @@ import {
 import ActionButtons from "@/components/ui/ActionButtons";
 import DiscountViewModal from "./DiscountViewModal";
 import Pagination from "@/components/ui/Pagination";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
 
@@ -49,9 +51,45 @@ interface CouponFormData {
   product_inclusion_type: "include" | "exclude";
 }
 
+// Fetch discounts with TanStack Query
+const fetchDiscounts = async ({
+  search,
+  status,
+  type,
+  sortBy,
+  sortOrder,
+  page,
+  limit,
+}: {
+  search: string;
+  status: string;
+  type: string;
+  sortBy: string;
+  sortOrder: string;
+  page: number;
+  limit: number;
+}) => {
+  const params = new URLSearchParams({
+    search,
+    status,
+    type,
+    sortBy,
+    sortOrder,
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await fetch(`/api/discounts?${params}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to fetch discounts");
+  }
+
+  return data;
+};
+
 export default function DiscountManager() {
-  const [coupons, setCoupons] = useState<CouponRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<CouponRow | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -59,9 +97,56 @@ export default function DiscountManager() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [couponToView, setCouponToView] = useState<CouponRow | null>(null);
 
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [selectedType, setSelectedType] = useState<
+    "all" | "percentage" | "fixed_amount" | "free_shipping"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "created_at" | "expires_at" | "discount_value"
+  >("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // TanStack Query for fetching discounts
+  const {
+    data: discountsData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "discounts",
+      searchTerm,
+      selectedStatus,
+      selectedType,
+      sortBy,
+      sortOrder,
+      currentPage,
+      itemsPerPage,
+    ],
+    queryFn: () =>
+      fetchDiscounts({
+        search: searchTerm,
+        status: selectedStatus,
+        type: selectedType,
+        sortBy,
+        sortOrder,
+        page: currentPage,
+        limit: itemsPerPage,
+      }),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const coupons = discountsData?.data || [];
+  const total = discountsData?.pagination?.total || 0;
+
   const [formData, setFormData] = useState<CouponFormData>({
     code: "",
     description: "",
@@ -81,14 +166,72 @@ export default function DiscountManager() {
     fetchProducts();
   }, []);
 
+  // Filter and sort coupons
+  const filteredAndSortedCoupons = useMemo(() => {
+    return coupons
+      .filter((coupon) => {
+        // Search filter
+        if (searchTerm) {
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            coupon.code?.toLowerCase().includes(searchLower) ||
+            coupon.description?.toLowerCase().includes(searchLower)
+          );
+        }
+        return true;
+      })
+      .filter((coupon) => {
+        // Status filter
+        if (selectedStatus === "all") return true;
+        return selectedStatus === "active"
+          ? coupon.is_active
+          : !coupon.is_active;
+      })
+      .filter((coupon) => {
+        // Type filter
+        if (selectedType === "all") return true;
+        return coupon.discount_type === selectedType;
+      })
+      .sort((a, b) => {
+        // Sorting
+        let comparison = 0;
+        switch (sortBy) {
+          case "created_at":
+            comparison =
+              new Date(a.created_at || "").getTime() -
+              new Date(b.created_at || "").getTime();
+            break;
+          case "expires_at":
+            comparison =
+              new Date(a.expires_at || "").getTime() -
+              new Date(b.expires_at || "").getTime();
+            break;
+          case "discount_value":
+            comparison = a.discount_value - b.discount_value;
+            break;
+        }
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+  }, [coupons, searchTerm, selectedStatus, selectedType, sortBy, sortOrder]);
+
   // Pagination logic
   const paginatedCoupons = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return coupons.slice(startIndex, endIndex);
-  }, [coupons, currentPage, itemsPerPage]);
+    return filteredAndSortedCoupons.slice(startIndex, endIndex);
+  }, [filteredAndSortedCoupons, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(coupons.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedCoupons.length / itemsPerPage);
+
+  const handleClearAll = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setSelectedType("all");
+    setSortBy("created_at");
+    setSortOrder("desc");
+    setItemsPerPage(10);
+    setCurrentPage(1);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -301,6 +444,46 @@ export default function DiscountManager() {
           <Plus className="w-4 h-4" />
           Add Coupon
         </button>
+      </div>
+
+      {/* Search, Filter, and Sort */}
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        status={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        sortBy={`${sortBy}-${sortOrder}`}
+        onSortChange={(value) => {
+          const [field, order] = value.split("-");
+          setSortBy(field as "created_at" | "expires_at" | "discount_value");
+          setSortOrder(order as "asc" | "desc");
+        }}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+        showStatusFilter={true}
+        showClearAll={true}
+        onClearAll={handleClearAll}
+        statusOptions={[
+          { value: "all", label: "All Status" },
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+        ]}
+        sortOptions={[
+          { value: "created_at-desc", label: "Newest First" },
+          { value: "created_at-asc", label: "Oldest First" },
+          { value: "expires_at-desc", label: "Expiring Soon" },
+          { value: "expires_at-asc", label: "Expires Later" },
+          { value: "discount_value-desc", label: "Highest Discount First" },
+          { value: "discount_value-asc", label: "Lowest Discount First" },
+        ]}
+        placeholder="Search by coupon code or description..."
+        statusLabel="Coupon Status"
+      />
+
+      {/* Results count */}
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        Showing {paginatedCoupons.length} of {filteredAndSortedCoupons.length}{" "}
+        coupons
       </div>
 
       {/* Stats Cards */}

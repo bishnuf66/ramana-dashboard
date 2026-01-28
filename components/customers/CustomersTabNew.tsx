@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import Pagination from "@/components/ui/Pagination";
@@ -14,9 +14,6 @@ interface CustomerSummary {
   total_spent: number;
   last_order_at: string;
   member_since: string;
-  last_sign_in_at: string | null;
-  display_name: string | null;
-  role: string;
 }
 
 interface RegisteredUser {
@@ -28,180 +25,72 @@ interface RegisteredUser {
   role: string;
 }
 
-export default function CustomersTab() {
-  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"customers" | "users">(
-    "customers",
-  );
+// Fetch customers with TanStack Query
+const fetchCustomers = async ({
+  search,
+  sortBy,
+  sortOrder,
+  page,
+  limit,
+  tab,
+}: {
+  search: string;
+  sortBy: string;
+  sortOrder: string;
+  page: number;
+  limit: number;
+  tab: string;
+}) => {
+  const params = new URLSearchParams({
+    search,
+    sortBy,
+    sortOrder,
+    page: page.toString(),
+    limit: limit.toString(),
+    tab,
+  });
+
+  const response = await fetch(`/api/customers?${params}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to fetch customers");
+  }
+
+  return data;
+};
+
+export default function CustomersTabNew() {
+  const [activeTab, setActiveTab] = useState<"customers" | "users">("customers");
 
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<
-    "created_at" | "total_spent" | "orders_count"
-  >("created_at");
+  const [sortBy, setSortBy] = useState<"created_at" | "total_spent" | "orders_count">("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Check if any filters are applied
-  const hasFilters =
-    searchTerm ||
-    sortBy !== "created_at" ||
-    sortOrder !== "desc" ||
-    itemsPerPage !== 10 ||
-    currentPage !== 1;
+  // TanStack Query for fetching customers
+  const {
+    data: customersData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["customers", searchTerm, sortBy, sortOrder, currentPage, itemsPerPage, activeTab],
+    queryFn: () => fetchCustomers({
+      search: searchTerm,
+      sortBy,
+      sortOrder,
+      page: currentPage,
+      limit: itemsPerPage,
+      tab: activeTab,
+    }),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  // Fetch customers from database with search, filter, and sort
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (activeTab === "customers") {
-        // Build query for customer summaries from orders
-        let query = supabase
-          .from("orders")
-          .select(
-            "customer_name, customer_email, customer_phone, total_amount, created_at",
-            { count: "exact" },
-          );
-
-        // Apply search filter
-        if (searchTerm) {
-          query = query.or(
-            `customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,customer_phone.ilike.%${searchTerm}%`,
-          );
-        }
-
-        // Apply sorting
-        const sortColumn =
-          sortBy === "total_spent"
-            ? "total_amount"
-            : sortBy === "orders_count"
-              ? "created_at"
-              : "created_at";
-        query = query.order(sortColumn, { ascending: sortOrder === "asc" });
-
-        // Apply pagination
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data: orders, error, count } = await query;
-
-        if (error) throw error;
-
-        // Process customer data
-        const customerMap = new Map<string, CustomerSummary>();
-
-        orders?.forEach((order) => {
-          const email = order.customer_email;
-          if (!email) return;
-
-          if (!customerMap.has(email)) {
-            customerMap.set(email, {
-              customer_email: email,
-              customer_name: order.customer_name || "Unknown",
-              customer_phone: order.customer_phone || null,
-              orders_count: 0,
-              total_spent: 0,
-              last_order_at: order.created_at || "",
-              member_since: order.created_at || "",
-              last_sign_in_at: null,
-              display_name: null,
-              role: "",
-            });
-          }
-
-          const customer = customerMap.get(email)!;
-          customer.orders_count += 1;
-          customer.total_spent += Number(order.total_amount || 0);
-
-          // Update last order date if this order is more recent
-          if (
-            order.created_at &&
-            new Date(order.created_at) > new Date(customer.last_order_at)
-          ) {
-            customer.last_order_at = order.created_at;
-          }
-
-          // Update member since if this order is older
-          if (
-            order.created_at &&
-            new Date(order.created_at) < new Date(customer.member_since)
-          ) {
-            customer.member_since = order.created_at;
-          }
-        });
-
-        const customersList = Array.from(customerMap.values());
-
-        // Apply client-side sorting for total_spent and orders_count
-        if (sortBy === "total_spent") {
-          customersList.sort((a, b) =>
-            sortOrder === "asc"
-              ? a.total_spent - b.total_spent
-              : b.total_spent - a.total_spent,
-          );
-        } else if (sortBy === "orders_count") {
-          customersList.sort((a, b) =>
-            sortOrder === "asc"
-              ? a.orders_count - b.orders_count
-              : b.orders_count - a.orders_count,
-          );
-        }
-
-        setCustomers(customersList);
-        setTotal(customerMap.size);
-      } else {
-        // Fetch registered users from admin_users table
-        let query = supabase
-          .from("admin_users")
-          .select("id, email, created_at, role", { count: "exact" });
-
-        // Apply search filter
-        if (searchTerm) {
-          query = query.or(`email.ilike.%${searchTerm}%`);
-        }
-
-        // Apply sorting
-        query = query.order("created_at", { ascending: sortOrder === "asc" });
-
-        // Apply pagination
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data: users, error, count } = await query;
-
-        if (error) throw error;
-
-        // Transform data to match expected format
-        const transformedUsers: RegisteredUser[] =
-          users?.map((user) => ({
-            ...user,
-            display_name: user.email, // Use email as display name
-            last_sign_in_at: null, // Not available in admin_users
-          })) || [];
-
-        setRegisteredUsers(transformedUsers);
-        setTotal(count || 0);
-      }
-    } catch (error: any) {
-      console.error("Error fetching data:", error);
-      setError(error.message || "Failed to fetch data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [searchTerm, sortBy, sortOrder, currentPage, itemsPerPage, activeTab]);
+  const customers = customersData?.data || [];
+  const total = customersData?.pagination?.total || 0;
 
   const handleClearAll = () => {
     setSearchTerm("");
@@ -216,9 +105,7 @@ export default function CustomersTab() {
       return new Intl.NumberFormat("en-NP", {
         style: "currency",
         currency: "NPR",
-      })
-        .format(value)
-        .replace("NPR", "NRS");
+      }).format(value).replace("NPR", "NRS");
     } catch {
       return `NRS ${value.toFixed(2)}`;
     }
@@ -228,9 +115,11 @@ export default function CustomersTab() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
+          <div className="text-red-600 dark:text-red-400 mb-4">
+            {error instanceof Error ? error.message : "Failed to fetch customers"}
+          </div>
           <button
-            onClick={fetchCustomers}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Try Again
@@ -239,8 +128,6 @@ export default function CustomersTab() {
       </div>
     );
   }
-
-  const currentData = activeTab === "customers" ? customers : registeredUsers;
 
   return (
     <div className="p-6">
@@ -265,7 +152,7 @@ export default function CustomersTab() {
         }}
         itemsPerPage={itemsPerPage}
         onItemsPerPageChange={setItemsPerPage}
-        showClearAll={hasFilters}
+        showClearAll={true}
         onClearAll={handleClearAll}
         sortOptions={[
           { value: "created_at-desc", label: "Newest First" },
@@ -304,19 +191,18 @@ export default function CustomersTab() {
 
       {/* Results count */}
       <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Showing {currentData.length} of {total}{" "}
-        {activeTab === "customers" ? "customers" : "users"}
+        Showing {customers.length} of {total} {activeTab === "customers" ? "customers" : "users"}
       </div>
 
       {/* Loading state */}
-      {loading && (
+      {isLoading && (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       )}
 
       {/* Data display */}
-      {!loading && currentData.length > 0 && (
+      {!isLoading && customers.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -359,7 +245,7 @@ export default function CustomersTab() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentData.map((item: any, index: number) =>
+                {customers.map((item: any, index: number) =>
                   activeTab === "customers" ? (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
@@ -390,12 +276,10 @@ export default function CustomersTab() {
                         {item.role}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleDateString()
-                          : "N/A"}
+                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : "N/A"}
                       </td>
                     </tr>
-                  ),
+                  )
                 )}
               </tbody>
             </table>
@@ -404,7 +288,7 @@ export default function CustomersTab() {
       )}
 
       {/* Empty state */}
-      {!loading && currentData.length === 0 && (
+      {!isLoading && customers.length === 0 && (
         <div className="text-center py-12">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
