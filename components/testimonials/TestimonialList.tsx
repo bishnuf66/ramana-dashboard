@@ -23,6 +23,7 @@ import { toast } from "react-toastify";
 import type { Database } from "@/types/database.types";
 
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 
 const TestimonialList = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);

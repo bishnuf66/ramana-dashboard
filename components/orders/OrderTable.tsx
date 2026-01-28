@@ -1,4 +1,12 @@
-import { Order, OrderStatus } from "@/app/dashboard/page";
+import type { Database } from "@/types/database.types";
+type Order = Database["public"]["Tables"]["orders"]["Row"];
+type OrderStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "returned";
 
 import ActionButtons from "@/components/ui/ActionButtons";
 import { useState } from "react";

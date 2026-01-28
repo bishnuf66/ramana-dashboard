@@ -8,6 +8,10 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import { Database } from "@/types/database.types";
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
+type PaymentOptionInsert =
+  Database["public"]["Tables"]["payment_options"]["Insert"];
+type PaymentOptionUpdate =
+  Database["public"]["Tables"]["payment_options"]["Update"];
 
 interface PaymentOptionFormProps {
   paymentOption?: PaymentOption;
@@ -25,10 +29,14 @@ export default function PaymentOptionForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
 
-  const [formData, setFormData] = useState({
-    payment_type: "esewa" as "esewa" | "khalti" | "bank_transfer",
+  const [formData, setFormData] = useState<{
+    payment_type: "esewa" | "khalti" | "bank_transfer";
+    payment_number: string;
+    status: "active" | "inactive" | null;
+  }>({
+    payment_type: "esewa",
     payment_number: "",
-    status: "active" as "active" | "inactive",
+    status: "active" as "active" | "inactive" | null,
   });
 
   useEffect(() => {
@@ -36,7 +44,10 @@ export default function PaymentOptionForm({
       setFormData({
         payment_type: paymentOption.payment_type,
         payment_number: paymentOption.payment_number,
-        status: paymentOption.status,
+        status: (paymentOption.status || "active") as
+          | "active"
+          | "inactive"
+          | null,
       });
       setImagePreview(paymentOption.qr_image_url || "");
     }
@@ -211,11 +222,11 @@ export default function PaymentOptionForm({
               Status
             </label>
             <select
-              value={formData.status}
+              value={formData.status || "active"}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  status: e.target.value as "active" | "inactive",
+                  status: e.target.value as "active" | "inactive" | null,
                 })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"

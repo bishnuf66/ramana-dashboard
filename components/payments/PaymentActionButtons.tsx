@@ -1,6 +1,10 @@
 import { Eye, Edit, Trash2 } from "lucide-react";
+import type { Database } from "@/types/database.types";
 
-interface UserPayment {
+type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
+type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
+
+interface UserPaymentDisplay {
   id: string;
   order_id: string;
   payment_option_id: string;
@@ -10,24 +14,21 @@ interface UserPayment {
   payment_method?: string;
   created_at: string;
   updated_at: string;
-  payment_option?: {
-    id: string;
-    payment_type: string;
-  };
+  payment_option?: PaymentOption | null;
   order?: {
     id: string;
     customer_name: string;
     customer_email: string;
     total_amount: number;
     order_status: string;
-  };
+  } | null;
 }
 
 interface PaymentActionButtonsProps {
-  payment: UserPayment;
-  onView?: (payment: UserPayment) => void;
-  onEdit?: (payment: UserPayment) => void;
-  onDelete?: (payment: UserPayment) => void;
+  payment: UserPaymentDisplay;
+  onView?: (payment: UserPaymentDisplay) => void;
+  onEdit?: (payment: UserPaymentDisplay) => void;
+  onDelete?: (payment: UserPaymentDisplay) => void;
   size?: "sm" | "md" | "lg";
   showLabels?: boolean;
 }

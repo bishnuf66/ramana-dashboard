@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Edit, Trash2, Eye, Calendar, User } from "lucide-react";
 import Image from "next/image";
@@ -7,19 +7,9 @@ import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
 import Pagination from "@/components/ui/Pagination";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
+import type { Database } from "@/types/database.types";
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  content_md: string;
-  cover_image_url: string | null;
-  published: boolean;
-  created_by: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
 
 interface BlogListProps {
   onEdit?: (post: BlogPost) => void;

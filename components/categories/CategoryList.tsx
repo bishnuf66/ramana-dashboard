@@ -7,7 +7,8 @@ import ActionButtons from "@/components/ui/ActionButtons";
 import CategoryViewModal from "./CategoryViewModal";
 import Pagination from "@/components/ui/Pagination";
 import DeleteModal from "@/components/ui/DeleteModal";
-import { Database } from "@/types/database.types";
+import type { Database } from "@/types/database.types";
+
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 interface CategoryListProps {

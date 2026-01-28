@@ -14,8 +14,25 @@ import PaymentViewModal from "./PaymentViewModal";
 import PaymentActionButtons from "./PaymentActionButtons";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import type { Database } from "@/types/database.types";
 
-interface UserPayment {
+type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
+type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
+type Order = Database["public"]["Tables"]["orders"]["Row"];
+
+interface UserPaymentWithDetails extends UserPayment {
+  payment_option?: PaymentOption | null;
+  order?: {
+    id: string;
+    customer_name: string;
+    customer_email: string;
+    total_amount: number;
+    order_status: string;
+  } | null;
+}
+
+// Create a more compatible interface for the component
+interface UserPaymentDisplay {
   id: string;
   order_id: string;
   payment_option_id: string;
@@ -25,26 +42,23 @@ interface UserPayment {
   payment_method?: string;
   created_at: string;
   updated_at: string;
-  payment_option?: {
-    id: string;
-    payment_type: string;
-  };
+  payment_option?: PaymentOption | null;
   order?: {
     id: string;
     customer_name: string;
     customer_email: string;
     total_amount: number;
     order_status: string;
-  };
+  } | null;
 }
 
 interface UserPaymentListProps {
   orderId?: string;
   limit?: number;
   showFilters?: boolean;
-  onPaymentSelect?: (payment: UserPayment) => void;
-  onPaymentEdit?: (payment: UserPayment) => void;
-  onPaymentDelete?: (payment: UserPayment) => void;
+  onPaymentSelect?: (payment: UserPaymentDisplay) => void;
+  onPaymentEdit?: (payment: UserPaymentDisplay) => void;
+  onPaymentDelete?: (payment: UserPaymentDisplay) => void;
 }
 
 export default function UserPaymentList({
@@ -55,7 +69,7 @@ export default function UserPaymentList({
   onPaymentEdit,
   onPaymentDelete,
 }: UserPaymentListProps) {
-  const [payments, setPayments] = useState<UserPayment[]>([]);
+  const [payments, setPayments] = useState<UserPaymentDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -65,14 +79,29 @@ export default function UserPaymentList({
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<UserPayment | null>(
-    null,
-  );
+  const [selectedPayment, setSelectedPayment] =
+    useState<UserPaymentDisplay | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState<UserPayment | null>(
-    null,
-  );
+  const [paymentToDelete, setPaymentToDelete] =
+    useState<UserPaymentDisplay | null>(null);
+
+  // Helper function to map database data to display format
+  const mapToDisplayFormat = (payment: any): UserPaymentDisplay => {
+    return {
+      id: payment.id,
+      order_id: payment.order_id,
+      payment_option_id: payment.payment_option_id,
+      amount: payment.paid_amount || 0,
+      is_verified: payment.is_verified,
+      transaction_id: payment.transaction_id,
+      payment_method: payment.payment_type,
+      created_at: payment.created_at,
+      updated_at: payment.updated_at,
+      payment_option: payment.payment_option,
+      order: payment.order,
+    };
+  };
 
   const currency = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) {
@@ -127,7 +156,7 @@ export default function UserPaymentList({
 
       if (error) throw error;
 
-      setPayments(data || []);
+      setPayments((data || []).map(mapToDisplayFormat));
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / limit));
     } catch (error) {
@@ -161,17 +190,17 @@ export default function UserPaymentList({
     );
   };
 
-  const handleViewPayment = (payment: UserPayment) => {
+  const handleViewPayment = (payment: UserPaymentDisplay) => {
     setSelectedPayment(payment);
     setShowViewModal(true);
     onPaymentSelect?.(payment);
   };
 
-  const handleEditPayment = (payment: UserPayment) => {
+  const handleEditPayment = (payment: UserPaymentDisplay) => {
     onPaymentEdit?.(payment);
   };
 
-  const handleDeletePayment = (payment: UserPayment) => {
+  const handleDeletePayment = (payment: UserPaymentDisplay) => {
     setPaymentToDelete(payment);
     setShowDeleteModal(true);
   };
@@ -394,7 +423,7 @@ export default function UserPaymentList({
       <PaymentViewModal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
-        payment={selectedPayment}
+        payment={selectedPayment as any}
         onEdit={handleEditPayment}
       />
 

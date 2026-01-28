@@ -1,6 +1,10 @@
 import { X, Eye, CheckCircle, Clock } from "lucide-react";
+import type { Database } from "@/types/database.types";
 
-interface UserPayment {
+type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
+type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
+
+interface UserPaymentDisplay {
   id: string;
   order_id: string;
   payment_option_id: string;
@@ -10,24 +14,21 @@ interface UserPayment {
   payment_method?: string;
   created_at: string;
   updated_at: string;
-  payment_option?: {
-    id: string;
-    payment_type: string;
-  };
+  payment_option?: PaymentOption | null;
   order?: {
     id: string;
     customer_name: string;
     customer_email: string;
     total_amount: number;
     order_status: string;
-  };
+  } | null;
 }
 
 interface PaymentViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  payment: UserPayment | null;
-  onEdit?: (payment: UserPayment) => void;
+  payment: UserPaymentDisplay | null;
+  onEdit?: (payment: UserPaymentDisplay) => void;
 }
 
 const currency = (value: number | undefined | null) => {
@@ -103,25 +104,41 @@ export default function PaymentViewModal({
               </h4>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Payment ID</p>
-                  <p className="font-medium text-gray-900 dark:text-white">#{payment.id.slice(0, 8)}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Payment ID
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    #{payment.id.slice(0, 8)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Order ID</p>
-                  <p className="font-medium text-gray-900 dark:text-white">#{payment.order_id.slice(0, 8)}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Order ID
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    #{payment.order_id.slice(0, 8)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Amount</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{currency(payment.amount)}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Amount
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {currency(payment.amount)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Payment Method</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Payment Method
+                  </p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {payment.payment_option?.payment_type || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Status
+                  </p>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(payment.is_verified)}
                     {getStatusBadge(payment.is_verified)}
@@ -129,8 +146,12 @@ export default function PaymentViewModal({
                 </div>
                 {payment.transaction_id && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Transaction ID</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{payment.transaction_id}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Transaction ID
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {payment.transaction_id}
+                    </p>
                   </div>
                 )}
               </div>
@@ -143,25 +164,33 @@ export default function PaymentViewModal({
               </h4>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Customer Name</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Customer Name
+                  </p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {payment.order?.customer_name || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Customer Email</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Customer Email
+                  </p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {payment.order?.customer_email || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Order Total</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Order Total
+                  </p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {currency(payment.order?.total_amount || 0)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Order Status</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Order Status
+                  </p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {payment.order?.order_status || "N/A"}
                   </p>
@@ -177,13 +206,17 @@ export default function PaymentViewModal({
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Created At</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Created At
+                </p>
                 <p className="font-medium text-gray-900 dark:text-white">
                   {new Date(payment.created_at).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Updated At</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Updated At
+                </p>
                 <p className="font-medium text-gray-900 dark:text-white">
                   {new Date(payment.updated_at).toLocaleString()}
                 </p>
