@@ -1,11 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Edit, Trash2, Eye, Calendar, User, Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import ActionButtons from "@/components/ui/ActionButtons";
 import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
+import BlogViewModal from "./BlogViewModal";
 import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/types/database.types";
 import {
   useBlogs,
@@ -30,6 +32,8 @@ export default function BlogList({
   showViewButton = true,
   showCreateButton = true,
 }: BlogListProps) {
+  const queryClient = useQueryClient();
+
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<
@@ -43,6 +47,16 @@ export default function BlogList({
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // View modal state
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+
+  // Invalidate cache when component mounts to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["blogs"] });
+    queryClient.invalidateQueries({ queryKey: ["blogs-count"] });
+  }, [queryClient]);
 
   // Mutations
   const deleteBlogMutation = useDeleteBlog();
@@ -93,6 +107,22 @@ export default function BlogList({
       setSortOrder("desc");
     }
     setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleView = (blog: BlogPost) => {
+    setSelectedBlog(blog);
+    setShowViewModal(true);
+  };
+
+  const handleEdit = (blog: BlogPost) => {
+    if (onEdit) {
+      onEdit(blog);
+    }
+  };
+
+  const handleModalDelete = (blogId: string) => {
+    setShowViewModal(false);
+    handleDelete(blogId);
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
@@ -222,110 +252,140 @@ export default function BlogList({
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {blogs.map((post) => (
-            <div
-              key={post.id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
-            >
-              {/* Cover Image */}
-              {post.cover_image_url && (
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={post.cover_image_url}
-                    alt={post.title}
-                    fill
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
-                </div>
-              )}
-
-              {/* Content */}
-              <div className="p-6">
-                {/* Title */}
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                  {post.title}
-                </h3>
-
-                {/* Metadata */}
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  <span className="flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    {post.created_by || "Unknown"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {post.created_at
-                      ? new Date(post.created_at).toLocaleDateString()
-                      : "No date"}
-                  </span>
-                  {post.read_min && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {post.read_min} min
-                    </span>
-                  )}
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {post.tags.slice(0, 2).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {post.tags.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-full text-xs font-medium">
-                          +{post.tags.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      post.published
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    }`}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Blog Post
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Author
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Read Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Tags
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {blogs.map((post) => (
+                  <tr
+                    key={post.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    {post.published ? "Published" : "Draft"}
-                  </span>
-                </div>
-
-                {/* Excerpt */}
-                {post.excerpt && (
-                  <p className="text-gray-700 dark:text-gray-300 text-sm line-clamp-3 mb-4">
-                    {post.excerpt}
-                  </p>
-                )}
-
-                {/* Content Preview */}
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
-                  dangerouslySetInnerHTML={
-                    {
-                      __html:
-                        post.content_md.length > 200
-                          ? post.content_md.substring(0, 200) + "..."
-                          : post.content_md,
-                    } as any
-                  }
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <ActionButtons
-                  id={post.id}
-                  type="blog"
-                  style="icons"
-                  onDelete={handleDelete}
-                />
-              </div>
-            </div>
-          ))}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        {post.cover_image_url && (
+                          <div className="flex-shrink-0 h-12 w-12">
+                            <Image
+                              src={post.cover_image_url}
+                              alt={post.title}
+                              width={48}
+                              height={48}
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {post.title}
+                          </p>
+                          {post.excerpt && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {post.excerpt}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {post.created_by || "Unknown"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {post.created_at
+                        ? new Date(post.created_at).toLocaleDateString()
+                        : "No date"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {post.read_min ? `${post.read_min} min` : "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {post.tags && post.tags.length > 0 ? (
+                          post.tags.slice(0, 3).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            -
+                          </span>
+                        )}
+                        {post.tags && post.tags.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-full text-xs font-medium">
+                            +{post.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          post.published
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        }`}
+                      >
+                        {post.published ? "Published" : "Draft"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleView(post)}
+                          className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                          title="View blog post"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <Link
+                          href={`/blog/${post.id}/edit?section=blog`}
+                          className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                          title="Edit blog post"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                          title="Delete blog post"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -341,6 +401,15 @@ export default function BlogList({
           showItemsPerPageSelector={true}
         />
       )}
+
+      {/* Blog View Modal */}
+      <BlogViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        blog={selectedBlog}
+        onEdit={handleEdit}
+        onDelete={handleModalDelete}
+      />
     </div>
   );
 }

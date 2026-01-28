@@ -84,7 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <>
         <FaviconSwitcher />
         {admin && <PremiumHeader />}
-        <div className="flex min-h-screen mt-20 ">
+        <div className="flex min-h-screen mt-20 sticky top-20 ">
           {admin && (
             <Suspense
               fallback={

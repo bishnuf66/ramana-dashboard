@@ -418,7 +418,7 @@ export default function CustomersTab() {
       )}
 
       {/* Pagination */}
-      {Math.ceil(total / itemsPerPage) > 1 && (
+      {currentData.length > 0 && (
         <div className="mt-4">
           <Pagination
             currentPage={currentPage}

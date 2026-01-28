@@ -55,6 +55,9 @@ export function useBlogs(params: BlogQueryParams = {}) {
       if (error) throw error;
       return data as BlogPost[];
     },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 
@@ -88,6 +91,9 @@ export function useBlogsCount(
       if (error) throw error;
       return count || 0;
     },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 

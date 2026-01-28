@@ -32,6 +32,7 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+  const [tagInput, setTagInput] = useState("");
 
   const createBlogMutation = useCreateBlog();
   const updateBlogMutation = useUpdateBlog();
@@ -51,6 +52,45 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
     tags: [],
     ...initialData,
   });
+
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !formData.tags?.includes(trimmedTag)) {
+      setFormData({
+        ...formData,
+        tags: [...(formData.tags || []), trimmedTag],
+      });
+    }
+    setTagInput("");
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({
+      ...formData,
+      tags: (formData.tags || []).filter((_, i) => i !== index),
+    });
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (
+      e.key === "Backspace" &&
+      tagInput === "" &&
+      formData.tags &&
+      formData.tags.length > 0
+    ) {
+      // Remove last tag when backspace is pressed on empty input
+      removeTag(formData.tags.length - 1);
+    }
+  };
+
+  const handleTagInputBlur = () => {
+    if (tagInput.trim()) {
+      addTag(tagInput);
+    }
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -287,26 +327,42 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tags
             </label>
-            <input
-              type="text"
-              value={formData.tags?.join(", ") || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  tags: e.target.value
-                    ? e.target.value
-                        .split(",")
-                        .map((tag) => tag.trim())
-                        .filter((tag) => tag)
-                    : [],
-                }))
-              }
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="Enter tags separated by commas (e.g., technology, web development, tutorial)"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Separate multiple tags with commas
-            </p>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 min-h-[48px]">
+                {(formData.tags || []).map((tag: string, index: number) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-sm"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(index)}
+                      className="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={handleTagInputBlur}
+                  placeholder={
+                    (formData.tags || []).length === 0
+                      ? "Add a tag and press Enter..."
+                      : "Add another tag..."
+                  }
+                  className="flex-1 min-w-[120px] px-2 py-1 text-sm border-0 bg-transparent focus:outline-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Press Enter to add a tag, click X to remove. Tags help organize
+                your blog posts.
+              </p>
+            </div>
           </div>
 
           {/* Cover Image */}
