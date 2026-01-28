@@ -173,25 +173,28 @@ export function useVerifyPayment() {
 
   return useMutation({
     mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
-      console.log("Attempting to verify payment:", { id, verified });
+      console.log("=== VERIFY PAYMENT MUTATION START ===");
+      console.log("Attempting to verify payment via API:", { id, verified });
 
-      const { data, error } = await (supabase as any)
-        .from("user_payments")
-        .update({ is_verified: verified })
-        .eq("id", id)
-        .select();
+      // Call API endpoint that uses service role key
+      const response = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, verified }),
+      });
 
-      console.log("Verify payment result:", { data, error });
+      const data = await response.json();
 
-      if (error) {
-        console.error("Verify payment error:", error);
-        throw error;
+      console.log("API Response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify payment");
       }
 
-      console.log(
-        "Payment verification successful, rows affected:",
-        data?.length || 0,
-      );
+      console.log("Payment verification successful via API!");
+      console.log("=== VERIFY PAYMENT MUTATION END ===");
       return data;
     },
     onSuccess: (_, { verified }) => {

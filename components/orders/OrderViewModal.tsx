@@ -24,7 +24,7 @@ import type { Database } from "@/types/database.types";
 import { EmailService } from "@/lib/emails/EmailService";
 import { supabase } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
-import PaymentDetail from "@/components/payments/PaymentDetail";
+import PaymentDetail from "@/components/orders/PaymentDetail";
 import PaymentList from "@/components/payments/PaymentList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";

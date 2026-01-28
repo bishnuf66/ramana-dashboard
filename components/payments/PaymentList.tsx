@@ -2,11 +2,13 @@
 
 import { CheckCircle, Clock, Image as ImageIcon, Plus } from "lucide-react";
 import type { Database } from "@/types/database.types";
-import PaymentDetail from "./PaymentDetail";
+import PaymentDetail from "../orders/PaymentDetail";
 
 interface PaymentListProps {
   userPayments: (Database["public"]["Tables"]["user_payments"]["Row"] & {
-    payment_option?: Database["public"]["Tables"]["payment_options"]["Row"] | null;
+    payment_option?:
+      | Database["public"]["Tables"]["payment_options"]["Row"]
+      | null;
   })[];
   onVerifyPayment?: (paymentId: string) => void;
   isVerifying?: boolean;
@@ -27,9 +29,13 @@ export default function PaymentList({
     );
   }
 
-  const totalPaid = userPayments.reduce((sum, payment) => sum + payment.paid_amount, 0);
-  const totalVerified = userPayments.filter(p => p.is_verified).length;
-  const allVerified = userPayments.length > 0 && userPayments.every(p => p.is_verified);
+  const totalPaid = userPayments.reduce(
+    (sum, payment) => sum + payment.paid_amount,
+    0,
+  );
+  const totalVerified = userPayments.filter((p) => p.is_verified).length;
+  const allVerified =
+    userPayments.length > 0 && userPayments.every((p) => p.is_verified);
 
   return (
     <div className="space-y-4">
@@ -40,13 +46,15 @@ export default function PaymentList({
             Payment Summary
           </h4>
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              allVerified 
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : totalVerified > 0
-                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-            }`}>
+            <span
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                allVerified
+                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  : totalVerified > 0
+                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+              }`}
+            >
               {allVerified ? (
                 <>
                   <CheckCircle className="w-3 h-3 mr-1" />
@@ -61,10 +69,12 @@ export default function PaymentList({
             </span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-600 dark:text-gray-400">Total Paid:</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              Total Paid:
+            </span>
             <p className="font-semibold text-gray-900 dark:text-white">
               ${totalPaid.toFixed(2)}
             </p>
