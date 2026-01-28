@@ -243,7 +243,7 @@ export default function Breadcrumb() {
   }
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <nav className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 px-6 py-3  ">
       <Link
         href="/dashboard"
         className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"

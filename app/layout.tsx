@@ -84,8 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <>
         <FaviconSwitcher />
         {admin && <PremiumHeader />}
-        <Breadcrumb />
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen mt-20 ">
           {admin && (
             <Suspense
               fallback={
@@ -95,7 +94,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <AdminSidebar />
             </Suspense>
           )}
-          <main className="flex-1">{children}</main>
+          <div className="flex-1">
+            <div className="flex justify-start pl-6">
+              <Breadcrumb />
+            </div>
+            <main>{children}</main>
+          </div>
         </div>
         <PremiumFooter />
         <ToastContainer
