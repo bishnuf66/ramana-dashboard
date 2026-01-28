@@ -10,13 +10,16 @@ import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import type { Database } from "@/types/database.types";
+
+type AdminUser = Database["public"]["Tables"]["admin_users"]["Row"];
 
 export default function PremiumHeader() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<AdminUser | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function PremiumHeader() {
         // Load user profile from admin_users
         const { data: profile } = await supabase
           .from("admin_users")
-          .select("id, email, raw_user_meta_data, created_at")
+          .select("id, email, role, created_at")
           .eq("id", user.id)
           .single();
 
@@ -52,16 +55,16 @@ export default function PremiumHeader() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user || null);
       if (session?.user) {
         // Reload profile when user logs in
-        supabase
-          .from("auth.users")
-          .select("id, email, raw_user_meta_data, created_at")
+        const { data: profile } = await supabase
+          .from("admin_users")
+          .select("id, email, role, created_at")
           .eq("id", session.user.id)
-          .single()
-          .then(({ data }) => setUserProfile(data));
+          .single();
+        setUserProfile(profile);
       } else {
         setUserProfile(null);
       }
@@ -141,9 +144,9 @@ export default function PremiumHeader() {
                     }
                     className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
                   >
-                    {userProfile?.raw_user_meta_data?.avatar_url ? (
+                    {user?.user_metadata?.avatar_url ? (
                       <Image
-                        src={userProfile.raw_user_meta_data.avatar_url}
+                        src={user.user_metadata.avatar_url}
                         alt="Profile"
                         width={24}
                         height={24}
@@ -155,7 +158,7 @@ export default function PremiumHeader() {
                       </div>
                     )}
                     <span className="max-w-32 truncate">
-                      {userProfile?.raw_user_meta_data?.full_name ||
+                      {user?.user_metadata?.full_name ||
                         user.user_metadata?.full_name ||
                         user.user_metadata?.display_name ||
                         user.email?.split("@")[0] ||
@@ -179,9 +182,9 @@ export default function PremiumHeader() {
                       >
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                           <div className="flex items-center gap-3">
-                            {userProfile?.raw_user_meta_data?.avatar_url ? (
+                            {user?.user_metadata?.avatar_url ? (
                               <Image
-                                src={userProfile.raw_user_meta_data.avatar_url}
+                                src={user.user_metadata.avatar_url}
                                 alt="Profile"
                                 width={40}
                                 height={40}
@@ -194,7 +197,7 @@ export default function PremiumHeader() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {userProfile?.raw_user_meta_data?.full_name ||
+                                {user?.user_metadata?.full_name ||
                                   user.user_metadata?.full_name ||
                                   user.user_metadata?.display_name ||
                                   "User"}
@@ -251,9 +254,9 @@ export default function PremiumHeader() {
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                       <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div className="flex items-center gap-3">
-                          {userProfile?.raw_user_meta_data?.avatar_url ? (
+                          {user?.user_metadata?.avatar_url ? (
                             <Image
-                              src={userProfile.raw_user_meta_data.avatar_url}
+                              src={user.user_metadata.avatar_url}
                               alt="Profile"
                               width={40}
                               height={40}
@@ -266,7 +269,7 @@ export default function PremiumHeader() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {userProfile?.raw_user_meta_data?.full_name ||
+                              {user?.user_metadata?.full_name ||
                                 user.user_metadata?.full_name ||
                                 user.user_metadata?.display_name ||
                                 "User"}

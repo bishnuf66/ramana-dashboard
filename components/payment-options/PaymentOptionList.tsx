@@ -169,8 +169,6 @@ export default function PaymentOptionList() {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
-          itemsPerPage={itemsPerPage}
-          onItemsPerPageChange={handleItemsPerPageChange}
           showStatusFilter={true}
           placeholder="Search payment options..."
           statusOptions={[

@@ -48,12 +48,13 @@ export default function CustomersTab() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Check if any filters are applied
-  const hasFilters =
+  const hasFilters = !!(
     searchTerm ||
     sortBy !== "created_at" ||
     sortOrder !== "desc" ||
     itemsPerPage !== 10 ||
-    currentPage !== 1;
+    currentPage !== 1
+  );
 
   // Fetch customers from database with search, filter, and sort
   const fetchCustomers = async () => {
@@ -263,8 +264,6 @@ export default function CustomersTab() {
           setSortBy(field as "created_at" | "total_spent" | "orders_count");
           setSortOrder(order as "asc" | "desc");
         }}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
         showClearAll={hasFilters}
         onClearAll={handleClearAll}
         sortOptions={[
@@ -424,6 +423,8 @@ export default function CustomersTab() {
           <Pagination
             currentPage={currentPage}
             totalPages={Math.ceil(total / itemsPerPage)}
+            totalItems={total}
+            itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
           />
         </div>
