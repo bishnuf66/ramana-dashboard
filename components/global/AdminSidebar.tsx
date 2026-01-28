@@ -111,7 +111,7 @@ export default function AdminSidebar() {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} ${isCollapsed ? "lg:w-16" : "lg:w-64"} w-64`}
+        className={`fixed top-20 left-0 bottom-0 z-30 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:top-0 lg:bottom-auto ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} ${isCollapsed ? "lg:w-16" : "lg:w-64"} w-64`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
