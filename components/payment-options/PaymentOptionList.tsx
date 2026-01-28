@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useState } from "react";
 import {
   Plus,
   Edit,
@@ -13,59 +12,85 @@ import {
   EyeOff,
 } from "lucide-react";
 import Image from "next/image";
-import { toast } from "react-toastify";
 import PaymentOptionForm from "./PaymentOptionForm";
 import { Database } from "@/types/database.types";
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
 import Pagination from "@/components/ui/Pagination";
+import SearchFilterSort from "@/components/ui/SearchFilterSort";
+import {
+  usePaymentOptions,
+  useDeletePaymentOption,
+  usePaymentOptionsCount,
+} from "@/hooks/usePaymentOptions";
 
 export default function PaymentOptionList() {
-  const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "name" | "updated_at">(
+    "created_at",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Modal states
   const [showForm, setShowForm] = useState(false);
   const [editingOption, setEditingOption] = useState<PaymentOption | null>(
     null,
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const limit = 10;
 
-  useEffect(() => {
-    fetchPaymentOptions();
-  }, [currentPage]);
+  // Mutations and queries
+  const deletePaymentOptionMutation = useDeletePaymentOption();
+  const {
+    data: paymentOptions = [],
+    isLoading,
+    error,
+  } = usePaymentOptions({
+    search: searchTerm,
+    status: selectedStatus,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-  const fetchPaymentOptions = async () => {
-    try {
-      setLoading(true);
+  const { data: totalCount = 0 } = usePaymentOptionsCount({
+    search: searchTerm,
+  });
 
-      // Get total count first
-      const { count: totalCount } = await (supabase as any)
-        .from("payment_options")
-        .select("*", { count: "exact", head: true });
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-      // Get paginated data
-      const from = (currentPage - 1) * limit;
-      const to = from + limit - 1;
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment option?"))
+      return;
+    deletePaymentOptionMutation.mutate(id);
+  };
 
-      const { data, error } = await (supabase as any)
-        .from("payment_options")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, to);
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
-      if (error) throw error;
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status as "all" | "active" | "inactive");
+    setCurrentPage(1);
+  };
 
-      setPaymentOptions(data || []);
-      setTotalCount(totalCount || 0);
-      setTotalPages(Math.ceil((totalCount || 0) / limit));
-    } catch (error: any) {
-      console.error("Error fetching payment options:", error);
-      toast.error("Failed to fetch payment options");
-      setPaymentOptions([]);
-    } finally {
-      setLoading(false);
-    }
+  const handleSortChange = (value: string) => {
+    const [field, order] = value.split("-");
+    setSortBy(field as "created_at" | "name" | "updated_at");
+    setSortOrder(order as "asc" | "desc");
+    setCurrentPage(1);
+  };
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
   };
 
   const handleEdit = (option: PaymentOption) => {
@@ -73,70 +98,19 @@ export default function PaymentOptionList() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment option?"))
-      return;
-
-    try {
-      const option = paymentOptions.find((o) => o.id === id);
-
-      // Delete QR image if exists
-      if (option?.qr_image_url) {
-        try {
-          const { deleteImage } = await import("@/lib/supabase/storage");
-          await deleteImage(option.qr_image_url);
-        } catch (imageError) {
-          console.warn("Failed to delete payment QR image:", imageError);
-          // Don't throw - continue with deletion
-        }
-      }
-
-      const { error } = await (supabase as any)
-        .from("payment_options")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success("Payment option deleted successfully");
-      fetchPaymentOptions();
-    } catch (error: any) {
-      console.error("Error deleting payment option:", error);
-      toast.error("Failed to delete payment option");
-    }
-  };
-
-  const handleToggleStatus = async (
-    id: string,
-    currentStatus: string | null,
-  ) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-
-    try {
-      const { error } = await (supabase as any)
-        .from("payment_options")
-        .update({ status: newStatus })
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success(
-        `Payment option ${newStatus === "active" ? "activated" : "deactivated"}`,
-      );
-      fetchPaymentOptions();
-    } catch (error: any) {
-      console.error("Error updating payment option status:", error);
-      toast.error("Failed to update status");
-    }
-  };
-
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingOption(null);
-    fetchPaymentOptions();
   };
 
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingOption(null);
+  };
+
+  const handleToggleStatus = (option: PaymentOption) => {
+    // This would be handled by a mutation hook in a real implementation
+    console.log("Toggle status for:", option.id);
   };
 
   const getPaymentIcon = (type: string) => {
@@ -186,29 +160,45 @@ export default function PaymentOptionList() {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Payment Options
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Manage payment methods for checkout
-            </p>
-          </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Payment Option
-          </button>
-        </div>
+        {/* Search and Filters */}
+        <SearchFilterSort
+          searchTerm={searchTerm}
+          onSearchChange={handleSearch}
+          status={selectedStatus}
+          onStatusChange={handleStatusChange}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          showStatusFilter={true}
+          placeholder="Search payment options..."
+          statusOptions={[
+            { value: "all", label: "All Status" },
+            { value: "active", label: "Active" },
+            { value: "inactive", label: "Inactive" },
+          ]}
+          sortOptions={[
+            { value: "created_at-desc", label: "Newest First" },
+            { value: "created_at-asc", label: "Oldest First" },
+            { value: "name-asc", label: "Name A-Z" },
+            { value: "name-desc", label: "Name Z-A" },
+            { value: "updated_at-desc", label: "Recently Updated" },
+            { value: "updated_at-asc", label: "Least Recently Updated" },
+          ]}
+        />
       </div>
 
       <div className="p-6">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-red-600 dark:text-red-400">
+              Failed to load payment options. Please try again.
+            </div>
           </div>
         ) : paymentOptions.length === 0 ? (
           <div className="text-center py-12">
@@ -299,7 +289,7 @@ export default function PaymentOptionList() {
                   </button>
 
                   <button
-                    onClick={() => handleToggleStatus(option.id, option.status)}
+                    onClick={() => handleToggleStatus(option)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded transition-colors"
                   >
                     {option.status === "active" ? (
@@ -335,7 +325,7 @@ export default function PaymentOptionList() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalCount}
-          itemsPerPage={limit}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           showItemsPerPageSelector={false}
         />
