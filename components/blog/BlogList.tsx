@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Edit, Trash2, Eye, Calendar, User } from "lucide-react";
+import { Edit, Trash2, Eye, Calendar, User, Clock } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import Link from "next/link";
@@ -336,6 +336,29 @@ export default function BlogList({
                       ? new Date(post.created_at).toLocaleDateString()
                       : "No date"}
                   </span>
+                  {post.read_min && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {post.read_min} min
+                    </span>
+                  )}
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {post.tags.slice(0, 2).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {post.tags.length > 2 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-full text-xs font-medium">
+                          +{post.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
                       post.published
