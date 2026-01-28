@@ -23,12 +23,12 @@ import type { Database } from "@/types/database.types";
 
 type Coupon = Database["public"]["Tables"]["coupons"]["Row"];
 
-interface DiscountViewModalProps {
+interface CouponViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  discount: Coupon | null;
-  onEdit?: (discount: Coupon) => void;
-  onDelete?: (discountId: string) => void;
+  coupon: Coupon | null;
+  onEdit?: (coupon: Coupon) => void;
+  onDelete?: (couponId: string) => void;
   showActions?: boolean;
   usageData?: {
     totalUsage: number;
@@ -40,12 +40,12 @@ interface DiscountViewModalProps {
 export default function DiscountViewModal({
   isOpen,
   onClose,
-  discount,
+  coupon: discount,
   onEdit,
   onDelete,
   showActions = true,
   usageData,
-}: DiscountViewModalProps) {
+}: CouponViewModalProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -98,12 +98,12 @@ export default function DiscountViewModal({
         onDelete(discount.id);
       }
 
-      toast.success("Discount deleted successfully");
+      toast.success("Coupon deleted successfully");
     } catch (error) {
-      console.error("Error deleting discount:", error);
+      console.error("Error deleting coupon:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      toast.error("Failed to delete discount: " + errorMessage);
+      toast.error("Failed to delete coupon: " + errorMessage);
     } finally {
       setDeleteLoading(false);
     }
@@ -436,14 +436,14 @@ export default function DiscountViewModal({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Delete Discount"
+        title="Delete Coupon"
         description="Are you sure you want to delete"
         itemName={discount.code}
         itemsToDelete={[
-          "Discount coupon",
+          "Coupon code",
           "All usage records",
           "Product associations",
-          "Customer discount history",
+          "Customer coupon history",
         ]}
         isLoading={deleteLoading}
       />
