@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { DiscountService } from "@/lib/discounts/DiscountService";
+import MDEditor from "@uiw/react-md-editor";
 import type { Database } from "@/types/database.types";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
@@ -125,16 +126,16 @@ export default function CouponForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Description
         </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          rows={3}
-          placeholder="First-time customer discount - 10% off!"
-          required
-        />
+        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+          <MDEditor
+            value={formData.description?.toString() || ""}
+            onChange={(value) =>
+              setFormData({ ...formData, description: value || "" })
+            }
+            height={150}
+            className="min-h-[150px]"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

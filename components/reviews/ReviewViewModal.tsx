@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Star,
@@ -25,6 +25,7 @@ import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import MDEditor from "@uiw/react-md-editor";
 import type { Database } from "@/types/database.types";
 
 type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
@@ -318,15 +319,16 @@ export default function ReviewViewModal({
                   </h3>
                   {isEditing ? (
                     <div className="space-y-3">
-                      <textarea
-                        value={editForm.comment}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, comment: e.target.value })
-                        }
-                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
-                        rows={4}
-                        placeholder="Enter your review..."
-                      />
+                      <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <MDEditor
+                          value={editForm.comment?.toString() || ""}
+                          onChange={(value) =>
+                            setEditForm({ ...editForm, comment: value || "" })
+                          }
+                          height={150}
+                          className="min-h-[150px]"
+                        />
+                      </div>
                       <div className="flex gap-3">
                         <button
                           onClick={handleSaveEdit}

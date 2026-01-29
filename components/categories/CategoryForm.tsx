@@ -243,7 +243,7 @@ export default function CategoryForm({
           </label>
           <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
             <MDEditor
-              value={formData.description || ""}
+              value={formData.description?.toString() || ""}
               onChange={(val: any) =>
                 setFormData((prev) => ({ ...prev, description: val || "" }))
               }

@@ -288,18 +288,19 @@ export default function BlogForm({ blogId, initialData }: BlogFormProps) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Excerpt
             </label>
-            <textarea
-              value={formData.excerpt || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  excerpt: e.target.value || null,
-                }))
-              }
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
-              placeholder="Brief excerpt"
-            />
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+              <MDEditor
+                value={formData.excerpt?.toString() || ""}
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    excerpt: value || null,
+                  }))
+                }
+                height={120}
+                className="min-h-[120px]"
+              />
+            </div>
           </div>
 
           {/* Reading Time */}
