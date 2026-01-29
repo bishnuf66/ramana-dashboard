@@ -2,25 +2,29 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import { generateSlug } from "@/lib/utils";
 import { Database } from "@/types/database.types";
-type Category = Database["public"]["Tables"]["categories"]["Row"];
+import { useCreateProduct } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
 
 export default function NewProductPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [galleryTitles, setGalleryTitles] = useState<string[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Use TanStack Query hooks
+  const createProductMutation = useCreateProduct();
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useCategories();
+  const loading = createProductMutation.isPending;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -78,25 +82,6 @@ export default function NewProductPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("categories")
-          .select("*")
-          .order("name", { ascending: true });
-
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (error: any) {
-        console.error("Failed to fetch categories:", error);
-        toast.error("Failed to load categories");
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -131,30 +116,38 @@ export default function NewProductPage() {
     setGalleryTitles(galleryTitles.filter((_, i) => i !== index));
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImage = async (
+    file: File,
+    bucket: string = "product-images",
+  ): Promise<string | null> => {
     try {
-      console.log("Starting image upload for:", file.name);
-      const fileName = `product-${Date.now()}-${file.name}`;
+      console.log(
+        "Starting image upload via API for:",
+        file.name,
+        "to bucket:",
+        bucket,
+      );
 
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", bucket);
 
-      if (error) {
-        console.error("Storage upload error:", error);
-        throw error;
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API upload error:", errorData);
+        throw new Error(errorData.error || "Upload failed");
       }
 
-      console.log("File uploaded successfully:", data);
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("product-images").getPublicUrl(fileName);
-
-      console.log("Public URL generated:", publicUrl);
-      return publicUrl;
+      const data = await response.json();
+      console.log("File uploaded successfully via API:", data);
+      return data.publicUrl;
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading image via API:", error);
       throw error; // Re-throw to stop form submission
     }
   };
@@ -166,7 +159,6 @@ export default function NewProductPage() {
       return;
     }
 
-    setLoading(true);
     setUploading(true);
 
     try {
@@ -215,48 +207,35 @@ export default function NewProductPage() {
 
       console.log("All images uploaded, creating product...");
 
-      // Create product
-      const { error } = await (supabase as any).from("products").insert([
-        {
-          id: productId,
-          title: formData.title,
-          slug: formData.slug,
-          description: formData.description || null,
-          price: parseFloat(formData.price),
-          discount_price: formData.discount_price
-            ? parseFloat(formData.discount_price)
-            : null,
-          cover_image: coverImageUrl,
-          gallery_images:
-            galleryUrls.length > 0
-              ? galleryUrls.map((url, idx) => ({
-                  url,
-                  title: galleryTitles[idx] || "",
-                }))
-              : null,
-          category_id: formData.category_id || null,
-          stock: parseInt(formData.stock) || 0,
-          is_featured: formData.is_featured,
-          is_active: formData.is_active,
-          weight_gram: formData.weight_gram
-            ? parseInt(formData.weight_gram)
-            : null,
-          height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
-          width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
-          length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
-          tags: formData.tags.length > 0 ? formData.tags : null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
+      // Create product using TanStack Query mutation
+      const productData = {
+        id: productId,
+        title: formData.title,
+        slug: formData.slug,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        discount_price: formData.discount_price
+          ? parseFloat(formData.discount_price)
+          : null,
+        cover_image: coverImageUrl,
+        gallery_images: galleryUrls.length > 0 ? galleryUrls : null,
+        category_id: formData.category_id || null,
+        stock: parseInt(formData.stock) || 0,
+        is_featured: formData.is_featured,
+        is_active: formData.is_active,
+        weight_gram: formData.weight_gram
+          ? parseInt(formData.weight_gram)
+          : null,
+        height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
+        width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
+        length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
+        tags: formData.tags.length > 0 ? formData.tags : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) {
-        console.error("Database error:", error);
-        throw error;
-      }
+      await createProductMutation.mutateAsync(productData);
 
-      console.log("Product created successfully!");
-      toast.success("Product created successfully!");
       router.push("/dashboard?section=products");
     } catch (error: any) {
       console.error("Error creating product:", error);
@@ -276,8 +255,7 @@ export default function NewProductPage() {
         toast.error(error.message || "Failed to create product");
       }
     } finally {
-      console.log("Setting loading states to false");
-      setLoading(false);
+      console.log("Setting uploading state to false");
       setUploading(false);
     }
   };

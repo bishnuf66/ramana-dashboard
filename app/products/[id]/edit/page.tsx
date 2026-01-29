@@ -47,67 +47,71 @@ export default function EditProductPage() {
     tags: [] as string[],
   });
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImage = async (
+    file: File,
+    bucket: string = "product-images",
+  ): Promise<string | null> => {
     try {
-      console.log("Starting image upload for:", file.name);
-      const fileName = `product-${Date.now()}-${file.name}`;
+      console.log(
+        "Starting image upload via API for:",
+        file.name,
+        "to bucket:",
+        bucket,
+      );
 
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", bucket);
 
-      if (error) {
-        console.error("Storage upload error:", error);
-        throw error;
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API upload error:", errorData);
+        throw new Error(errorData.error || "Upload failed");
       }
 
-      console.log("File uploaded successfully:", data);
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("product-images").getPublicUrl(fileName);
-
-      console.log("Public URL generated:", publicUrl);
-      return publicUrl;
+      const data = await response.json();
+      console.log("File uploaded successfully via API:", data);
+      return data.publicUrl;
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading image via API:", error);
       throw error; // Re-throw to stop form submission
     }
   };
 
-  const deleteImage = async (imageUrl: string): Promise<void> => {
+  const deleteImage = async (
+    imageUrl: string,
+    bucket: string = "product-images",
+  ): Promise<void> => {
     if (!imageUrl) return;
 
     try {
-      // Extract path from URL
-      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/product-images/path/to/file.jpg
-      const url = new URL(imageUrl);
-      const pathParts = url.pathname.split("/");
-      const pathIndex = pathParts.indexOf("product-images");
+      console.log("Deleting image via API:", imageUrl, "from bucket:", bucket);
 
-      if (pathIndex === -1) {
-        // If it's not a Supabase Storage URL, skip deletion
-        console.log(
-          "Skipping deletion - not a Supabase Storage URL:",
+      const response = await fetch("/api/upload", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           imageUrl,
-        );
-        return;
-      }
+          bucket,
+        }),
+      });
 
-      const filePath = pathParts.slice(pathIndex + 1).join("/");
-
-      const { error } = await supabase.storage
-        .from("product-images")
-        .remove([filePath]);
-
-      if (error) {
-        console.error("Failed to delete image:", error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API delete error:", errorData);
         // Don't throw - allow operation to continue even if deletion fails
       } else {
-        console.log("Successfully deleted image:", filePath);
+        console.log("Image deleted successfully via API:", imageUrl);
       }
     } catch (error) {
-      console.error("Error parsing image URL:", error);
+      console.error("Error deleting image via API:", error);
       // Don't throw - allow operation to continue
     }
   };
