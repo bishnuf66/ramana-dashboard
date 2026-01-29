@@ -124,10 +124,12 @@ export function useProduct(id: string) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("products")
-        .select(`
+        .select(
+          `
           *,
           category:categories(id, name, slug, picture)
-        `)
+        `,
+        )
         .eq("id", id)
         .single();
 
@@ -144,19 +146,39 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (product: any) => {
-      const { data, error } = await supabase
-        .from("products")
-        .insert([product])
-        .select();
+      console.log("useCreateProduct: Creating product with data:", product);
 
-      if (error) throw error;
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () =>
+            reject(new Error("Database operation timed out after 30 seconds")),
+          30000,
+        );
+      });
+
+      const dbPromise = supabase.from("products").insert([product]).select();
+
+      const { data, error } = (await Promise.race([
+        dbPromise,
+        timeoutPromise,
+      ])) as any;
+
+      if (error) {
+        console.error("useCreateProduct: Database error:", error);
+        throw error;
+      }
+
+      console.log("useCreateProduct: Product created successfully:", data);
       return data?.[0];
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("useCreateProduct: Mutation success, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product created successfully");
     },
     onError: (error: any) => {
+      console.error("useCreateProduct: Mutation error:", error);
       toast.error(error.message || "Failed to create product");
     },
   });
