@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Upload, X, Trash2 } from "lucide-react";
+import { Upload, X, Trash2, Package } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
@@ -51,6 +51,8 @@ export default function EditProductPage() {
   const uploadImage = async (
     file: File,
     bucket: string = "product-images",
+    folder?: string,
+    fileName?: string,
   ): Promise<string | null> => {
     try {
       console.log(
@@ -58,11 +60,23 @@ export default function EditProductPage() {
         file.name,
         "to bucket:",
         bucket,
+        "folder:",
+        folder,
+        "fileName:",
+        fileName,
       );
 
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bucket", bucket);
+
+      if (folder) {
+        formData.append("folder", folder);
+      }
+
+      if (fileName) {
+        formData.append("fileName", fileName);
+      }
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -215,9 +229,17 @@ export default function EditProductPage() {
         productData.gallery_images &&
         Array.isArray(productData.gallery_images)
       ) {
-        setGalleryTitles(
-          productData.gallery_images.map((img: any) => img.title || ""),
-        );
+        // Handle different data formats for gallery images
+        const galleryTitles = productData.gallery_images.map((img: any) => {
+          if (typeof img === "string") {
+            return ""; // Empty title for string URLs
+          } else if (img && img.title) {
+            return img.title;
+          } else {
+            return ""; // Default empty title
+          }
+        });
+        setGalleryTitles(galleryTitles);
       }
 
       setLoading(false);
@@ -254,16 +276,34 @@ export default function EditProductPage() {
     });
   };
 
-  const removeGalleryImage = (index: number, isExisting: boolean = false) => {
+  const removeGalleryImage = async (
+    index: number,
+    isExisting: boolean = false,
+  ) => {
     if (
       isExisting &&
       product?.gallery_images &&
       Array.isArray(product.gallery_images)
     ) {
-      // Mark existing image for removal
+      // Get the image to remove
       const imageToRemove = (product.gallery_images as any)[index];
-      if (imageToRemove && imageToRemove.url) {
-        setRemovedGalleryImages([...removedGalleryImages, imageToRemove.url]);
+      const imageUrl =
+        typeof imageToRemove === "string" ? imageToRemove : imageToRemove?.url;
+
+      if (imageUrl) {
+        // Mark for deletion from bucket
+        setRemovedGalleryImages([...removedGalleryImages, imageUrl]);
+
+        // Immediately remove from UI
+        const updatedGallery = product.gallery_images.filter(
+          (_, i) => i !== index,
+        );
+        setProduct({
+          ...product,
+          gallery_images: updatedGallery,
+        });
+
+        console.log("Marked image for deletion:", imageUrl);
       }
     } else {
       // Remove new image
@@ -284,7 +324,11 @@ export default function EditProductPage() {
       let newCoverImageUrl = product.cover_image;
       const imagesToDelete: string[] = [];
 
-      // Upload new cover image if provided
+      // Create folder path for this product
+      const productFolder = `product-${product.id}`;
+      console.log("Using product folder:", productFolder);
+
+      // Handle cover image
       if (coverImageFile) {
         console.log("New cover image detected, marking old one for deletion");
         // Mark old cover image for deletion
@@ -297,7 +341,12 @@ export default function EditProductPage() {
         }
 
         console.log("Uploading new cover image...");
-        newCoverImageUrl = await uploadImage(coverImageFile);
+        newCoverImageUrl = await uploadImage(
+          coverImageFile,
+          "product-images",
+          productFolder,
+          "cover.jpg",
+        );
         if (!newCoverImageUrl) {
           throw new Error("Failed to upload new cover image");
         }
@@ -310,7 +359,12 @@ export default function EditProductPage() {
 
       for (let i = 0; i < galleryFiles.length; i++) {
         console.log(`Uploading gallery image ${i + 1}...`);
-        const galleryUrl = await uploadImage(galleryFiles[i]);
+        const galleryUrl = await uploadImage(
+          galleryFiles[i],
+          "product-images",
+          productFolder,
+          `gallery-${Date.now()}-${i + 1}.jpg`,
+        );
         if (!galleryUrl) {
           throw new Error(`Failed to upload gallery image ${i + 1}`);
         }
@@ -327,9 +381,38 @@ export default function EditProductPage() {
       // Start with existing images if they exist and are an array
       if (product.gallery_images && Array.isArray(product.gallery_images)) {
         const existingImages = product.gallery_images as any[];
-        finalGalleryImages = existingImages.filter(
+
+        // Convert existing images to proper format and filter out removed ones
+        const convertedImages = existingImages
+          .map((img: any) => {
+            // Handle different data formats
+            if (typeof img === "string") {
+              // Simple string URL - convert to object format
+              return {
+                url: img,
+                title: "", // Empty title for existing images without captions
+              };
+            } else if (img && img.url) {
+              // Already in correct format
+              return {
+                url: img.url,
+                title: img.title || "",
+              };
+            } else {
+              // Invalid format, skip
+              return null;
+            }
+          })
+          .filter((img: any) => img !== null) as {
+          url: string;
+          title: string;
+        }[];
+
+        // Filter out removed images
+        finalGalleryImages = convertedImages.filter(
           (img: any) => !removedGalleryImages.includes(img.url),
         );
+
         console.log("Kept existing gallery images:", finalGalleryImages.length);
       }
 
@@ -338,18 +421,18 @@ export default function EditProductPage() {
       console.log("Final gallery images count:", finalGalleryImages.length);
 
       // Delete removed images from storage
-      const allImagesToDelete = [...removedGalleryImages, ...imagesToDelete];
-      console.log("Total images to delete:", allImagesToDelete.length);
-      console.log("Images to delete:", allImagesToDelete);
-
-      if (allImagesToDelete.length > 0) {
+      if (removedGalleryImages.length > 0) {
         try {
-          await deleteImages(allImagesToDelete);
-          console.log("Successfully deleted images from storage");
+          console.log("Deleting removed gallery images:", removedGalleryImages);
+          await deleteImages(removedGalleryImages);
+          console.log("Successfully deleted removed images from storage");
         } catch (deleteError) {
-          console.error("Failed to delete images from storage:", deleteError);
+          console.error(
+            "Failed to delete removed images from storage:",
+            deleteError,
+          );
           toast.warning(
-            "Warning: Some images could not be deleted from storage",
+            "Warning: Some removed images could not be deleted from storage",
           );
         }
       }
@@ -749,57 +832,73 @@ export default function EditProductPage() {
                         {product.gallery_images &&
                           Array.isArray(product.gallery_images) &&
                           (product.gallery_images as any[]).map(
-                            (image: any, index: number) => (
-                              <div
-                                key={index}
-                                className="relative flex gap-3 items-start"
-                              >
-                                <div className="relative h-24 w-24 rounded-lg overflow-hidden">
-                                  <Image
-                                    src={image.url || ""}
-                                    alt={`Gallery ${index + 1}`}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                                <div className="flex-1 space-y-2">
-                                  <input
-                                    type="text"
-                                    value={image.title}
-                                    onChange={(e) => {
-                                      if (
-                                        product.gallery_images &&
-                                        Array.isArray(product.gallery_images)
-                                      ) {
-                                        const updatedGallery = [
-                                          ...(product.gallery_images as any[]),
-                                        ];
-                                        updatedGallery[index] = {
-                                          ...image,
-                                          title: e.target.value,
-                                        };
-                                        setProduct({
-                                          ...product,
-                                          gallery_images: updatedGallery,
-                                        });
+                            (image: any, index: number) => {
+                              // Handle different data formats
+                              const imageUrl =
+                                typeof image === "string" ? image : image?.url;
+                              const imageTitle =
+                                typeof image === "string"
+                                  ? ""
+                                  : image?.title || "";
+
+                              return (
+                                <div
+                                  key={index}
+                                  className="relative flex gap-3 items-start"
+                                >
+                                  <div className="relative h-24 w-24 rounded-lg overflow-hidden">
+                                    {imageUrl ? (
+                                      <Image
+                                        src={imageUrl}
+                                        alt={`Gallery ${index + 1}`}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+                                        <Package className="w-6 h-6 text-gray-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 space-y-2">
+                                    <input
+                                      type="text"
+                                      value={imageTitle}
+                                      onChange={(e) => {
+                                        if (
+                                          product.gallery_images &&
+                                          Array.isArray(product.gallery_images)
+                                        ) {
+                                          const updatedGallery = [
+                                            ...(product.gallery_images as any[]),
+                                          ];
+                                          updatedGallery[index] = {
+                                            url: imageUrl,
+                                            title: e.target.value,
+                                          };
+                                          setProduct({
+                                            ...product,
+                                            gallery_images: updatedGallery,
+                                          });
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                                      placeholder="Title / caption"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        removeGalleryImage(index, true)
                                       }
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                                    placeholder="Title / caption"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      removeGalleryImage(index, true)
-                                    }
-                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                    Remove
-                                  </button>
+                                      className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      Remove
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ),
+                              );
+                            },
                           )}
                       </div>
                     </div>

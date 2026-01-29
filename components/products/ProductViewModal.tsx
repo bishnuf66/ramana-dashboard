@@ -2,14 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import {
-  X,
-  Edit,
-  Trash2,
-  Star,
-  Package,
-
-} from "lucide-react";
+import { X, Edit, Trash2, Star, Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
@@ -324,34 +317,67 @@ export default function ProductViewModal({
                 </div>
 
                 {/* Gallery Images */}
-                {product.gallery_images &&
-                  Array.isArray(product.gallery_images) &&
-                  product.gallery_images.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                        Gallery Images
-                      </h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(product.gallery_images as any[]).map(
-                          (image: any, index: number) => (
-                            <div
-                              key={index}
-                              className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
-                            >
-                              <Image
-                                src={
-                                  typeof image === "string" ? image : image.url
-                                }
-                                alt={`${product.title} - Gallery ${index + 1}`}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          ),
-                        )}
+                {(() => {
+                  let galleryImages = product.gallery_images;
+
+                  // Handle case where gallery_images might be a JSON string
+                  if (typeof galleryImages === "string") {
+                    try {
+                      galleryImages = JSON.parse(galleryImages);
+                    } catch (e) {
+                      console.error("Failed to parse gallery_images JSON:", e);
+                      galleryImages = null;
+                    }
+                  }
+
+                  console.log("Gallery images debug:", {
+                    gallery_images: product.gallery_images,
+                    parsedGalleryImages: galleryImages,
+                    isArray: Array.isArray(galleryImages),
+                    length: galleryImages?.length,
+                    type: typeof galleryImages,
+                  });
+
+                  return (
+                    galleryImages &&
+                    Array.isArray(galleryImages) &&
+                    galleryImages.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                          Gallery Images ({galleryImages.length})
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(galleryImages as any[]).map(
+                            (image: any, index: number) => (
+                              <div
+                                key={index}
+                                className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
+                              >
+                                <Image
+                                  src={
+                                    typeof image === "string"
+                                      ? image
+                                      : image.url
+                                  }
+                                  alt={`${product.title} - Gallery ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                  onError={(e) => {
+                                    console.error(
+                                      "Failed to load gallery image:",
+                                      image,
+                                      e,
+                                    );
+                                  }}
+                                />
+                              </div>
+                            ),
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  );
+                })()}
               </div>
 
               {/* Right Column - Details */}
