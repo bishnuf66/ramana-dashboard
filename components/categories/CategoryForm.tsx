@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
+import MDEditor from "@uiw/react-md-editor";
 import { Database } from "@/types/database.types";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -109,6 +110,22 @@ export default function CategoryForm({
 
       // Upload new image if provided
       if (imageFile) {
+        // Delete previous image from storage if it exists
+        if (formData.picture && formData.picture.includes("supabase")) {
+          const previousFilePath = formData.picture.split("/").pop();
+          if (previousFilePath) {
+            const { error: storageError } = await supabase.storage
+              .from("category-images")
+              .remove([previousFilePath]);
+            if (storageError) {
+              console.warn(
+                "Failed to delete previous category image:",
+                storageError,
+              );
+            }
+          }
+        }
+
         const uploadedUrl = await uploadImage(imageFile);
         if (uploadedUrl) {
           pictureUrl = uploadedUrl;
@@ -224,18 +241,18 @@ export default function CategoryForm({
           >
             Description
           </label>
-          <textarea
-            id="description"
-            value={formData.description || ""}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, description: e.target.value }))
-            }
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            placeholder="Enter category description (optional)"
-          />
+          <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+            <MDEditor
+              value={formData.description || ""}
+              onChange={(val: any) =>
+                setFormData((prev) => ({ ...prev, description: val || "" }))
+              }
+              height={200}
+              className="min-h-[200px]"
+            />
+          </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Brief description of the category for SEO and user understanding
+            Rich text description of the category for SEO and user understanding
           </p>
         </div>
 

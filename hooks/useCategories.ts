@@ -182,8 +182,8 @@ export function useDeleteCategory() {
       // Update products in this category to null category
       const { error: updateError } = await (supabase as any)
         .from("products")
-        .update({ category: null })
-        .eq("category", category.name);
+        .update({ category_id: null })
+        .eq("category_id", category.id);
 
       if (updateError) {
         console.warn("Failed to update products in category:", updateError);
