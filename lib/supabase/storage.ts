@@ -3,7 +3,7 @@
 import { supabase } from "./client";
 import { createAdminClient } from "./server";
 
-const BUCKET_NAME = "product-images";
+const BUCKET_NAME = "category-images";
 
 // Client-side upload (for regular users)
 export const uploadImageToBucket = async (

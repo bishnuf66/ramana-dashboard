@@ -164,21 +164,38 @@ export default function NewProductPage() {
 
       // Upload gallery images
       const galleryUrls: string[] = [];
+      console.log(`Processing ${galleryFiles.length} gallery images...`);
+
       for (let i = 0; i < galleryFiles.length; i++) {
-        console.log(
-          `Uploading gallery image ${i + 1}/${galleryFiles.length}...`,
-        );
-        const galleryPath = generateImagePath(
-          productId,
-          galleryFiles[i].name,
-          "gallery",
-        );
-        const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
-        if (!galleryUrl) {
-          throw new Error(`Failed to upload gallery image ${i + 1}`);
+        try {
+          console.log(
+            `Uploading gallery image ${i + 1}/${galleryFiles.length}...`,
+          );
+          const galleryPath = generateImagePath(
+            productId,
+            galleryFiles[i].name,
+            "gallery",
+          );
+          console.log(`Gallery path for image ${i + 1}:`, galleryPath);
+
+          const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+          if (!galleryUrl) {
+            throw new Error(`Gallery image ${i + 1} upload returned null`);
+          }
+          galleryUrls.push(galleryUrl);
+          console.log(
+            `Gallery image ${i + 1} uploaded successfully:`,
+            galleryUrl,
+          );
+        } catch (galleryError: any) {
+          console.error(
+            `Failed to upload gallery image ${i + 1}:`,
+            galleryError,
+          );
+          throw new Error(
+            `Failed to upload gallery image ${i + 1}: ${galleryError.message}`,
+          );
         }
-        galleryUrls.push(galleryUrl);
-        console.log(`Gallery image ${i + 1} uploaded successfully`);
       }
 
       console.log("All images uploaded, creating product...");
