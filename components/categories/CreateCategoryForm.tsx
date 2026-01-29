@@ -1,4 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { generateSlug } from "@/lib/utils";
@@ -9,32 +12,25 @@ import { Database } from "@/types/database.types";
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 type CategoryFormData = Omit<Category, "id" | "created_at" | "updated_at">;
 
-interface CategoryFormProps {
-  categoryId?: string;
-  initialData?: Partial<Category>;
+interface CreateCategoryFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function CategoryForm({
-  categoryId,
-  initialData,
+export default function CreateCategoryForm({
   onSuccess,
   onCancel,
-}: CategoryFormProps) {
+}: CreateCategoryFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<CategoryFormData>({
-    name: initialData?.name || "",
-    slug: initialData?.slug || "",
-    description: initialData?.description || "",
-    picture: initialData?.picture || null,
+    name: "",
+    slug: "",
+    description: "",
+    picture: null,
   });
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    initialData?.picture || null,
-  );
-
-  const isEditing = !!categoryId;
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-generate slug from name whenever name changes
@@ -76,22 +72,29 @@ export default function CategoryForm({
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
+      console.log("Starting image upload for:", file.name);
       const fileName = `category-${Date.now()}-${file.name}`;
+
       const { data, error } = await supabase.storage
         .from("category-images")
         .upload(fileName, file);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      console.log("File uploaded successfully:", data);
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("category-images").getPublicUrl(fileName);
 
+      console.log("Public URL generated:", publicUrl);
       return publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload image");
-      return null;
+      throw error; // Re-throw to stop form submission
     }
   };
 
@@ -108,84 +111,71 @@ export default function CategoryForm({
     try {
       let pictureUrl = formData.picture;
 
-      // Upload new image if provided
+      // Upload image if provided
       if (imageFile) {
-        // Delete previous image from storage if it exists
-        if (formData.picture && formData.picture.includes("supabase")) {
-          const previousFilePath = formData.picture.split("/").pop();
-          if (previousFilePath) {
-            const { error: storageError } = await supabase.storage
-              .from("category-images")
-              .remove([previousFilePath]);
-            if (storageError) {
-              console.warn(
-                "Failed to delete previous category image:",
-                storageError,
-              );
-            }
+        console.log("Image file detected, starting upload...");
+        try {
+          const uploadedUrl = await uploadImage(imageFile);
+          if (uploadedUrl) {
+            pictureUrl = uploadedUrl;
+            console.log("Image upload completed successfully");
           }
-        }
-
-        const uploadedUrl = await uploadImage(imageFile);
-        if (uploadedUrl) {
-          pictureUrl = uploadedUrl;
+        } catch (uploadError: any) {
+          console.error("Image upload failed:", uploadError);
+          toast.error(
+            "Failed to upload image. Please try again or remove the image.",
+          );
+          return; // Stop form submission if image upload fails
         }
       }
 
-      let payload: any;
+      console.log("Creating category with payload...");
+      const payload = {
+        name: formData.name.trim(),
+        slug: formData.slug.trim(),
+        description: formData.description || null,
+        picture: pictureUrl,
+        created_at: new Date().toISOString(),
+      };
 
-      if (isEditing) {
-        payload = {
-          name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          description: formData.description || null,
-          picture: pictureUrl,
-          updated_at: new Date().toISOString(),
-        };
+      console.log("Payload:", payload);
 
-        // Update existing category
-        const { error } = await (supabase as any)
-          .from("categories")
-          .update(payload)
-          .eq("id", categoryId);
+      // Create new category
+      const { error } = await (supabase as any)
+        .from("categories")
+        .insert([payload]);
 
-        if (error) throw error;
-        toast.success("Category updated successfully!");
-      } else {
-        payload = {
-          name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          description: formData.description || null,
-          picture: pictureUrl,
-          created_at: new Date().toISOString(),
-        };
-
-        // Create new category
-        const { error } = await (supabase as any)
-          .from("categories")
-          .insert([payload]);
-
-        if (error) throw error;
-        toast.success("Category created successfully!");
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
       }
+
+      console.log("Category created successfully");
+      toast.success("Category created successfully!");
 
       if (onSuccess) {
         onSuccess();
+      } else {
+        router.push("/dashboard?section=categories");
       }
     } catch (error: any) {
-      console.error("Error saving category:", error);
+      console.error("Error creating category:", error);
       console.error("Form data:", formData);
       console.error("Image file:", imageFile);
 
       // More specific error handling
       if (error.message?.includes("toLocaleLowerCase")) {
         toast.error("Error with form data. Please try again.");
-      } else if (error.message?.includes("storage")) {
+      } else if (
+        error.message?.includes("storage") ||
+        error.message?.includes("upload")
+      ) {
         toast.error("Error uploading image. Please try again.");
       } else {
-        toast.error(error.message || "Failed to save category");
+        toast.error(error.message || "Failed to create category");
       }
     } finally {
+      console.log("Setting loading to false");
       setLoading(false);
     }
   };
@@ -194,7 +184,7 @@ export default function CategoryForm({
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {isEditing ? "Edit Category" : "Create New Category"}
+          Create New Category
         </h1>
         {onCancel && (
           <button
@@ -344,11 +334,7 @@ export default function CategoryForm({
             disabled={loading}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading
-              ? "Saving..."
-              : isEditing
-                ? "Update Category"
-                : "Create Category"}
+            {loading ? "Creating..." : "Create Category"}
           </button>
         </div>
       </form>

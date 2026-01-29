@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import CategoryForm from "@/components/categories/CategoryForm";
+import EditCategoryForm from "@/components/categories/EditCategoryForm";
 import type { Database } from "@/types/database.types";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -71,7 +71,7 @@ export default function EditCategoryPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <CategoryForm categoryId={categoryId} initialData={initialData} />
+        <EditCategoryForm categoryId={categoryId} initialData={initialData} />
       </div>
     </div>
   );

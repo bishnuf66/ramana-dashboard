@@ -1,4 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { generateSlug } from "@/lib/utils";
@@ -9,19 +12,20 @@ import { Database } from "@/types/database.types";
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 type CategoryFormData = Omit<Category, "id" | "created_at" | "updated_at">;
 
-interface CategoryFormProps {
-  categoryId?: string;
+interface EditCategoryFormProps {
+  categoryId: string;
   initialData?: Partial<Category>;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function CategoryForm({
+export default function EditCategoryForm({
   categoryId,
   initialData,
   onSuccess,
   onCancel,
-}: CategoryFormProps) {
+}: EditCategoryFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<CategoryFormData>({
     name: initialData?.name || "",
     slug: initialData?.slug || "",
@@ -33,8 +37,6 @@ export default function CategoryForm({
   const [imagePreview, setImagePreview] = useState<string | null>(
     initialData?.picture || null,
   );
-
-  const isEditing = !!categoryId;
 
   useEffect(() => {
     // Auto-generate slug from name whenever name changes
@@ -132,58 +134,40 @@ export default function CategoryForm({
         }
       }
 
-      let payload: any;
+      const payload = {
+        name: formData.name.trim(),
+        slug: formData.slug.trim(),
+        description: formData.description || null,
+        picture: pictureUrl,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (isEditing) {
-        payload = {
-          name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          description: formData.description || null,
-          picture: pictureUrl,
-          updated_at: new Date().toISOString(),
-        };
+      // Update existing category
+      const { error } = await (supabase as any)
+        .from("categories")
+        .update(payload)
+        .eq("id", categoryId);
 
-        // Update existing category
-        const { error } = await (supabase as any)
-          .from("categories")
-          .update(payload)
-          .eq("id", categoryId);
-
-        if (error) throw error;
-        toast.success("Category updated successfully!");
-      } else {
-        payload = {
-          name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          description: formData.description || null,
-          picture: pictureUrl,
-          created_at: new Date().toISOString(),
-        };
-
-        // Create new category
-        const { error } = await (supabase as any)
-          .from("categories")
-          .insert([payload]);
-
-        if (error) throw error;
-        toast.success("Category created successfully!");
-      }
+      if (error) throw error;
+      toast.success("Category updated successfully!");
 
       if (onSuccess) {
         onSuccess();
+      } else {
+        router.push("/dashboard?section=categories");
       }
     } catch (error: any) {
-      console.error("Error saving category:", error);
+      console.error("Error updating category:", error);
       console.error("Form data:", formData);
       console.error("Image file:", imageFile);
-
+      
       // More specific error handling
       if (error.message?.includes("toLocaleLowerCase")) {
         toast.error("Error with form data. Please try again.");
       } else if (error.message?.includes("storage")) {
         toast.error("Error uploading image. Please try again.");
       } else {
-        toast.error(error.message || "Failed to save category");
+        toast.error(error.message || "Failed to update category");
       }
     } finally {
       setLoading(false);
@@ -194,7 +178,7 @@ export default function CategoryForm({
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {isEditing ? "Edit Category" : "Create New Category"}
+          Edit Category
         </h1>
         {onCancel && (
           <button
@@ -344,11 +328,7 @@ export default function CategoryForm({
             disabled={loading}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading
-              ? "Saving..."
-              : isEditing
-                ? "Update Category"
-                : "Create Category"}
+            {loading ? "Updating..." : "Update Category"}
           </button>
         </div>
       </form>
