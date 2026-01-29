@@ -51,7 +51,9 @@ const SingleProductModal: React.FC<ProductModalProps> = ({
 
         {/* Product Title, Price & Rating */}
         <h2 className="text-xl font-bold mt-4">{product.title}</h2>
-        <p className="text-gray-600 text-lg">${product.price.toFixed(2)}</p>
+        <p className="text-gray-600 text-lg">
+          NPR {product.price.toLocaleString()}
+        </p>
         <p className="text-yellow-500 text-lg">
           {"★".repeat(Math.floor(product.rating))}{" "}
           {"☆".repeat(5 - Math.floor(product.rating))}

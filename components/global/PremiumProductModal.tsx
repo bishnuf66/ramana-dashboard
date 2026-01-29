@@ -118,11 +118,12 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-6">
                   <span className="text-4xl font-bold text-green-600">
-                    ${product.discountPrice ?? product.price}
+                    NPR{" "}
+                    {(product.discountPrice ?? product.price).toLocaleString()}
                   </span>
                   {product.discountPrice && (
                     <span className="text-xl text-gray-400 line-through">
-                      ${product.price.toFixed(2)}
+                      NPR {product.price.toLocaleString()}
                     </span>
                   )}
                   {product.discountPrice && (
@@ -131,7 +132,7 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                       {Math.round(
                         ((product.price - product.discountPrice) /
                           product.price) *
-                          100
+                          100,
                       )}
                       %
                     </span>
@@ -182,10 +183,10 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300"
               >
                 <ShoppingCart className="w-6 h-6" />
-                Add to Cart - $
-                {((product.discountPrice ?? product.price) * quantity).toFixed(
-                  2
-                )}
+                Add to Cart - NPR
+                {(
+                  (product.discountPrice ?? product.price) * quantity
+                ).toLocaleString()}
               </motion.button>
             </div>
           </div>

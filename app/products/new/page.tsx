@@ -143,30 +143,45 @@ export default function NewProductPage() {
     setUploading(true);
 
     try {
+      console.log("Starting product creation...");
+
       // Generate product ID first
       const productId = crypto.randomUUID();
+      console.log("Generated product ID:", productId);
 
       // Upload cover image
+      console.log("Uploading cover image...");
       const coverImagePath = generateImagePath(
         productId,
         coverImageFile.name,
         "cover",
       );
       const coverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+      if (!coverImageUrl) {
+        throw new Error("Failed to upload cover image");
+      }
+      console.log("Cover image uploaded successfully:", coverImageUrl);
 
       // Upload gallery images
       const galleryUrls: string[] = [];
       for (let i = 0; i < galleryFiles.length; i++) {
+        console.log(
+          `Uploading gallery image ${i + 1}/${galleryFiles.length}...`,
+        );
         const galleryPath = generateImagePath(
           productId,
           galleryFiles[i].name,
           "gallery",
         );
         const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+        if (!galleryUrl) {
+          throw new Error(`Failed to upload gallery image ${i + 1}`);
+        }
         galleryUrls.push(galleryUrl);
+        console.log(`Gallery image ${i + 1} uploaded successfully`);
       }
 
-      setUploading(false);
+      console.log("All images uploaded, creating product...");
 
       // Create product
       const { error } = await (supabase as any).from("products").insert([
@@ -203,15 +218,35 @@ export default function NewProductPage() {
         },
       ]);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
+      console.log("Product created successfully!");
       toast.success("Product created successfully!");
       router.push("/dashboard?section=products");
     } catch (error: any) {
-      setUploading(false);
-      toast.error("Failed to create product: " + error.message);
+      console.error("Error creating product:", error);
+      console.error("Form data:", formData);
+      console.error("Cover image file:", coverImageFile);
+      console.error("Gallery files:", galleryFiles);
+
+      // More specific error handling
+      if (
+        error.message?.includes("storage") ||
+        error.message?.includes("upload")
+      ) {
+        toast.error("Error uploading images. Please try again.");
+      } else if (error.message?.includes("database")) {
+        toast.error("Error saving product to database. Please try again.");
+      } else {
+        toast.error(error.message || "Failed to create product");
+      }
     } finally {
+      console.log("Setting loading states to false");
       setLoading(false);
+      setUploading(false);
     }
   };
 
