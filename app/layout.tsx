@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { ThemeProvider } from "@/components/context/ThemeContext";
 import { AuthProvider, useAuth } from "@/components/context/AuthProvider";
 import PremiumHeader from "@/components/global/PremiumHeader";
@@ -30,6 +31,31 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { admin, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  // More reliable approach: check if this is likely a 404 by checking for invalid routes
+  // Known valid routes and patterns
+  const validRoutePatterns = [
+    /^\/$/, // root
+    /^\/login$/,
+    /^\/auth\/callback$/,
+    /^\/dashboard$/,
+    /^\/blog(\/\d+)?(\/edit)?$/, // blog, blog/[id], blog/[id]/edit
+    /^\/blog\/new$/, // blog/new
+    /^\/categories(\/\d+)?(\/edit)?$/, // categories, categories/[id], categories/[id]/edit
+    /^\/categories\/new$/, // categories/new
+    /^\/discounts(\/\d+)?(\/edit)?$/, // discounts, discounts/[id], discounts/[id]/edit
+    /^\/discounts\/new$/, // discounts/new
+    /^\/payments(\/\d+)?(\/edit)?$/, // payments, payments/[id], payments/[id]/edit
+    /^\/payments\/new$/, // payments/new
+    /^\/products(\/\d+)?(\/edit)?$/, // products, products/[id], products/[id]/edit
+    /^\/products\/new$/, // products/new
+    /^\/testimonials(\/\d+)?(\/edit)?$/, // testimonials, testimonials/[id], testimonials/[id]/edit
+    /^\/testimonials\/new$/, // testimonials/new
+  ];
+
+  const isNotFoundPage = !validRoutePatterns.some((pattern) =>
+    pattern.test(pathname),
+  );
 
   // Route protection using same logic as header/sidebar
   useEffect(() => {
@@ -78,8 +104,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Show full admin layout for authenticated users
-  if (admin) {
+  // Show full admin layout for authenticated users (except 404 page)
+  if (admin && !isNotFoundPage) {
     return (
       <>
         <FaviconSwitcher />
@@ -102,6 +128,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <PremiumFooter />
+        <ToastContainer
+          theme="colored"
+          toastClassName="dark:bg-gray-800 dark:text-white"
+        />
+      </>
+    );
+  }
+
+  // Show minimal layout for 404 page
+  if (admin && isNotFoundPage) {
+    return (
+      <>
+        <FaviconSwitcher />
+        <main className="min-h-screen">{children}</main>
         <ToastContainer
           theme="colored"
           toastClassName="dark:bg-gray-800 dark:text-white"
