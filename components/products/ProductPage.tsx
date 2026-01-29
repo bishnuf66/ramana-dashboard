@@ -29,7 +29,7 @@ import {
 } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import axiosInstance from "@/lib/axios";
-import { Category } from "@/app/dashboard/page";
+import { Category, Product } from "@/app/dashboard/page";
 
 type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
@@ -394,7 +394,7 @@ const ProductsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {products.map((product) => (
+              {products.map((product: Product) => (
                 <tr
                   key={product.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -567,7 +567,7 @@ const ProductsPage = () => {
         categoriesList={categoriesList}
         onDelete={(productId) => {
           // Handle deletion from view modal
-          const product = products.find((p) => p.id === productId);
+          const product = products.find((p: Product) => p.id === productId);
           if (product) {
             handleDeleteProduct(product);
           }

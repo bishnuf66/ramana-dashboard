@@ -270,7 +270,7 @@ const TestimonialList = () => {
                   </td>
                 </tr>
               ) : (
-                testimonials.map((testimonial) => (
+                testimonials.map((testimonial: Testimonial) => (
                   <tr
                     key={testimonial.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"

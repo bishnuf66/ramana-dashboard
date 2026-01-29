@@ -12,7 +12,6 @@ import {
   useApproveReview,
   useRejectReview,
   useDeleteReview,
-  type Review,
 } from "@/hooks/useReviews";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
@@ -264,7 +263,7 @@ export default function ReviewManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {paginatedReviews.map((review) => (
+                {paginatedReviews.map((review: Review) => (
                   <motion.tr
                     key={review.id}
                     initial={{ opacity: 0 }}
@@ -527,12 +526,10 @@ export default function ReviewManager() {
         }}
         onConfirm={() => handleDeleteReview(selectedReview.id)}
         title="Delete Review"
-        description="Are you sure you want to delete this review? This action cannot be undone."
-        itemName={
-          selectedReview
-            ? `${selectedReview.product_name} - By ${selectedReview.user_name}`
-            : undefined
-        }
+        message="Are you sure you want to delete this review? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
       />
     </div>
   );

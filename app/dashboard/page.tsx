@@ -30,6 +30,7 @@ import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
+import { useUserPayments, useDeletePayment } from "@/hooks/useUserPayments";
 import Image from "next/image";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -86,6 +87,7 @@ function DashboardContent() {
     refetch: refetchOrders,
   } = useOrders({ limit: 100 });
   const updateOrderStatusMutation = useUpdateOrderStatus();
+  const deletePaymentMutation = useDeletePayment();
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -193,7 +195,7 @@ function DashboardContent() {
 
     try {
       // Get product to delete images
-      const product = products.find((p) => p.id === id);
+      const product = products.find((p: Product) => p.id === id);
 
       // Delete images from storage
       if (product) {
@@ -277,21 +279,25 @@ function DashboardContent() {
   };
 
   const totalOrders = orders.length;
-  const deliveredOrders = orders.filter((o) => o.order_status === "delivered");
+  const deliveredOrders = orders.filter(
+    (o: Order) => o.order_status === "delivered",
+  );
   const deliveredRevenue = deliveredOrders.reduce(
-    (sum, o) => sum + (Number(o.total_amount) || 0),
+    (sum: number, o: Order) => sum + (Number(o.total_amount) || 0),
     0,
   );
   const allRevenue = orders.reduce(
-    (sum, o) => sum + (Number(o.total_amount) || 0),
+    (sum: number, o: Order) => sum + (Number(o.total_amount) || 0),
     0,
   );
   const averageOrderValue = totalOrders > 0 ? allRevenue / totalOrders : 0;
 
   const customersCount = new Set(
     orders
-      .map((o) => o.customer_email)
-      .filter((v): v is string => typeof v === "string" && v.length > 0),
+      .map((o: Order) => o.customer_email)
+      .filter(
+        (v: string): v is string => typeof v === "string" && v.length > 0,
+      ),
   ).size;
 
   const days = 14;
@@ -330,11 +336,11 @@ function DashboardContent() {
   const maxSales = Math.max(1, ...salesSeries.map((p) => p.value));
 
   const statusCounts = orders.reduce(
-    (acc, o) => {
+    (acc: Record<string, number>, o: Order) => {
       acc[o.order_status] = (acc[o.order_status] || 0) + 1;
       return acc;
     },
-    {} as Record<OrderStatus, number>,
+    {} as Record<string, number>,
   );
   const statusTotal = Math.max(1, totalOrders);
   const statusItems: Array<{
@@ -396,7 +402,8 @@ function DashboardContent() {
             .filter((item) => item.value > 0)
             .slice(0, statusItems.indexOf(s))
             .reduce(
-              (acc, item) => acc + (item.value / statusTotal) * circumference,
+              (acc: number, item: { value: number }) =>
+                acc + (item.value / statusTotal) * circumference,
               0,
             ),
         };
@@ -618,7 +625,7 @@ function DashboardContent() {
                     </p>
                   </div>
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {orders.slice(0, 8).map((order) => (
+                    {orders.slice(0, 8).map((order: Order) => (
                       <div
                         key={order.id}
                         className="p-4 flex items-center justify-between gap-4"
@@ -740,15 +747,8 @@ function DashboardContent() {
                     try {
                       console.log("Deleting payment:", payment);
 
-                      // Delete from database
-                      const { error } = await (supabase as any)
-                        .from("user_payments")
-                        .delete()
-                        .eq("id", payment.id);
-
-                      if (error) throw error;
-
-                      toast.success("Payment deleted successfully!");
+                      // Use the delete user payment mutation
+                      await deletePaymentMutation.mutateAsync(payment.id);
                     } catch (error: any) {
                       console.error("Failed to delete payment:", error);
                       toast.error("Failed to delete payment: " + error.message);

@@ -351,34 +351,47 @@ function OrderTable({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <ActionButtons
+                          id={order.id}
+                          type="order"
                           onView={() => onViewOrder?.(order)}
-                          onStatusChange={() =>
-                            handleStatusChange(
-                              order.id,
-                              order.order_status === "delivered"
-                                ? "processing"
-                                : "delivered",
-                            )
-                          }
-                          onVerifyPayment={() =>
-                            handleVerifyPayment?.(order.id)
-                          }
-                          showStatus={
-                            order.order_status !== "delivered" &&
-                            order.order_status !== "cancelled" &&
-                            order.order_status !== "returned"
-                          }
-                          showVerify={
-                            order.payment_status === "pending" &&
-                            order.order_status !== "cancelled" &&
-                            order.order_status !== "returned"
-                          }
-                          statusText={
-                            order.order_status === "delivered"
-                              ? "Mark as Processing"
-                              : "Mark as Delivered"
-                          }
+                          showView={true}
+                          showEdit={false}
+                          showDelete={false}
+                          size="sm"
                         />
+
+                        {/* Custom Status Change Button */}
+                        {order.order_status !== "delivered" &&
+                          order.order_status !== "cancelled" &&
+                          order.order_status !== "returned" && (
+                            <button
+                              onClick={() =>
+                                handleStatusChange(
+                                  order.id,
+                                  order.order_status === "delivered"
+                                    ? "processing"
+                                    : "delivered",
+                                )
+                              }
+                              className="px-3 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                            >
+                              {order.order_status === "delivered"
+                                ? "Mark as Processing"
+                                : "Mark as Delivered"}
+                            </button>
+                          )}
+
+                        {/* Custom Verify Payment Button */}
+                        {order.payment_status === "pending" &&
+                          order.order_status !== "cancelled" &&
+                          order.order_status !== "returned" && (
+                            <button
+                              onClick={() => handleVerifyPayment?.(order.id)}
+                              className="px-3 py-1 text-xs font-medium rounded-md bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
+                            >
+                              Verify Payment
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
