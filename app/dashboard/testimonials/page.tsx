@@ -1,18 +1,13 @@
 "use client";
 
 import TestimonialList from "@/components/testimonials/TestimonialList";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 export default function TestimonialsDashboardPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Testimonial Management
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Manage customer testimonials
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      {/* List */}
       <TestimonialList />
     </div>
   );

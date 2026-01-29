@@ -180,7 +180,7 @@ const TestimonialList = () => {
           </p>
         </div>
         <Link
-          href="/testimonials/new?section=testimonials"
+          href="/dashboard/testimonials/new"
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -353,7 +353,7 @@ const TestimonialList = () => {
                           <Eye className="w-4 h-4" />
                         </Link>
                         <Link
-                          href={`/testimonials/${testimonial.id}/edit?section=testimonials`}
+                          href={`/dashboard/testimonials/${testimonial.id}/edit`}
                           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                           onClick={() =>
                             console.log("Edit testimonial ID:", testimonial.id)

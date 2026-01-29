@@ -1,118 +1,87 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, use } from "react";
-import { supabase } from "@/lib/supabase/client";
-import { toast } from "react-toastify";
-import TestimonialForm from "@/components/testimonials/TestimonialForm";
-import type { Database } from "@/types/database.types";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Edit } from "lucide-react";
+import Link from "next/link";
+import EditTestimonialForm from "@/components/testimonials/EditTestimonialForm";
+import { useTestimonial } from "@/hooks/useTestimonials";
+import { Suspense } from "react";
 
-type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
-
-interface EditTestimonialPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export default function EditTestimonialPage({
-  params,
-}: EditTestimonialPageProps) {
+function EditTestimonialContent() {
   const router = useRouter();
-  const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
-  const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const testimonialId = params.id as string;
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Unwrap the params Promise
-  const { id } = use(params);
-
-  useEffect(() => {
-    const fetchTestimonial = async () => {
-      // Check if ID exists and is valid
-      if (!id || id === "undefined") {
-        console.error("Invalid testimonial ID:", id);
-        toast.error("Invalid testimonial ID");
-        router.push("/dashboard?section=testimonials");
-        return;
-      }
-
-      try {
-        console.log("Fetching testimonial with ID:", id);
-        const { data, error } = await supabase
-          .from("testimonials")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) {
-          console.error("Supabase error:", error);
-          throw error;
-        }
-
-        console.log("Fetched testimonial:", data);
-        setTestimonial(data);
-      } catch (error) {
-        console.error("Error fetching testimonial:", error);
-        toast.error("Failed to fetch testimonial");
-        router.push("/dashboard?section=testimonials");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTestimonial();
-  }, [id, router]);
+  const { data: testimonial, isLoading, error } = useTestimonial(testimonialId);
 
   const handleSuccess = () => {
-    router.push("/dashboard?section=testimonials");
+    setIsUpdating(false);
+    router.push("/dashboard/testimonials");
   };
 
   const handleCancel = () => {
-    router.push("/dashboard?section=testimonials");
+    router.push("/dashboard/testimonials");
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading testimonial...
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!testimonial) {
+  if (error || !testimonial) {
     return (
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Testimonial Not Found
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              The testimonial you're looking for doesn't exist.
-            </p>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Testimonial not found
+          </p>
+          <Link
+            href="/dashboard/testimonials"
+            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+          >
+            Back to Testimonials
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Edit Testimonial
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Update testimonial information
-          </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/testimonials"
+              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Edit Testimonial
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Update testimonial details
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <TestimonialForm
+        {/* Form */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <EditTestimonialForm
             testimonial={testimonial}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
@@ -120,5 +89,19 @@ export default function EditTestimonialPage({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function EditTestimonialPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+      }
+    >
+      <EditTestimonialContent />
+    </Suspense>
   );
 }

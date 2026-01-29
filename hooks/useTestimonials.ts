@@ -167,13 +167,53 @@ export function useDeleteTestimonial() {
     mutationFn: async (id: string) => {
       console.log("useDeleteTestimonial: Deleting testimonial via API:", id);
 
+      // First, fetch the testimonial to get the image URL
+      try {
+        const testimonialResponse = await axiosInstance.get(
+          `/api/testimonials/${id}`,
+        );
+        const testimonial = testimonialResponse.data.testimonial;
+
+        // Delete the testimonial image if it exists
+        if (testimonial?.image) {
+          console.log(
+            "useDeleteTestimonial: Deleting testimonial image:",
+            testimonial.image,
+          );
+          try {
+            await axiosInstance.delete("/api/upload", {
+              data: {
+                imageUrl: testimonial.image,
+                bucket: "testimonial-images",
+              },
+            });
+            console.log(
+              "useDeleteTestimonial: Testimonial image deleted successfully",
+            );
+          } catch (imageError) {
+            console.warn(
+              "useDeleteTestimonial: Failed to delete testimonial image:",
+              imageError,
+            );
+            // Don't fail the entire delete operation if image deletion fails
+          }
+        }
+      } catch (fetchError) {
+        console.warn(
+          "useDeleteTestimonial: Failed to fetch testimonial for image deletion:",
+          fetchError,
+        );
+        // Continue with testimonial deletion even if we can't fetch details
+      }
+
+      // Now delete the testimonial
       const response = await axiosInstance.delete("/api/testimonials", {
         data: { id },
       });
       return response.data;
     },
     onSuccess: () => {
-      toast.success("Testimonial deleted successfully!");
+      toast.success("Testimonial and associated image deleted successfully!");
       queryClient.invalidateQueries({ queryKey: ["testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["testimonials-count"] });
     },
