@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -176,7 +175,7 @@ export default function EditDiscountPage() {
       }
 
       toast.success("Coupon updated successfully");
-      router.push("/dashboard?section=discounts");
+      router.push("/dashboard/discounts");
     } catch (error: any) {
       toast.error(error.message || "Failed to update coupon");
     } finally {
@@ -205,7 +204,7 @@ export default function EditDiscountPage() {
             Coupon not found
           </p>
           <Link
-            href="/dashboard?section=discounts"
+            href="/dashboard/discounts"
             className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
           >
             Back to Dashboard
@@ -223,7 +222,7 @@ export default function EditDiscountPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="/dashboard?section=discounts"
+                href="/dashboard/discounts"
                 className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />

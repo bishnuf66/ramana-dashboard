@@ -1,6 +1,6 @@
 "use client";
 
-import UserPaymentList from "@/components/payments/UserPaymentList";
+import UserPaymentList from "@/components/user-payments/UserPaymentList";
 
 export default function PaymentsDashboardPage() {
   return (

@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 import { Upload, X, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import MDEditor from "@uiw/react-md-editor";
 import Link from "next/link";
-import type { Database } from "@/types/database.types";
 import { useCreateBlog } from "@/hooks/useBlogs";
-
-type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
+import { useUpload } from "@/hooks/useUpload";
+import type { Database } from "@/types/database.types";
 
 interface BlogFormData {
   title: string;
@@ -29,7 +27,10 @@ interface CreateBlogFormProps {
   onCancel?: () => void;
 }
 
-export default function CreateBlogForm({ onSuccess, onCancel }: CreateBlogFormProps) {
+export default function CreateBlogForm({
+  onSuccess,
+  onCancel,
+}: CreateBlogFormProps) {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -37,6 +38,7 @@ export default function CreateBlogForm({ onSuccess, onCancel }: CreateBlogFormPr
   const [tagInput, setTagInput] = useState("");
 
   const createBlogMutation = useCreateBlog();
+  const uploadMutation = useUpload();
   const loading = createBlogMutation.isPending;
 
   const [formData, setFormData] = useState<BlogFormData>({
@@ -53,63 +55,14 @@ export default function CreateBlogForm({ onSuccess, onCancel }: CreateBlogFormPr
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      console.log("Starting image upload for:", file.name);
-      const fileName = `blog-${Date.now()}-${file.name}`;
-
-      const { data, error } = await supabase.storage
-        .from("blog-images")
-        .upload(fileName, file);
-
-      if (error) {
-        console.error("Storage upload error:", error);
-        throw error;
-      }
-
-      console.log("File uploaded successfully:", data);
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("blog-images").getPublicUrl(fileName);
-
-      console.log("Public URL generated:", publicUrl);
-      return publicUrl;
+      const result = await uploadMutation.mutateAsync({
+        file,
+        bucket: "blog-images",
+      });
+      return result.publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
-      throw error; // Re-throw to stop form submission
-    }
-  };
-
-  const deleteImage = async (imageUrl: string): Promise<void> => {
-    if (!imageUrl) return;
-
-    try {
-      // Extract path from URL
-      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/blog-images/path/to/file.jpg
-      const url = new URL(imageUrl);
-      const pathParts = url.pathname.split("/");
-      const pathIndex = pathParts.indexOf("blog-images");
-
-      if (pathIndex === -1) {
-        // If it's not a Supabase Storage URL, skip deletion
-        console.log("Skipping deletion - not a Supabase Storage URL:", imageUrl);
-        return;
-      }
-
-      const filePath = pathParts.slice(pathIndex + 1).join("/");
-
-      const { error } = await supabase.storage
-        .from("blog-images")
-        .remove([filePath]);
-
-      if (error) {
-        console.error("Failed to delete image:", error);
-        // Don't throw - allow operation to continue even if deletion fails
-      } else {
-        console.log("Successfully deleted image:", filePath);
-      }
-    } catch (error) {
-      console.error("Error parsing image URL:", error);
-      // Don't throw - allow operation to continue
+      throw error;
     }
   };
 
@@ -443,7 +396,10 @@ export default function CreateBlogForm({ onSuccess, onCancel }: CreateBlogFormPr
               }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <label htmlFor="published" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="published"
+              className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+            >
               Publish immediately
             </label>
           </div>
@@ -464,7 +420,11 @@ export default function CreateBlogForm({ onSuccess, onCancel }: CreateBlogFormPr
               disabled={loading || uploading}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Creating..." : uploading ? "Uploading..." : "Create Blog Post"}
+              {loading
+                ? "Creating..."
+                : uploading
+                  ? "Uploading..."
+                  : "Create Blog Post"}
             </button>
           </div>
         </form>

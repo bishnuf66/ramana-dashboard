@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
 import { Upload, X, CreditCard, Smartphone, Building } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import { Database } from "@/types/database.types";
+import { useUpload } from "@/hooks/useUpload";
+import { useDeleteImage } from "@/hooks/useUpload";
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
 type PaymentOptionInsert =
   Database["public"]["Tables"]["payment_options"]["Insert"];
@@ -28,6 +29,9 @@ export default function PaymentOptionForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
 
+  const uploadMutation = useUpload();
+  const deleteMutation = useDeleteImage();
+
   const [formData, setFormData] = useState<{
     payment_type: "esewa" | "khalti" | "bank_transfer";
     payment_number: string;
@@ -40,29 +44,14 @@ export default function PaymentOptionForm({
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      console.log("Starting image upload for:", file.name);
-      const fileName = `payment-${Date.now()}-${file.name}`;
-
-      const { data, error } = await supabase.storage
-        .from("payment-images")
-        .upload(fileName, file);
-
-      if (error) {
-        console.error("Storage upload error:", error);
-        throw error;
-      }
-
-      console.log("File uploaded successfully:", data);
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("payment-images").getPublicUrl(fileName);
-
-      console.log("Public URL generated:", publicUrl);
-      return publicUrl;
+      const result = await uploadMutation.mutateAsync({
+        file,
+        bucket: "payment-qr-images",
+      });
+      return result.publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
-      throw error; // Re-throw to stop form submission
+      throw error;
     }
   };
 
@@ -70,35 +59,12 @@ export default function PaymentOptionForm({
     if (!imageUrl) return;
 
     try {
-      // Extract path from URL
-      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/payment-images/path/to/file.jpg
-      const url = new URL(imageUrl);
-      const pathParts = url.pathname.split("/");
-      const pathIndex = pathParts.indexOf("payment-images");
-
-      if (pathIndex === -1) {
-        // If it's not a Supabase Storage URL, skip deletion
-        console.log(
-          "Skipping deletion - not a Supabase Storage URL:",
-          imageUrl,
-        );
-        return;
-      }
-
-      const filePath = pathParts.slice(pathIndex + 1).join("/");
-
-      const { error } = await supabase.storage
-        .from("payment-images")
-        .remove([filePath]);
-
-      if (error) {
-        console.error("Failed to delete image:", error);
-        // Don't throw - allow operation to continue even if deletion fails
-      } else {
-        console.log("Successfully deleted image:", filePath);
-      }
+      await deleteMutation.mutateAsync({
+        imageUrl,
+        bucket: "payment-qr-images",
+      });
     } catch (error) {
-      console.error("Error parsing image URL:", error);
+      console.error("Error deleting image:", error);
       // Don't throw - allow operation to continue
     }
   };
@@ -124,10 +90,10 @@ export default function PaymentOptionForm({
       const timestamp = Date.now();
       const publicUrl = await uploadImage(file);
       setImagePreview(publicUrl || "");
-      toast.success("QR code image uploaded successfully");
+      // Toast is handled by the upload mutation
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload QR code image");
+      // Toast is handled by the upload mutation
     } finally {
       setUploading(false);
     }
@@ -168,6 +134,9 @@ export default function PaymentOptionForm({
           status: formData.status,
         };
 
+        // For now, we'll keep the direct supabase call for the database operation
+        // Only the image upload/delete uses the API
+        const { supabase } = await import("@/lib/supabase/client");
         const { error } = await (supabase as any)
           .from("payment_options")
           .update(updateData)
@@ -184,6 +153,9 @@ export default function PaymentOptionForm({
           status: formData.status,
         };
 
+        // For now, we'll keep the direct supabase call for the database operation
+        // Only the image upload/delete uses the API
+        const { supabase } = await import("@/lib/supabase/client");
         const { error } = await (supabase as any)
           .from("payment_options")
           .insert([insertData]);

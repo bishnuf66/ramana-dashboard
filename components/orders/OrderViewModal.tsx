@@ -25,8 +25,8 @@ import { EmailService } from "@/lib/emails/EmailService";
 import { supabase } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import PaymentDetail from "@/components/orders/PaymentDetail";
-import PaymentList from "@/components/payments/PaymentList";
-import UserPaymentList from "@/components/payments/UserPaymentList";
+import PaymentList from "@/components/user-payments/PaymentList";
+import UserPaymentList from "@/components/user-payments/UserPaymentList";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type PaymentStatus = Database["public"]["Enums"]["payment_status_enum"];

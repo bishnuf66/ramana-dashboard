@@ -1,13 +1,11 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Edit, Trash2, Eye, Calendar, User, Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import ActionButtons from "@/components/ui/ActionButtons";
 import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import BlogViewModal from "./BlogViewModal";
-import { supabase } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/types/database.types";
 import {
