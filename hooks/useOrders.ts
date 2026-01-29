@@ -36,16 +36,21 @@ export function useOrders(params: OrderQueryParams = {}) {
   return useQuery({
     queryKey: ["orders", { search, status, sortBy, sortOrder, page, limit }],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
         sortBy: sortBy.toString(),
         sortOrder: sortOrder.toString(),
         page: page.toString(),
         limit: limit.toString(),
-      });
+      };
 
-      const response = await axiosInstance.get(`/api/orders?${params}`);
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axiosInstance.get(`/api/orders?${queryString}`);
       return response.data.orders;
     },
   });
@@ -60,12 +65,19 @@ export function useOrdersCount(
   return useQuery({
     queryKey: ["orders-count", { search, status }],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
-      });
+      };
 
-      const response = await axiosInstance.get(`/api/orders/count?${params}`);
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axiosInstance.get(
+        `/api/orders/count?${queryString}`,
+      );
       return response.data.count;
     },
   });

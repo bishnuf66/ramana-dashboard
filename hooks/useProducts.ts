@@ -33,17 +33,26 @@ export function useProducts(params: ProductQueryParams = {}) {
       { search, category, status, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        category: category.toString(),
-        status: status.toString(),
         sortBy: sortBy.toString(),
         sortOrder: sortOrder.toString(),
         page: page.toString(),
         limit: limit.toString(),
-      });
+      };
 
-      const response = await axiosInstance.get(`/api/products?${params}`);
+      // Only add category parameter if it's not "all"
+      if (category !== "all") {
+        params.category = category.toString();
+      }
+
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axiosInstance.get(`/api/products?${queryString}`);
       return response.data.products;
     },
   });
@@ -58,13 +67,22 @@ export function useProductsCount(
   return useQuery({
     queryKey: ["products-count", { search, category, status }],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        category: category.toString(),
-        status: status.toString(),
-      });
+      };
 
-      const response = await axiosInstance.get(`/api/products/count?${params}`);
+      // Only add category parameter if it's not "all"
+      if (category !== "all") {
+        params.category = category.toString();
+      }
+
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axiosInstance.get(`/api/products/count?${queryString}`);
       return response.data.count;
     },
   });
