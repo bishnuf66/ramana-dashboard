@@ -26,13 +26,13 @@ export function useCategories(params: CategoryQueryParams = {}) {
   return useQuery({
     queryKey: ["categories", { search, sortBy, sortOrder, page, limit }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("categories")
-        .select("*");
+      let query = (supabase as any).from("categories").select("*");
 
       // Apply search filter
       if (search) {
-        query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+        query = query.or(
+          `name.ilike.%${search}%,description.ilike.%${search}%`,
+        );
       }
 
       // Apply sorting
@@ -52,7 +52,9 @@ export function useCategories(params: CategoryQueryParams = {}) {
 }
 
 // Fetch category count for pagination
-export function useCategoriesCount(params: Omit<CategoryQueryParams, 'page' | 'limit'> = {}) {
+export function useCategoriesCount(
+  params: Omit<CategoryQueryParams, "page" | "limit"> = {},
+) {
   const { search = "" } = params;
 
   return useQuery({
@@ -64,7 +66,9 @@ export function useCategoriesCount(params: Omit<CategoryQueryParams, 'page' | 'l
 
       // Apply search filter
       if (search) {
-        query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+        query = query.or(
+          `name.ilike.%${search}%,description.ilike.%${search}%`,
+        );
       }
 
       const { count, error } = await query;
@@ -153,7 +157,43 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("categories").delete().eq("id", id);
+      // First, get the category to check if it has an image
+      const { data: category, error: fetchError } = await (supabase as any)
+        .from("categories")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete category image from storage if it exists
+      if (category?.picture && category.picture.includes("supabase")) {
+        const filePath = category.picture.split("/").pop();
+        if (filePath) {
+          const { error: storageError } = await supabase.storage
+            .from("category-images")
+            .remove([filePath]);
+          if (storageError) {
+            console.warn("Failed to delete category image:", storageError);
+          }
+        }
+      }
+
+      // Update products in this category to null category
+      const { error: updateError } = await (supabase as any)
+        .from("products")
+        .update({ category: null })
+        .eq("category", category.name);
+
+      if (updateError) {
+        console.warn("Failed to update products in category:", updateError);
+      }
+
+      // Delete the category
+      const { error } = await (supabase as any)
+        .from("categories")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       return id;
     },

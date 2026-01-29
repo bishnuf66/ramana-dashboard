@@ -54,7 +54,7 @@ export default function CategoryViewModal({
         const filePath = category.picture.split("/").pop();
         if (filePath) {
           const { error: storageError } = await supabase.storage
-            .from("categories")
+            .from("category-images")
             .remove([filePath]);
           if (storageError) {
             console.warn("Failed to delete category image:", storageError);
