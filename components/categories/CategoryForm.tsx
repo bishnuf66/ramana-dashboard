@@ -24,6 +24,7 @@ export default function CategoryForm({
   const [formData, setFormData] = useState<CategoryFormData>({
     name: initialData?.name || "",
     slug: initialData?.slug || "",
+    description: initialData?.description || "",
     picture: initialData?.picture || null,
   });
   const [loading, setLoading] = useState(false);
@@ -35,13 +36,14 @@ export default function CategoryForm({
   const isEditing = !!categoryId;
 
   useEffect(() => {
-    if (formData.name && !formData.slug) {
+    // Auto-generate slug from name whenever name changes
+    if (formData.name) {
       setFormData((prev) => ({
         ...prev,
         slug: generateSlug(formData.name),
       }));
     }
-  }, [formData.name, formData.slug]);
+  }, [formData.name]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,6 +118,7 @@ export default function CategoryForm({
       const payload = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
+        description: formData.description?.trim() || null,
         picture: pictureUrl,
         updated_at: new Date().toISOString(),
       };
@@ -203,15 +206,36 @@ export default function CategoryForm({
             type="text"
             id="slug"
             value={formData.slug}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, slug: e.target.value }))
-            }
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            readOnly
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
             placeholder="category-url-slug"
             required
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            URL-friendly version of the category name
+            Auto-generated from category name (read-only)
+          </p>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            Description
+          </label>
+          <textarea
+            id="description"
+            value={formData.description || ""}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, description: e.target.value }))
+            }
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder="Enter category description (optional)"
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Brief description of the category for SEO and user understanding
           </p>
         </div>
 

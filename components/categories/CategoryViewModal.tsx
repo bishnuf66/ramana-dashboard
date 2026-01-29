@@ -187,6 +187,19 @@ export default function CategoryViewModal({
                       </span>
                     </div>
 
+                    {category.description && (
+                      <div className="col-span-2">
+                        <div className="flex items-start justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Description:
+                          </span>
+                          <span className="text-gray-900 dark:text-white text-sm text-right max-w-xs">
+                            {category.description}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-gray-400">
                         Products:

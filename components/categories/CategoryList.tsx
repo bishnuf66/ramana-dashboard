@@ -276,6 +276,13 @@ export default function CategoryList({
                   {category.name}
                 </h3>
 
+                {/* Description */}
+                {category.description && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                    {category.description}
+                  </p>
+                )}
+
                 {/* Slug */}
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
