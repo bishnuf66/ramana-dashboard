@@ -7,7 +7,6 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import { generateSlug } from "@/lib/utils";
-import { Database } from "@/types/database.types";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
+import { supabase, safeSupabaseOperation } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import type { Database } from "@/types/database.types";
 
@@ -33,44 +33,46 @@ export function useProducts(params: ProductQueryParams = {}) {
       { search, category, status, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      let query = (supabase as any).from("products").select(`
-          *,
-          category:categories(id, name, slug, picture)
-        `);
+      return await safeSupabaseOperation(async () => {
+        let query = (supabase as any).from("products").select(`
+            *,
+            category:categories(id, name, slug, picture)
+          `);
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
-        );
-      }
-
-      // Apply category filter
-      if (category !== "all") {
-        query = query.eq("category_id", category);
-      }
-
-      // Apply stock status filter
-      if (status !== "all") {
-        if (status === "in_stock") {
-          query = query.gt("stock", 0);
-        } else if (status === "out_of_stock") {
-          query = query.lte("stock", 0);
+        // Apply search filter
+        if (search) {
+          query = query.or(
+            `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
+          );
         }
-      }
 
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
+        // Apply category filter
+        if (category !== "all") {
+          query = query.eq("category_id", category);
+        }
 
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
+        // Apply stock status filter
+        if (status !== "all") {
+          if (status === "in_stock") {
+            query = query.gt("stock", 0);
+          } else if (status === "out_of_stock") {
+            query = query.lte("stock", 0);
+          }
+        }
 
-      const { data, error } = await query;
+        // Apply sorting
+        query = query.order(sortBy, { ascending: sortOrder === "asc" });
 
-      if (error) throw error;
-      return data as any[];
+        // Apply pagination
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+        query = query.range(from, to);
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data as any[];
+      });
     },
   });
 }
@@ -148,29 +150,20 @@ export function useCreateProduct() {
     mutationFn: async (product: any) => {
       console.log("useCreateProduct: Creating product with data:", product);
 
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () =>
-            reject(new Error("Database operation timed out after 30 seconds")),
-          30000,
-        );
+      return await safeSupabaseOperation(async () => {
+        const { data, error } = await supabase
+          .from("products")
+          .insert([product])
+          .select();
+
+        if (error) {
+          console.error("useCreateProduct: Database error:", error);
+          throw error;
+        }
+
+        console.log("useCreateProduct: Product created successfully:", data);
+        return data?.[0];
       });
-
-      const dbPromise = supabase.from("products").insert([product]).select();
-
-      const { data, error } = (await Promise.race([
-        dbPromise,
-        timeoutPromise,
-      ])) as any;
-
-      if (error) {
-        console.error("useCreateProduct: Database error:", error);
-        throw error;
-      }
-
-      console.log("useCreateProduct: Product created successfully:", data);
-      return data?.[0];
     },
     onSuccess: (data) => {
       console.log("useCreateProduct: Mutation success, invalidating queries");
