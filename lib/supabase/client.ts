@@ -59,14 +59,25 @@ export const refreshSupabaseClient = () => {
   }
 };
 
-// Add error handling wrapper
+// Add error handling wrapper with timeout
 export const safeSupabaseOperation = async <T>(
   operation: () => Promise<T>,
   retries = 2,
+  timeoutMs = 30000, // 30 seconds timeout
 ): Promise<T> => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await operation();
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`Operation timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      });
+
+      const result = await Promise.race([operation(), timeoutPromise]);
+
+      return result;
     } catch (error: any) {
       console.error(
         `Supabase operation failed (attempt ${attempt + 1}):`,
@@ -76,9 +87,11 @@ export const safeSupabaseOperation = async <T>(
       // If it's a connection/auth error and we have retries left, try refreshing the client
       if (
         attempt < retries &&
-        (error.message?.includes("fetch") || error.message?.includes("auth"))
+        (error.message?.includes("fetch") ||
+          error.message?.includes("auth") ||
+          error.message?.includes("timed out"))
       ) {
-        console.log("Refreshing Supabase client and retrying...");
+        console.log("Retrying Supabase operation...");
         // Note: In a real scenario, you might want to recreate the client here
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
         continue;

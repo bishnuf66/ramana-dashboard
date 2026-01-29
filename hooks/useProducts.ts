@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, safeSupabaseOperation } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
@@ -33,46 +33,18 @@ export function useProducts(params: ProductQueryParams = {}) {
       { search, category, status, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      return await safeSupabaseOperation(async () => {
-        let query = (supabase as any).from("products").select(`
-            *,
-            category:categories(id, name, slug, picture)
-          `);
-
-        // Apply search filter
-        if (search) {
-          query = query.or(
-            `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
-          );
-        }
-
-        // Apply category filter
-        if (category !== "all") {
-          query = query.eq("category_id", category);
-        }
-
-        // Apply stock status filter
-        if (status !== "all") {
-          if (status === "in_stock") {
-            query = query.gt("stock", 0);
-          } else if (status === "out_of_stock") {
-            query = query.lte("stock", 0);
-          }
-        }
-
-        // Apply sorting
-        query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-        // Apply pagination
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
-        query = query.range(from, to);
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-        return data as any[];
+      const params = new URLSearchParams({
+        search: search.toString(),
+        category: category.toString(),
+        status: status.toString(),
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
       });
+
+      const response = await axiosInstance.get(`/api/products?${params}`);
+      return response.data.products;
     },
   });
 }
@@ -86,35 +58,14 @@ export function useProductsCount(
   return useQuery({
     queryKey: ["products-count", { search, category, status }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("products")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+        category: category.toString(),
+        status: status.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
-        );
-      }
-
-      // Apply category filter
-      if (category !== "all") {
-        query = query.eq("category_id", category);
-      }
-
-      // Apply stock status filter
-      if (status !== "all") {
-        if (status === "in_stock") {
-          query = query.gt("stock", 0);
-        } else if (status === "out_of_stock") {
-          query = query.lte("stock", 0);
-        }
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(`/api/products/count?${params}`);
+      return response.data.count;
     },
   });
 }
@@ -124,19 +75,8 @@ export function useProduct(id: string) {
   return useQuery({
     queryKey: ["products", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("products")
-        .select(
-          `
-          *,
-          category:categories(id, name, slug, picture)
-        `,
-        )
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as any;
+      const response = await axiosInstance.get(`/api/products/${id}`);
+      return response.data.product;
     },
     enabled: !!id,
   });
@@ -148,22 +88,10 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (product: any) => {
-      console.log("useCreateProduct: Creating product with data:", product);
+      console.log("useCreateProduct: Creating product via API:", product);
 
-      return await safeSupabaseOperation(async () => {
-        const { data, error } = await supabase
-          .from("products")
-          .insert([product])
-          .select();
-
-        if (error) {
-          console.error("useCreateProduct: Database error:", error);
-          throw error;
-        }
-
-        console.log("useCreateProduct: Product created successfully:", data);
-        return data?.[0];
-      });
+      const response = await axiosInstance.post("/api/products", product);
+      return response.data.product;
     },
     onSuccess: (data) => {
       console.log("useCreateProduct: Mutation success, invalidating queries");
@@ -172,7 +100,7 @@ export function useCreateProduct() {
     },
     onError: (error: any) => {
       console.error("useCreateProduct: Mutation error:", error);
-      toast.error(error.message || "Failed to create product");
+      toast.error(error.response?.data?.error || "Failed to create product");
     },
   });
 }
@@ -183,19 +111,24 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: any) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", id);
+      console.log("useUpdateProduct: Updating product via API:", {
+        id,
+        updates,
+      });
 
-      if (error) throw error;
+      const response = await axiosInstance.put("/api/products", {
+        id,
+        ...updates,
+      });
+      return response.data.product;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product updated successfully");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update product");
+      console.error("useUpdateProduct: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to update product");
     },
   });
 }
@@ -206,16 +139,21 @@ export function useDeleteProduct() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
+      console.log("useDeleteProduct: Deleting product via API:", id);
 
-      if (error) throw error;
+      const response = await axiosInstance.delete("/api/products", {
+        data: { id },
+      });
+      return response.data;
     },
     onSuccess: () => {
+      console.log("useDeleteProduct: Mutation success, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product deleted successfully");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete product");
+      console.error("useDeleteProduct: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to delete product");
     },
   });
 }
