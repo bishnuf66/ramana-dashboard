@@ -7,6 +7,13 @@ import { toast } from "react-toastify";
 import ReviewViewModal from "./ReviewViewModal";
 import Pagination from "@/components/ui/Pagination";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import {
+  useReviews,
+  useApproveReview,
+  useRejectReview,
+  useDeleteReview,
+  type Review,
+} from "@/hooks/useReviews";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import type { Database } from "@/types/database.types";
@@ -28,220 +35,104 @@ type Review = ProductReviewRow & {
 };
 
 export default function ReviewManager() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [reviewToView, setReviewToView] = useState<Review | null>(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusAction, setStatusAction] = useState<{
-    reviewId: string;
-    newStatus: "approved" | "pending" | "rejected";
-  } | null>(null);
+  // State for filters and pagination
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
   >("all");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const fetchReviews = useCallback(async () => {
-    try {
-      setLoading(true);
+  // Modal states
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [reviewToView, setReviewToView] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<any>(null);
 
-      // Fetch directly from Supabase using browser client
-      let query = supabase.from("product_reviews").select(`
-          *,
-          products!inner(
-            id,
-            title,
-            cover_image
-          )
-        `);
+  // Get reviews data using hooks
+  const {
+    data: reviews = [],
+    isLoading,
+    error,
+    refetch,
+  } = useReviews({
+    sortBy: "newest",
+    rating: ratingFilter || undefined,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-      // Apply filters at database level
-      if (statusFilter !== "all") {
-        // Filter by is_verified column instead of status
-        if (statusFilter === "approved") {
-          query = query.eq("is_verified", true);
-        } else if (statusFilter === "pending") {
-          query = query.eq("is_verified", false);
-        }
-        // Note: "rejected" status doesn't exist in is_verified, so we'll handle it client-side
-      }
-      if (ratingFilter) {
-        query = query.eq("rating", ratingFilter);
-      }
+  // Mutations for review actions
+  const approveReviewMutation = useApproveReview();
+  const rejectReviewMutation = useRejectReview();
+  const deleteReviewMutation = useDeleteReview();
 
-      // Apply sorting
-      query = query.order("created_at", { ascending: false });
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw new Error("Failed to fetch reviews from database");
-      }
-
-      if (!data || data.length === 0) {
-        setReviews([]);
-        return;
-      }
-
-      // Transform data to match expected format using only generated types
-      const transformedReviews = (data as any[]).map((review): Review => {
-        // Extract product data from the join
-        const product = review.products;
-
-        return {
-          ...review,
-          products: product,
-          // Map database fields to expected UI fields
-          product_name: product?.title || `Product ${review.product_id}`,
-          product_image: product?.cover_image || "/api/placeholder/100/100",
-          title: "Review", // Since database uses 'comment' instead of 'title'
-          content: review.comment || "",
-          verified_purchase: review.is_verified || false,
-          status: review.is_verified ? "approved" : "pending", // Use is_verified to determine status
-        };
-      });
-
-      // Apply client-side search filter (since it's text-based)
-      let filteredReviews = transformedReviews;
-
-      // Apply status filter client-side since status column doesn't exist yet
-      if (statusFilter !== "all") {
-        filteredReviews = filteredReviews.filter(
-          (r: Review) => r.status === statusFilter,
-        );
-      }
-
-      setReviews(filteredReviews);
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-      toast.error("Failed to fetch reviews from database");
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, ratingFilter, searchQuery]);
-
-  useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
-
-  // Pagination logic
-  const paginatedReviews = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return reviews.slice(startIndex, endIndex);
-  }, [reviews, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(reviews.length / itemsPerPage);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter, ratingFilter, itemsPerPage]);
-
-  const handleStatusUpdate = async (
-    reviewId: string,
-    status: "approved" | "pending" | "rejected",
-  ) => {
-    // Show confirmation modal instead of directly updating
-    setStatusAction({ reviewId, newStatus: status });
-    setShowStatusModal(true);
+  // Handle review actions
+  const handleApproveReview = async (reviewId: string) => {
+    await approveReviewMutation.mutateAsync(reviewId);
   };
 
-  const confirmStatusUpdate = async () => {
-    if (!statusAction) return;
-
-    try {
-      // Update is_verified column instead of status
-      const isVerified = statusAction.newStatus === "approved";
-
-      const response = await fetch("/api/reviews", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviewId: statusAction.reviewId,
-          is_verified: isVerified,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error || "Failed to update review status");
-      }
-
-      // Update local state
-      setReviews(
-        reviews.map((r) =>
-          r.id === statusAction.reviewId
-            ? {
-                ...r,
-                verified_purchase: isVerified,
-                status: isVerified ? "approved" : "pending",
-                created_at: r.created_at || new Date().toISOString(),
-              }
-            : r,
-        ),
-      );
-      toast.success(`Review ${statusAction.newStatus} successfully`);
-      setShowStatusModal(false);
-      setStatusAction(null);
-
-      // Ensure UI stays in sync with DB (and join fields)
-      fetchReviews();
-    } catch (error) {
-      console.error("Error updating review status:", error);
-      toast.error("Failed to update review status");
-    }
+  const handleRejectReview = async (reviewId: string) => {
+    await rejectReviewMutation.mutateAsync(reviewId);
   };
 
-  const handleViewReview = (review: Review) => {
+  const handleDeleteReview = async (reviewId: string) => {
+    await deleteReviewMutation.mutateAsync(reviewId);
+    setShowDeleteModal(false);
+    setSelectedReview(null);
+  };
+
+  const handleViewReview = (review: any) => {
     setReviewToView(review);
     setShowViewModal(true);
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    // Set the review to delete and show the delete modal
-    const reviewToDelete = reviews.find((r) => r.id === reviewId);
-    if (reviewToDelete) {
-      setSelectedReview(reviewToDelete);
-      setShowDeleteModal(true);
-    }
+  const openDeleteModal = (review: any) => {
+    setSelectedReview(review);
+    setShowDeleteModal(true);
   };
 
-  const confirmDeleteReview = async () => {
-    if (!selectedReview) return;
+  // Filter reviews based on status
+  const filteredReviews = reviews.filter((review: any) => {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "approved") return review.status === "approved";
+    if (statusFilter === "pending") return review.status === "pending";
+    if (statusFilter === "rejected") return review.status === "rejected";
+    return true;
+  });
 
-    try {
-      // Delete from Supabase database
-      const { error } = await supabase
-        .from("product_reviews")
-        .delete()
-        .eq("id", selectedReview.id);
+  // Search filter
+  const searchedReviews = filteredReviews.filter(
+    (review: any) =>
+      review.user_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      review.user_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      review.content?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
-      if (error) {
-        console.error("Database delete error:", error);
-        throw new Error("Failed to delete review from database");
-      }
+  // Pagination calculations
+  const totalPages = Math.ceil(searchedReviews.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedReviews = searchedReviews.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
-      // Update local state
-      setReviews(reviews.filter((r) => r.id !== selectedReview.id));
-      toast.success("Review deleted successfully");
-      setShowDeleteModal(false);
-      setSelectedReview(null);
-    } catch (error) {
-      console.error("Error deleting review:", error);
-      toast.error("Failed to delete review");
-    }
-  };
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 dark:text-red-400 mb-4">
+          {error instanceof Error ? error.message : "Failed to fetch reviews"}
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   const renderStars = (rating: number) => {
     return (
@@ -336,11 +227,11 @@ export default function ReviewManager() {
 
       {/* Reviews Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             Loading reviews...
           </div>
-        ) : reviews.length === 0 ? (
+        ) : paginatedReviews.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             No reviews found
           </div>
@@ -452,18 +343,14 @@ export default function ReviewManager() {
                         {review.status === "pending" && (
                           <>
                             <button
-                              onClick={() =>
-                                handleStatusUpdate(review.id, "approved")
-                              }
+                              onClick={() => handleApproveReview(review.id)}
                               className="p-1 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
                               title="Approve"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                handleStatusUpdate(review.id, "rejected")
-                              }
+                              onClick={() => handleRejectReview(review.id)}
                               className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                               title="Reject"
                             >
@@ -474,9 +361,7 @@ export default function ReviewManager() {
 
                         {review.status === "approved" && (
                           <button
-                            onClick={() =>
-                              handleStatusUpdate(review.id, "pending")
-                            }
+                            onClick={() => handleRejectReview(review.id)}
                             className="p-1 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400"
                             title="Unverify"
                           >
@@ -485,7 +370,7 @@ export default function ReviewManager() {
                         )}
 
                         <button
-                          onClick={() => handleDeleteReview(review.id)}
+                          onClick={() => openDeleteModal(review)}
                           className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                           title="Delete review"
                         >
@@ -517,168 +402,130 @@ export default function ReviewManager() {
 
       {/* Review Detail Modal */}
       <AnimatePresence>
-        {showReviewModal && selectedReview && (
+        {showViewModal && reviewToView && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setShowViewModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                      Review Details
-                    </h3>
-                    {getStatusBadge(selectedReview.status)}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowReviewModal(false);
-                      setSelectedReview(null);
-                    }}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    ×
-                  </button>
-                </div>
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Review Details
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setReviewToView(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
 
-                <div className="space-y-6">
-                  {/* Product Info */}
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <Image
-                      src={selectedReview.product_image}
-                      alt={selectedReview.product_name}
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 rounded-lg object-cover"
+              {reviewToView && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={
+                        reviewToView.product_image || "/api/placeholder/100/100"
+                      }
+                      alt={reviewToView.product_name}
+                      className="w-16 h-16 object-cover rounded-lg"
                     />
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {selectedReview.product_name}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Product ID: {selectedReview.product_id}
-                      </div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">
+                        {reviewToView.product_name}
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {reviewToView.user_name} • {reviewToView.user_email}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Reviewer Info */}
+                  <div className="flex items-center gap-2">
+                    {renderStars(reviewToView.rating)}
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {reviewToView.rating} stars
+                    </span>
+                  </div>
+
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                      Reviewer Information
-                    </h4>
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Name:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedReview.user_name}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Email:
-                        </span>
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedReview.user_email}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Verified Purchase:
-                        </span>
-                        <span
-                          className={
-                            selectedReview.verified_purchase
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-gray-500 dark:text-gray-400"
-                          }
-                        >
-                          {selectedReview.verified_purchase ? "Yes" : "No"}
-                        </span>
-                      </div>
-                    </div>
+                    <h5 className="font-medium text-gray-900 dark:text-white mb-2">
+                      Review
+                    </h5>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {reviewToView.content}
+                    </p>
                   </div>
 
-                  {/* Review Content */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                      Review Content
-                    </h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        {renderStars(selectedReview.rating)}
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {selectedReview.rating} out of 5
-                        </span>
-                      </div>
-                      <div>
-                        <h5 className="font-semibold text-gray-900 dark:text-white mb-1">
-                          {selectedReview.title}
-                        </h5>
-                        <p className="text-gray-600 dark:text-gray-300">
-                          {selectedReview.content}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>
+                      Status:{" "}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          reviewToView.status === "approved"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : reviewToView.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                        }`}
+                      >
+                        {reviewToView.status}
+                      </span>
+                    </span>
+                    <span>
+                      Date:{" "}
+                      {new Date(reviewToView.created_at).toLocaleDateString()}
+                    </span>
                   </div>
 
-                  {/* Actions */}
-                  {selectedReview.status === "pending" && (
-                    <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  {reviewToView.status === "pending" && (
+                    <div className="flex gap-2 pt-4">
                       <button
                         onClick={() => {
-                          handleStatusUpdate(selectedReview.id, "approved");
-                          setShowReviewModal(false);
+                          handleApproveReview(reviewToView.id);
+                          setShowViewModal(false);
                         }}
                         className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                       >
-                        Approve Review
+                        Approve
                       </button>
                       <button
                         onClick={() => {
-                          handleStatusUpdate(selectedReview.id, "rejected");
-                          setShowReviewModal(false);
+                          handleRejectReview(reviewToView.id);
+                          setShowViewModal(false);
                         }}
                         className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                       >
-                        Reject Review
+                        Reject
                       </button>
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Review View Modal */}
-      <ReviewViewModal
-        isOpen={showViewModal}
-        onClose={() => setShowViewModal(false)}
-        review={reviewToView}
-        onDelete={(reviewId) => {
-          handleDeleteReview(reviewId);
-        }}
-      />
-
       {/* Delete Confirmation Modal */}
-      <DeleteModal
+      <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
           setSelectedReview(null);
         }}
-        onConfirm={confirmDeleteReview}
+        onConfirm={() => handleDeleteReview(selectedReview.id)}
         title="Delete Review"
         description="Are you sure you want to delete this review? This action cannot be undone."
         itemName={
@@ -686,45 +533,6 @@ export default function ReviewManager() {
             ? `${selectedReview.product_name} - By ${selectedReview.user_name}`
             : undefined
         }
-      />
-
-      {/* Status Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showStatusModal}
-        onClose={() => {
-          setShowStatusModal(false);
-          setStatusAction(null);
-        }}
-        onConfirm={confirmStatusUpdate}
-        title={
-          statusAction
-            ? statusAction.newStatus === "approved"
-              ? "Approve Review"
-              : statusAction.newStatus === "rejected"
-                ? "Reject Review"
-                : "Mark as Pending"
-            : ""
-        }
-        message={
-          statusAction
-            ? statusAction.newStatus === "approved"
-              ? "This will mark the review as verified and approved."
-              : statusAction.newStatus === "rejected"
-                ? "This will mark the review as rejected."
-                : "This will mark the review as pending."
-            : ""
-        }
-        confirmText={
-          statusAction
-            ? statusAction.newStatus === "approved"
-              ? "Approve Review"
-              : statusAction.newStatus === "rejected"
-                ? "Reject Review"
-                : "Mark as Pending"
-            : ""
-        }
-        cancelText="Cancel"
-        type="status"
       />
     </div>
   );
