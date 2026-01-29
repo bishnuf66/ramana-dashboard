@@ -125,9 +125,12 @@ export default function ProductViewModal({
       // Step 1: Delete product images from storage
       const imagesToDelete = [];
 
+      console.log("Starting image deletion for product:", product.id);
+
       // Add cover image
       if (product.cover_image) {
         imagesToDelete.push(product.cover_image);
+        console.log("Found cover image:", product.cover_image);
       }
 
       // Add gallery images
@@ -135,6 +138,8 @@ export default function ProductViewModal({
         const galleryArray = Array.isArray(product.gallery_images)
           ? product.gallery_images
           : [];
+        console.log("Found gallery images:", galleryArray);
+
         galleryArray.forEach((img: any) => {
           if (typeof img === "string") {
             imagesToDelete.push(img);
@@ -144,20 +149,39 @@ export default function ProductViewModal({
         });
       }
 
+      console.log("Total images to delete:", imagesToDelete.length);
+
       // Delete images from storage
+      let deletedCount = 0;
       for (const imageUrl of imagesToDelete) {
         if (imageUrl && imageUrl.includes("supabase")) {
           const filePath = imageUrl.split("/").pop();
+          console.log("Attempting to delete file:", filePath);
+
           if (filePath) {
-            const { error: storageError } = await supabase.storage
-              .from("products")
-              .remove([filePath]);
-            if (storageError) {
-              console.warn("Failed to delete image:", storageError);
+            try {
+              const { error: storageError } = await supabase.storage
+                .from("product-images")
+                .remove([filePath]);
+
+              if (storageError) {
+                console.error("Failed to delete image:", storageError);
+              } else {
+                console.log("Successfully deleted image:", filePath);
+                deletedCount++;
+              }
+            } catch (deleteError) {
+              console.error("Exception during image deletion:", deleteError);
             }
           }
+        } else {
+          console.log("Skipping non-supabase image:", imageUrl);
         }
       }
+
+      console.log(
+        `Deleted ${deletedCount} out of ${imagesToDelete.length} images`,
+      );
 
       // Step 2: Delete related records (cascade)
       const { error: deleteError } = await supabase

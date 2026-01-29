@@ -133,9 +133,12 @@ const ProductsPage = () => {
       // Delete product images from storage
       const imagesToDelete = [];
 
+      console.log("Starting image deletion for product:", productToDelete.id);
+
       // Add cover image
       if (productToDelete.cover_image) {
         imagesToDelete.push(productToDelete.cover_image);
+        console.log("Found cover image:", productToDelete.cover_image);
       }
 
       // Add gallery images
@@ -143,6 +146,8 @@ const ProductsPage = () => {
         const galleryArray = Array.isArray(productToDelete.gallery_images)
           ? productToDelete.gallery_images
           : [];
+        console.log("Found gallery images:", galleryArray);
+
         galleryArray.forEach((img: any) => {
           if (typeof img === "string") {
             imagesToDelete.push(img);
@@ -152,20 +157,39 @@ const ProductsPage = () => {
         });
       }
 
+      console.log("Total images to delete:", imagesToDelete.length);
+
       // Delete images from storage
+      let deletedCount = 0;
       for (const imageUrl of imagesToDelete) {
         if (imageUrl && imageUrl.includes("supabase")) {
           const filePath = imageUrl.split("/").pop();
+          console.log("Attempting to delete file:", filePath);
+
           if (filePath) {
-            const { error: storageError } = await supabase.storage
-              .from("products")
-              .remove([filePath]);
-            if (storageError) {
-              console.warn("Failed to delete image:", storageError);
+            try {
+              const { error: storageError } = await supabase.storage
+                .from("product-images")
+                .remove([filePath]);
+
+              if (storageError) {
+                console.error("Failed to delete image:", storageError);
+              } else {
+                console.log("Successfully deleted image:", filePath);
+                deletedCount++;
+              }
+            } catch (deleteError) {
+              console.error("Exception during image deletion:", deleteError);
             }
           }
+        } else {
+          console.log("Skipping non-supabase image:", imageUrl);
         }
       }
+
+      console.log(
+        `Deleted ${deletedCount} out of ${imagesToDelete.length} images`,
+      );
 
       // Delete product using mutation
       deleteProductMutation.mutate(productToDelete.id);
