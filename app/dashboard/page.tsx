@@ -3,20 +3,16 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { signOutAdmin } from "@/lib/supabase/auth";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import {
-  Menu,
   X,
-  LayoutDashboard,
   Package,
   ShoppingCart,
   Users,
   DollarSign,
   Edit,
   Trash2,
-  X as XIcon,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,7 +31,7 @@ import Support from "@/components/support/Support";
 import TestimonialList from "@/components/testimonials/TestimonialList";
 import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
-// Use generated types
+import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -77,10 +73,17 @@ function DashboardContent() {
       | "payments"
       | "support"
       | "settings") || "analytics";
-  const [products, setProducts] = useState<Product[]>([]);
+
+  // Use TanStack Query hooks
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    refetch: refetchProducts,
+  } = useProducts({ limit: 100 });
+  const deleteProductMutation = useDeleteProduct();
+
   const [orders, setOrders] = useState<Order[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -95,18 +98,6 @@ function DashboardContent() {
       created_at: string | null;
     };
   } | null>(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([fetchProducts(), fetchOrders(), fetchCategories()]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
 
   useEffect(() => {
     if (activeSection !== "settings") return;
@@ -128,45 +119,12 @@ function DashboardContent() {
     loadSettings();
   }, [activeSection]);
 
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select(
-          `
-          *,
-          category:categories(id, name, slug, picture)
-        `,
-        )
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Type the data properly with category relationship
-      const productsWithCategory = (data || []).map((product: any) => ({
-        ...product,
-        category: product.category || null,
-      }));
-
-      setProducts(productsWithCategory);
-    } catch (error: any) {
-      toast.error("Failed to fetch products: " + error.message);
+  // Refetch products when switching to products tab
+  useEffect(() => {
+    if (activeSection === "products") {
+      refetchProducts();
     }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("categories")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error: any) {
-      toast.error("Failed to fetch categories: " + error.message);
-    }
-  };
+  }, [activeSection, refetchProducts]);
 
   const fetchOrders = async () => {
     try {
@@ -181,6 +139,19 @@ function DashboardContent() {
       toast.error("Failed to fetch orders: " + error.message);
     }
   };
+
+  useEffect(() => {
+    // Fetch categories and orders on mount
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchOrders()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleCloseProductModal = () => {
     setShowProductModal(false);
@@ -252,13 +223,11 @@ function DashboardContent() {
         deleteImages(imagesToDelete).catch(console.error);
       }
 
-      const { error } = await supabase.from("products").delete().eq("id", id);
-
-      if (error) throw error;
-      toast.success("Product deleted successfully");
-      fetchProducts();
+      // Use TanStack Query mutation with regular mutate
+      deleteProductMutation.mutate(id);
     } catch (error: any) {
-      toast.error("Failed to delete product: " + error.message);
+      console.error("Delete product error:", error);
+      // Error is already handled by the mutation
     }
   };
 
@@ -306,16 +275,7 @@ function DashboardContent() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOutAdmin();
-      router.push("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
+  // Only show loading on initial load, not when switching tabs
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -750,7 +710,16 @@ function DashboardContent() {
             )}
             {activeSection === "products" && (
               <div>
-                <ProductsPage />
+                {productsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mr-3"></div>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Loading products...
+                    </span>
+                  </div>
+                ) : (
+                  <ProductsPage />
+                )}
               </div>
             )}
 

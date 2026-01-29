@@ -38,6 +38,7 @@ const ProductsPage = () => {
   );
   const [showViewModal, setShowViewModal] = useState(false);
   const [productToView, setProductToView] = useState<DbProduct | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,7 +128,9 @@ const ProductsPage = () => {
   };
 
   const confirmDelete = async () => {
-    if (!productToDelete) return;
+    if (!productToDelete || isDeleting) return;
+
+    setIsDeleting(true);
 
     try {
       // Delete product images from storage
@@ -201,19 +204,42 @@ const ProductsPage = () => {
       let deletedCount = 0;
       for (const imageUrl of imagesToDelete) {
         if (imageUrl && imageUrl.includes("supabase")) {
-          const filePath = imageUrl.split("/").pop();
+          // Extract the full path from the URL
+          // URL format: https://[project].supabase.co/storage/v1/object/public/product-images/path/to/file.jpg
+          const url = new URL(imageUrl);
+          const pathParts = url.pathname.split("/");
+          const pathIndex = pathParts.indexOf("product-images");
+
+          if (pathIndex === -1) {
+            console.log(
+              "Skipping deletion - not a Supabase Storage URL:",
+              imageUrl,
+            );
+            continue;
+          }
+
+          const filePath = pathParts.slice(pathIndex + 1).join("/");
           console.log("Attempting to delete file:", filePath);
 
           if (filePath) {
             try {
-              const { error: storageError } = await supabase.storage
-                .from("product-images")
-                .remove([filePath]);
+              // Use API route for deletion with service role key
+              const response = await fetch("/api/upload", {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  imageUrl,
+                  bucket: "product-images",
+                }),
+              });
 
-              if (storageError) {
-                console.error("Failed to delete image:", storageError);
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error("API delete error:", errorData);
               } else {
-                console.log("Successfully deleted image:", filePath);
+                console.log("Successfully deleted image via API:", filePath);
                 deletedCount++;
               }
             } catch (deleteError) {
@@ -230,15 +256,23 @@ const ProductsPage = () => {
       );
 
       // Delete product using mutation
-      deleteProductMutation.mutate(productToDelete.id);
-
-      setShowDeleteModal(false);
-      setProductToDelete(null);
+      deleteProductMutation.mutate(productToDelete.id, {
+        onSuccess: () => {
+          setShowDeleteModal(false);
+          setProductToDelete(null);
+          setIsDeleting(false);
+        },
+        onError: (error) => {
+          console.error("Delete mutation error:", error);
+          setIsDeleting(false);
+        },
+      });
     } catch (error) {
       console.error("Error deleting product:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       toast.error("Failed to delete product: " + errorMessage);
+      setIsDeleting(false);
     }
   };
 
@@ -545,7 +579,12 @@ const ProductsPage = () => {
       {/* Delete Confirmation Modal */}
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setProductToDelete(null);
+          }
+        }}
         onConfirm={confirmDelete}
         title="Delete Product"
         description="Are you sure you want to delete"
@@ -557,7 +596,7 @@ const ProductsPage = () => {
           "Related order items",
           "Discount associations",
         ]}
-        isLoading={deleteProductMutation.isPending}
+        isLoading={isDeleting}
       />
     </div>
   );
