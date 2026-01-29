@@ -500,9 +500,7 @@ const ProductsPage = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <Link
-                        href={`/products/${product.id}/edit?section=products`}
-                      >
+                      <Link href={`/dashboard/products/${product.id}/edit`}>
                         <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1">
                           <Edit className="w-4 h-4" />
                         </button>
