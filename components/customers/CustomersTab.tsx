@@ -1,47 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Users } from "lucide-react";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import Pagination from "@/components/ui/Pagination";
 import { useCustomers, useCustomersCount } from "@/hooks/useCustomers";
 
-interface CustomerSummary {
-  customer_email: string;
-  customer_name: string;
-  customer_phone: string | null;
-  orders_count: number;
-  total_spent: number;
-  last_order_at: string;
-  member_since: string;
-  last_sign_in_at: string | null;
-  display_name: string | null;
-  role: string;
-}
-
-interface RegisteredUser {
-  id: string;
-  email: string;
-  created_at: string | null;
-  last_sign_in_at: string | null;
-  display_name: string | null;
-  role: string;
-}
-
 export default function CustomersTab() {
-  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"customers" | "users">(
-    "customers",
-  );
-
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<
-    "created_at" | "total_spent" | "orders_count"
+    "created_at" | "total_amount" | "customer_name" | "customer_email"
   >("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -56,154 +25,49 @@ export default function CustomersTab() {
     currentPage !== 1
   );
 
-  // Fetch customers from database with search, filter, and sort
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Use customer hooks
+  const {
+    data: customers = [],
+    isLoading,
+    error,
+  } = useCustomers({
+    search: searchTerm,
+    sortBy,
+    sortOrder,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-      if (activeTab === "customers") {
-        // Build query for customer summaries from orders
-        let query = supabase
-          .from("orders")
-          .select(
-            "customer_name, customer_email, customer_phone, total_amount, created_at",
-            { count: "exact" },
-          );
+  const { data: total = 0 } = useCustomersCount({
+    search: searchTerm,
+  });
 
-        // Apply search filter
-        if (searchTerm) {
-          query = query.or(
-            `customer_name.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,customer_phone.ilike.%${searchTerm}%`,
-          );
-        }
-
-        // Apply sorting
-        const sortColumn =
-          sortBy === "total_spent"
-            ? "total_amount"
-            : sortBy === "orders_count"
-              ? "created_at"
-              : "created_at";
-        query = query.order(sortColumn, { ascending: sortOrder === "asc" });
-
-        // Apply pagination
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data: orders, error, count } = await query;
-
-        if (error) throw error;
-
-        // Process customer data
-        const customerMap = new Map<string, CustomerSummary>();
-
-        orders?.forEach((order) => {
-          const email = order.customer_email;
-          if (!email) return;
-
-          if (!customerMap.has(email)) {
-            customerMap.set(email, {
-              customer_email: email,
-              customer_name: order.customer_name || "Unknown",
-              customer_phone: order.customer_phone || null,
-              orders_count: 0,
-              total_spent: 0,
-              last_order_at: order.created_at || "",
-              member_since: order.created_at || "",
-              last_sign_in_at: null,
-              display_name: null,
-              role: "",
-            });
-          }
-
-          const customer = customerMap.get(email)!;
-          customer.orders_count += 1;
-          customer.total_spent += Number(order.total_amount || 0);
-
-          // Update last order date if this order is more recent
-          if (
-            order.created_at &&
-            new Date(order.created_at) > new Date(customer.last_order_at)
-          ) {
-            customer.last_order_at = order.created_at;
-          }
-
-          // Update member since if this order is older
-          if (
-            order.created_at &&
-            new Date(order.created_at) < new Date(customer.member_since)
-          ) {
-            customer.member_since = order.created_at;
-          }
-        });
-
-        const customersList = Array.from(customerMap.values());
-
-        // Apply client-side sorting for total_spent and orders_count
-        if (sortBy === "total_spent") {
-          customersList.sort((a, b) =>
-            sortOrder === "asc"
-              ? a.total_spent - b.total_spent
-              : b.total_spent - a.total_spent,
-          );
-        } else if (sortBy === "orders_count") {
-          customersList.sort((a, b) =>
-            sortOrder === "asc"
-              ? a.orders_count - b.orders_count
-              : b.orders_count - a.orders_count,
-          );
-        }
-
-        setCustomers(customersList);
-        setTotal(customerMap.size);
-      } else {
-        // Fetch registered users from admin_users table
-        let query = supabase
-          .from("admin_users")
-          .select("id, email, created_at, role", { count: "exact" });
-
-        // Apply search filter
-        if (searchTerm) {
-          query = query.or(`email.ilike.%${searchTerm}%`);
-        }
-
-        // Apply sorting
-        query = query.order("created_at", { ascending: sortOrder === "asc" });
-
-        // Apply pagination
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data: users, error, count } = await query;
-
-        if (error) throw error;
-
-        // Transform data to match expected format
-        const transformedUsers: RegisteredUser[] =
-          users?.map((user) => ({
-            ...user,
-            display_name: user.email, // Use email as display name
-            last_sign_in_at: null, // Not available in admin_users
-          })) || [];
-
-        setRegisteredUsers(transformedUsers);
-        setTotal(count || 0);
-      }
-    } catch (error: any) {
-      console.error("Error fetching data:", error);
-      setError(error.message || "Failed to fetch data");
-    } finally {
-      setLoading(false);
-    }
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
   };
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [searchTerm, sortBy, sortOrder, currentPage, itemsPerPage, activeTab]);
+  // Handle sort change
+  const handleSortChange = (value: string) => {
+    const [sort, order] = value.split("-");
+    setSortBy(sort as any);
+    setSortOrder(order as "asc" | "desc");
+    setCurrentPage(1);
+  };
 
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle clear all filters
   const handleClearAll = () => {
     setSearchTerm("");
     setSortBy("created_at");
@@ -212,220 +76,159 @@ export default function CustomersTab() {
     setCurrentPage(1);
   };
 
-  const currency = (value: number) => {
-    try {
-      return new Intl.NumberFormat("en-NP", {
-        style: "currency",
-        currency: "NPR",
-      })
-        .format(value)
-        .replace("NPR", "NRS");
-    } catch {
-      return `NRS ${value.toFixed(2)}`;
-    }
-  };
-
   if (error) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="text-red-600 dark:text-red-400 mb-4">{error}</div>
-          <button
-            onClick={fetchCustomers}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Try Again
-          </button>
+      <div className="text-center py-12">
+        <div className="text-red-600 dark:text-red-400 mb-4">
+          {error instanceof Error ? error.message : "Failed to fetch customers"}
         </div>
       </div>
     );
   }
 
-  const currentData = activeTab === "customers" ? customers : registeredUsers;
-
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Customer Management
-          </h1>
-        </div>
-      </div>
+    <div>
+      <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-900 dark:text-white">
+        Customer Management
+      </h2>
 
       {/* Search, Filter, and Sort */}
       <SearchFilterSort
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         sortBy={`${sortBy}-${sortOrder}`}
-        onSortChange={(value) => {
-          const [field, order] = value.split("-");
-          setSortBy(field as "created_at" | "total_spent" | "orders_count");
-          setSortOrder(order as "asc" | "desc");
-        }}
+        onSortChange={handleSortChange}
+        showStatusFilter={false}
         showClearAll={hasFilters}
         onClearAll={handleClearAll}
         sortOptions={[
           { value: "created_at-desc", label: "Newest First" },
           { value: "created_at-asc", label: "Oldest First" },
-          { value: "total_spent-desc", label: "Highest Spent First" },
-          { value: "total_spent-asc", label: "Lowest Spent First" },
-          { value: "orders_count-desc", label: "Most Orders First" },
-          { value: "orders_count-asc", label: "Least Orders First" },
+          { value: "total_amount-desc", label: "Highest Spending First" },
+          { value: "total_amount-asc", label: "Lowest Spending First" },
+          { value: "customer_name-asc", label: "Name A-Z" },
+          { value: "customer_name-desc", label: "Name Z-A" },
+          { value: "customer_email-asc", label: "Email A-Z" },
+          { value: "customer_email-desc", label: "Email Z-A" },
         ]}
         placeholder="Search by customer name, email, or phone..."
       />
 
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-        <button
-          onClick={() => setActiveTab("customers")}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "customers"
-              ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Order Customers
-        </button>
-        <button
-          onClick={() => setActiveTab("users")}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "users"
-              ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Registered Users
-        </button>
-      </div>
-
       {/* Results count */}
       <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Showing {currentData.length} of {total}{" "}
-        {activeTab === "customers" ? "customers" : "users"}
+        {isLoading ? (
+          "Loading..."
+        ) : (
+          <>
+            Showing {customers.length} of {total} customers
+          </>
+        )}
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      )}
-
-      {/* Data display */}
-      {!loading && currentData.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+      {/* Customers Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Phone
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Total Spent
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Order Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {customers.length === 0 ? (
                 <tr>
-                  {activeTab === "customers" ? (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Customer Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Orders
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Total Spent
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Member Since
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Registered
-                      </th>
-                    </>
-                  )}
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <Users className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No Customers Found
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {hasFilters
+                          ? "No customers match your current filters."
+                          : "No customers have placed orders yet."}
+                      </p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentData.map((item: any, index: number) =>
-                  activeTab === "customers" ? (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {item.customer_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.customer_email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.customer_phone || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.orders_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {currency(item.total_spent)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {new Date(item.member_since).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {item.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.role}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
-          </div>
+              ) : (
+                customers.map((customer: any, index: number) => (
+                  <tr key={`${customer.customer_email}-${index}`}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {customer.customer_name || "Unknown"}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {customer.customer_email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {customer.customer_phone || "Not provided"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {new Intl.NumberFormat("en-NP", {
+                        style: "currency",
+                        currency: "NPR",
+                      })
+                        .format(customer.total_amount || 0)
+                        .replace("NPR", "NRS")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          customer.order_status === "delivered"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : customer.order_status === "processing"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                              : customer.order_status === "shipped"
+                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                : customer.order_status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                  : customer.order_status === "cancelled"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                    : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                        }`}
+                      >
+                        {customer.order_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {new Date(customer.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && currentData.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No {activeTab === "customers" ? "customers" : "users"} found
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {activeTab === "customers"
-              ? "Customers will appear here once orders are placed."
-              : "No registered users found."}
-          </p>
-        </div>
-      )}
+      </div>
 
       {/* Pagination */}
-      {currentData.length > 0 && (
-        <div className="mt-4">
+      {total > 0 && (
+        <div className="mt-6">
           <Pagination
             currentPage={currentPage}
             totalPages={Math.ceil(total / itemsPerPage)}
             totalItems={total}
             itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
           />
         </div>
       )}
