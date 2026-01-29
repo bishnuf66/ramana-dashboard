@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   TrendingUp,
   Package,
@@ -21,7 +22,6 @@ import {
   CreditCard,
   DollarSign,
 } from "lucide-react";
-import { useState } from "react";
 
 interface AdminSidebarProps {
   activeSection:
@@ -59,14 +59,20 @@ interface AdminSidebarProps {
 export default function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Get active section from search params
-  const activeSection =
-    (searchParams.get("section") as AdminSidebarProps["activeSection"]) ||
-    "analytics";
+  // Get active section from pathname
+  const getActiveSection = () => {
+    if (pathname === "/dashboard") return "analytics";
+    if (pathname.startsWith("/dashboard/")) {
+      const section = pathname.split("/")[2];
+      return section || "analytics";
+    }
+    return "analytics";
+  };
+
+  const activeSection = getActiveSection();
 
   const handleLogout = async () => {
     try {
@@ -148,7 +154,7 @@ export default function AdminSidebar() {
                 <button
                   key={item.id}
                   onClick={() => {
-                    router.push(`/dashboard?section=${item.id}`);
+                    router.push(`/dashboard/${item.id}`);
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100" : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"} ${isCollapsed ? "justify-center" : ""}`}

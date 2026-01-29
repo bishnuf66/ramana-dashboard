@@ -39,6 +39,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     /^\/login$/,
     /^\/auth\/callback$/,
     /^\/dashboard$/,
+    /^\/dashboard\/analytics$/,
+    /^\/dashboard\/products$/,
+    /^\/dashboard\/orders$/,
+    /^\/dashboard\/customers$/,
+    /^\/dashboard\/reviews$/,
+    /^\/dashboard\/blog$/,
+    /^\/dashboard\/categories$/,
+    /^\/dashboard\/discounts$/,
+    /^\/dashboard\/testimonials$/,
+    /^\/dashboard\/payment-options$/,
+    /^\/dashboard\/payments$/,
+    /^\/dashboard\/support$/,
+    /^\/dashboard\/settings$/,
     /^\/blog(\/\d+)?(\/edit)?$/, // blog, blog/[id], blog/[id]/edit
     /^\/blog\/new$/, // blog/new
     /^\/categories(\/\d+)?(\/edit)?$/, // categories, categories/[id], categories/[id]/edit
@@ -120,8 +133,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <AdminSidebar />
             </Suspense>
           )}
-          <div className="flex-1">
-            <div className="flex justify-start pl-6">
+          <div className="flex-1 p-10">
+            <div className="flex justify-start">
               <Breadcrumb />
             </div>
             <main>{children}</main>

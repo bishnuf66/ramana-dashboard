@@ -16,6 +16,18 @@ export default function Breadcrumb() {
 
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [];
+    const pathSegments = pathname.split("/").filter(Boolean);
+
+    // Handle login page
+    if (pathname === "/login") {
+      return [
+        {
+          label: "Login",
+          href: "/login",
+          isCurrent: true,
+        },
+      ];
+    }
 
     // Always start with Home/Dashboard
     items.push({
@@ -24,11 +36,9 @@ export default function Breadcrumb() {
       isCurrent: pathname === "/dashboard",
     });
 
-    // Get current section from search params
-    const section = searchParams.get("section");
-
-    // Handle dashboard sections
-    if (section && pathname === "/dashboard") {
+    // Handle dashboard sections (new route-based approach)
+    if (pathSegments[0] === "dashboard" && pathSegments.length > 1) {
+      const section = pathSegments[1];
       const sectionLabels: Record<string, string> = {
         analytics: "Analytics",
         products: "Products",
@@ -48,22 +58,20 @@ export default function Breadcrumb() {
       if (sectionLabels[section]) {
         items.push({
           label: sectionLabels[section],
-          href: `/dashboard?section=${section}`,
-          isCurrent: false,
+          href: `/dashboard/${section}`,
+          isCurrent: pathSegments.length === 2,
         });
       }
     }
 
-    // Handle dynamic routes
-    const pathSegments = pathname.split("/").filter(Boolean);
-
-    if (pathSegments.length > 1) {
+    // Handle dynamic routes outside dashboard
+    if (pathSegments.length > 0 && pathSegments[0] !== "dashboard") {
       // Handle specific page routes
       if (pathSegments[0] === "products") {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Products",
-            href: "/dashboard?section=products",
+            href: "/dashboard/products",
             isCurrent: false,
           });
           items.push({
@@ -74,7 +82,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Products",
-            href: "/dashboard?section=products",
+            href: "/dashboard/products",
             isCurrent: false,
           });
           items.push({
@@ -89,7 +97,7 @@ export default function Breadcrumb() {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Coupons",
-            href: "/dashboard?section=discounts",
+            href: "/dashboard/discounts",
             isCurrent: false,
           });
           items.push({
@@ -100,7 +108,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Coupons",
-            href: "/dashboard?section=discounts",
+            href: "/dashboard/discounts",
             isCurrent: false,
           });
           items.push({
@@ -115,7 +123,7 @@ export default function Breadcrumb() {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Blog",
-            href: "/dashboard?section=blog",
+            href: "/dashboard/blog",
             isCurrent: false,
           });
           items.push({
@@ -126,7 +134,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Blog",
-            href: "/dashboard?section=blog",
+            href: "/dashboard/blog",
             isCurrent: false,
           });
           items.push({
@@ -141,7 +149,7 @@ export default function Breadcrumb() {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Categories",
-            href: "/dashboard?section=categories",
+            href: "/dashboard/categories",
             isCurrent: false,
           });
           items.push({
@@ -152,7 +160,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Categories",
-            href: "/dashboard?section=categories",
+            href: "/dashboard/categories",
             isCurrent: false,
           });
           items.push({
@@ -167,7 +175,7 @@ export default function Breadcrumb() {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Testimonials",
-            href: "/dashboard?section=testimonials",
+            href: "/dashboard/testimonials",
             isCurrent: false,
           });
           items.push({
@@ -178,7 +186,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Testimonials",
-            href: "/dashboard?section=testimonials",
+            href: "/dashboard/testimonials",
             isCurrent: false,
           });
           items.push({
@@ -193,7 +201,7 @@ export default function Breadcrumb() {
         if (pathSegments[1] === "new") {
           items.push({
             label: "Payments",
-            href: "/dashboard?section=payments",
+            href: "/dashboard/payments",
             isCurrent: false,
           });
           items.push({
@@ -204,7 +212,7 @@ export default function Breadcrumb() {
         } else if (pathSegments[1] === "edit") {
           items.push({
             label: "Payments",
-            href: "/dashboard?section=payments",
+            href: "/dashboard/payments",
             isCurrent: false,
           });
           items.push({
@@ -214,17 +222,6 @@ export default function Breadcrumb() {
           });
         }
       }
-    }
-
-    // Handle login page
-    if (pathname === "/login") {
-      return [
-        {
-          label: "Login",
-          href: "/login",
-          isCurrent: true,
-        },
-      ];
     }
 
     return items;
