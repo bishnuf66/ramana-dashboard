@@ -17,6 +17,8 @@ import { Database } from "@/types/database.types";
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
 import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
+import PaymentOptionViewModal from "./PaymentOptionViewModal";
+import DeletePaymentOptionModal from "./DeletePaymentOptionModal";
 import {
   usePaymentOptions,
   useDeletePaymentOption,
@@ -37,6 +39,13 @@ export default function PaymentOptionList() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Modal states
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<PaymentOption | null>(
+    null,
+  );
 
   // Mutations and queries
   const deletePaymentOptionMutation = useDeletePaymentOption();
@@ -60,10 +69,23 @@ export default function PaymentOptionList() {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment option?"))
-      return;
-    deletePaymentOptionMutation.mutate(id);
+  const handleDelete = (option: PaymentOption) => {
+    setSelectedOption(option);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = (option: PaymentOption) => {
+    deletePaymentOptionMutation.mutate(option.id, {
+      onSuccess: () => {
+        setDeleteModalOpen(false);
+        setSelectedOption(null);
+      },
+    });
+  };
+
+  const handleView = (option: PaymentOption) => {
+    setSelectedOption(option);
+    setViewModalOpen(true);
   };
 
   const handleSearch = (value: string) => {
@@ -255,6 +277,14 @@ export default function PaymentOptionList() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => handleView(option)}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900/20 rounded transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View
+                  </button>
+
                   <Link
                     href={`/dashboard/payment-options/${option.id}/edit`}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
@@ -264,24 +294,7 @@ export default function PaymentOptionList() {
                   </Link>
 
                   <button
-                    onClick={() => handleToggleStatus(option)}
-                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded transition-colors"
-                  >
-                    {option.status === "active" ? (
-                      <>
-                        <EyeOff className="w-3 h-3" />
-                        Hide
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-3 h-3" />
-                        Show
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(option.id)}
+                    onClick={() => handleDelete(option)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -296,15 +309,38 @@ export default function PaymentOptionList() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalCount}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          showItemsPerPageSelector={false}
-        />
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalCount}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
     </div>
+
+    {/* View Modal */}
+    <PaymentOptionViewModal
+      paymentOption={selectedOption}
+      isOpen={viewModalOpen}
+      onClose={() => {
+        setViewModalOpen(false);
+        setSelectedOption(null);
+      }}
+    />
+
+    {/* Delete Modal */}
+    <DeletePaymentOptionModal
+      paymentOption={selectedOption}
+      isOpen={deleteModalOpen}
+      onClose={() => {
+        setDeleteModalOpen(false);
+        setSelectedOption(null);
+      }}
+      onConfirm={handleConfirmDelete}
+      isDeleting={deletePaymentOptionMutation.isPending}
+    />
   );
 }

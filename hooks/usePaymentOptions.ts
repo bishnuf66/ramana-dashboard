@@ -166,13 +166,55 @@ export function useDeletePaymentOption() {
         id,
       );
 
+      // First, fetch the payment option to get the image URL
+      try {
+        const paymentResponse = await axiosInstance.get(
+          `/api/payment-options/${id}`,
+        );
+        const paymentOption = paymentResponse.data.paymentOption;
+
+        // Delete the QR image if it exists
+        if (paymentOption?.qr_image_url) {
+          console.log(
+            "useDeletePaymentOption: Deleting QR image:",
+            paymentOption.qr_image_url,
+          );
+          try {
+            await axiosInstance.delete("/api/upload", {
+              data: {
+                imageUrl: paymentOption.qr_image_url,
+                bucket: "payment-qr-images",
+              },
+            });
+            console.log(
+              "useDeletePaymentOption: QR image deleted successfully",
+            );
+          } catch (imageError) {
+            console.warn(
+              "useDeletePaymentOption: Failed to delete QR image:",
+              imageError,
+            );
+            // Don't fail the entire delete operation if image deletion fails
+          }
+        }
+      } catch (fetchError) {
+        console.warn(
+          "useDeletePaymentOption: Failed to fetch payment option for image deletion:",
+          fetchError,
+        );
+        // Continue with payment option deletion even if we can't fetch details
+      }
+
+      // Now delete the payment option
       const response = await axiosInstance.delete("/api/payment-options", {
         data: { id },
       });
       return response.data;
     },
     onSuccess: () => {
-      toast.success("Payment option deleted successfully!");
+      toast.success(
+        "Payment option and associated image deleted successfully!",
+      );
       queryClient.invalidateQueries({ queryKey: ["paymentOptions"] });
       queryClient.invalidateQueries({ queryKey: ["paymentOptions-count"] });
     },
