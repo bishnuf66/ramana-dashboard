@@ -76,7 +76,7 @@ export default function CategoryList({
   };
 
   const handleDeleteById = (id: string) => {
-    const category = categories.find((cat) => cat.id === id);
+    const category = categories.find((cat: Category) => cat.id === id);
     if (category) {
       handleDeleteClick(category);
     }
@@ -230,7 +230,7 @@ export default function CategoryList({
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
+          {categories.map((category: Category) => (
             <div
               key={category.id}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
@@ -392,7 +392,9 @@ export default function CategoryList({
         category={categoryToView}
         onDelete={(categoryId) => {
           // Handle deletion from view modal
-          const category = categories.find((c) => c.id === categoryId);
+          const category = categories.find(
+            (c: Category) => c.id === categoryId,
+          );
           if (category) {
             handleDeleteClick(category);
           }

@@ -7,48 +7,68 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// GET - Fetch all blogs
+// GET - Fetch customers (from orders table)
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
     return authResult;
   }
+
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status") || "";
+    const search = searchParams.get("search") || "";
     const sortBy = searchParams.get("sortBy") || "created_at";
     const sortOrder = searchParams.get("sortOrder") || "desc";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
-    console.log("API: Fetching blogs with params:", {
-      status,
+    console.log("API: Fetching customers with params:", {
+      search,
       sortBy,
       sortOrder,
+      page,
+      limit,
     });
 
-    let query = supabase.from("blogs").select("*");
+    // Get unique customers from orders
+    let query = supabase.from("orders").select(`
+        customer_name,
+        customer_email,
+        customer_phone,
+        total_amount,
+        created_at,
+        order_status
+      `);
 
-    // Apply status filter
-    if (status) {
-      query = query.eq("status", status);
+    // Apply search filter
+    if (search) {
+      query = query.or(
+        `customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,customer_phone.ilike.%${search}%`,
+      );
     }
 
     // Apply sorting
     query = query.order(sortBy, { ascending: sortOrder === "asc" });
 
+    // Apply pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
     const { data, error } = await query;
 
     if (error) {
-      console.error("API: Blogs fetch error:", error);
+      console.error("API: Customers fetch error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Blogs fetched successfully:", data?.length || 0);
+    console.log("API: Customers fetched successfully:", data?.length || 0);
     return NextResponse.json({
       success: true,
-      blogs: data || [],
+      customers: data || [],
     });
   } catch (error: any) {
-    console.error("API: Blogs fetch error:", error);
+    console.error("API: Customers fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },
@@ -56,34 +76,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create blog
+// POST - Create customer
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
     return authResult;
   }
-  try {
-    const blog = await request.json();
 
-    console.log("API: Creating blog:", blog);
+  try {
+    const customer = await request.json();
+
+    console.log("API: Creating customer:", customer);
 
     const { data, error } = await supabase
-      .from("blogs")
-      .insert([blog])
+      .from("users")
+      .insert([customer])
       .select();
 
     if (error) {
-      console.error("API: Blog creation error:", error);
+      console.error("API: Customer creation error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Blog created successfully:", data);
+    console.log("API: Customer created successfully:", data);
     return NextResponse.json({
       success: true,
-      blog: data?.[0],
+      customer: data?.[0],
     });
   } catch (error: any) {
-    console.error("API: Blog creation error:", error);
+    console.error("API: Customer creation error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },
@@ -91,35 +112,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Update blog
+// PUT - Update customer
 export async function PUT(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
     return authResult;
   }
-  try {
-    const { id, ...updates } = await request.json();
 
-    console.log("API: Updating blog:", { id, updates });
+  try {
+    const { id, ...customerData } = await request.json();
+
+    console.log("API: Updating customer:", { id, customerData });
 
     const { data, error } = await supabase
-      .from("blogs")
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .from("users")
+      .update({ ...customerData, updated_at: new Date().toISOString() })
       .eq("id", id)
       .select();
 
     if (error) {
-      console.error("API: Blog update error:", error);
+      console.error("API: Customer update error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Blog updated successfully:", data);
+    console.log("API: Customer updated successfully:", data);
     return NextResponse.json({
       success: true,
-      blog: data?.[0],
+      customer: data?.[0],
     });
   } catch (error: any) {
-    console.error("API: Blog update error:", error);
+    console.error("API: Customer update error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },
@@ -127,26 +149,31 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete blog
+// DELETE - Delete customer
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   try {
     const { id } = await request.json();
 
-    console.log("API: Deleting blog:", { id });
+    console.log("API: Deleting customer:", { id });
 
-    const { error } = await supabase.from("blogs").delete().eq("id", id);
+    const { error } = await supabase.from("users").delete().eq("id", id);
 
     if (error) {
-      console.error("API: Blog deletion error:", error);
+      console.error("API: Customer deletion error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Blog deleted successfully");
+    console.log("API: Customer deleted successfully");
     return NextResponse.json({
       success: true,
     });
   } catch (error: any) {
-    console.error("API: Blog deletion error:", error);
+    console.error("API: Customer deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },

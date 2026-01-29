@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import Pagination from "@/components/ui/Pagination";
+import { useCustomers, useCustomersCount } from "@/hooks/useCustomers";
 
 interface CustomerSummary {
   customer_email: string;

@@ -9,6 +9,7 @@ import MDEditor from "@uiw/react-md-editor";
 import { generateSlug } from "@/lib/utils";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { Category } from "@/app/dashboard/page";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -324,7 +325,7 @@ export default function NewProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">Select a category</option>
-                {categories.map((category) => (
+                {categories.map((category: Category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
