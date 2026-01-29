@@ -30,13 +30,21 @@ export function useUpload() {
         bucket,
       });
 
-      const response = await axiosInstance.post<UploadResponse>("/api/upload", formData);
+      const response = await axiosInstance.post<UploadResponse>(
+        "/api/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
       return response.data;
     },
     onSuccess: (data, variables) => {
       console.log("Upload successful:", data);
       toast.success("Image uploaded successfully");
-      
+
       // Invalidate relevant queries based on bucket
       if (variables.bucket === "blog-images") {
         queryClient.invalidateQueries({ queryKey: ["blogs"] });
@@ -67,15 +75,18 @@ export function useDeleteImage() {
     mutationFn: async ({ imageUrl, bucket }) => {
       console.log("Deleting via API:", { imageUrl, bucket });
 
-      const response = await axiosInstance.delete<{ success: boolean }>("/api/upload", {
-        data: { imageUrl, bucket },
-      });
+      const response = await axiosInstance.delete<{ success: boolean }>(
+        "/api/upload",
+        {
+          data: { imageUrl, bucket },
+        },
+      );
       return response.data;
     },
     onSuccess: (_, variables) => {
       console.log("Delete successful");
       toast.success("Image deleted successfully");
-      
+
       // Invalidate relevant queries based on bucket
       if (variables.bucket === "blog-images") {
         queryClient.invalidateQueries({ queryKey: ["blogs"] });

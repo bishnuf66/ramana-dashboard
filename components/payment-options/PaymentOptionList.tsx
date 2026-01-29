@@ -12,7 +12,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import Image from "next/image";
-import PaymentOptionForm from "./PaymentOptionForm";
+import Link from "next/link";
 import { Database } from "@/types/database.types";
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
 import Pagination from "@/components/ui/Pagination";
@@ -38,12 +38,6 @@ export default function PaymentOptionList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Modal states
-  const [showForm, setShowForm] = useState(false);
-  const [editingOption, setEditingOption] = useState<PaymentOption | null>(
-    null,
-  );
-
   // Mutations and queries
   const deletePaymentOptionMutation = useDeletePaymentOption();
   const {
@@ -61,6 +55,7 @@ export default function PaymentOptionList() {
 
   const { data: totalCount = 0 } = usePaymentOptionsCount({
     search: searchTerm,
+    status: selectedStatus,
   });
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -86,21 +81,6 @@ export default function PaymentOptionList() {
     setSortBy(field as "created_at" | "name" | "updated_at");
     setSortOrder(order as "asc" | "desc");
     setCurrentPage(1);
-  };
-
-  const handleEdit = (option: PaymentOption) => {
-    setEditingOption(option);
-    setShowForm(true);
-  };
-
-  const handleFormSuccess = () => {
-    setShowForm(false);
-    setEditingOption(null);
-  };
-
-  const handleFormCancel = () => {
-    setShowForm(false);
-    setEditingOption(null);
   };
 
   const handleToggleStatus = (option: PaymentOption) => {
@@ -140,21 +120,23 @@ export default function PaymentOptionList() {
       : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   };
 
-  if (showForm) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <PaymentOptionForm
-          paymentOption={editingOption || undefined}
-          onSuccess={handleFormSuccess}
-          onCancel={handleFormCancel}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        {/* Header with Create Button */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Payment Options
+          </h2>
+          <Link
+            href="/dashboard/payment-options/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Payment Option
+          </Link>
+        </div>
+
         {/* Search and Filters */}
         <SearchFilterSort
           searchTerm={searchTerm}
@@ -202,13 +184,13 @@ export default function PaymentOptionList() {
             <p className="text-gray-500 dark:text-gray-400 mb-4">
               Add your first payment option to get started
             </p>
-            <button
-              onClick={() => setShowForm(true)}
+            <Link
+              href="/dashboard/payment-options/new"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Payment Option
-            </button>
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -273,13 +255,13 @@ export default function PaymentOptionList() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => handleEdit(option)}
+                  <Link
+                    href={`/dashboard/payment-options/${option.id}/edit`}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
                   >
                     <Edit className="w-3 h-3" />
                     Edit
-                  </button>
+                  </Link>
 
                   <button
                     onClick={() => handleToggleStatus(option)}

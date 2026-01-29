@@ -136,13 +136,50 @@ export function useDeletePayment() {
     mutationFn: async (id: string) => {
       console.log("useDeletePayment: Deleting payment via API:", id);
 
-      const response = await axiosInstance.delete("/api/payments", {
-        data: { id },
-      });
+      // First, fetch the payment details to get the image URL
+      try {
+        const paymentResponse = await axiosInstance.get(`/api/payments/${id}`);
+        const payment = paymentResponse.data.userPayment;
+
+        // Delete the payment screenshot image if it exists
+        if (payment?.payment_screenshot) {
+          console.log(
+            "useDeletePayment: Deleting payment screenshot:",
+            payment.payment_screenshot,
+          );
+          try {
+            // Directly call the upload API to delete the image
+            await axiosInstance.delete("/api/upload", {
+              data: {
+                imageUrl: payment.payment_screenshot,
+                bucket: "payment-screenshots", // Assuming screenshots are stored in this bucket
+              },
+            });
+            console.log(
+              "useDeletePayment: Payment screenshot deleted successfully",
+            );
+          } catch (imageError) {
+            console.warn(
+              "useDeletePayment: Failed to delete payment screenshot:",
+              imageError,
+            );
+            // Don't fail the entire delete operation if image deletion fails
+          }
+        }
+      } catch (fetchError) {
+        console.warn(
+          "useDeletePayment: Failed to fetch payment details for image deletion:",
+          fetchError,
+        );
+        // Continue with payment deletion even if we can't fetch details
+      }
+
+      // Now delete the payment record
+      const response = await axiosInstance.delete(`/api/payments?id=${id}`);
       return response.data;
     },
     onSuccess: () => {
-      toast.success("Payment deleted successfully!");
+      toast.success("Payment and associated image deleted successfully!");
       queryClient.invalidateQueries({ queryKey: ["userPayments"] });
       queryClient.invalidateQueries({ queryKey: ["userPayments-count"] });
     },
