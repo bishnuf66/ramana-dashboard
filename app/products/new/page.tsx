@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { uploadImage, generateImagePath } from "@/lib/supabase/storage";
 import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
@@ -132,6 +131,34 @@ export default function NewProductPage() {
     setGalleryTitles(galleryTitles.filter((_, i) => i !== index));
   };
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      console.log("Starting image upload for:", file.name);
+      const fileName = `product-${Date.now()}-${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      console.log("File uploaded successfully:", data);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(fileName);
+
+      console.log("Public URL generated:", publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error; // Re-throw to stop form submission
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coverImageFile) {
@@ -151,12 +178,7 @@ export default function NewProductPage() {
 
       // Upload cover image
       console.log("Uploading cover image...");
-      const coverImagePath = generateImagePath(
-        productId,
-        coverImageFile.name,
-        "cover",
-      );
-      const coverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+      const coverImageUrl = await uploadImage(coverImageFile);
       if (!coverImageUrl) {
         throw new Error("Failed to upload cover image");
       }
@@ -171,14 +193,7 @@ export default function NewProductPage() {
           console.log(
             `Uploading gallery image ${i + 1}/${galleryFiles.length}...`,
           );
-          const galleryPath = generateImagePath(
-            productId,
-            galleryFiles[i].name,
-            "gallery",
-          );
-          console.log(`Gallery path for image ${i + 1}:`, galleryPath);
-
-          const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+          const galleryUrl = await uploadImage(galleryFiles[i]);
           if (!galleryUrl) {
             throw new Error(`Gallery image ${i + 1} upload returned null`);
           }

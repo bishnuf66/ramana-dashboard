@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import BlogForm from "@/components/blog/BlogForm";
+import EditBlogForm from "@/components/blog/EditBlogForm";
 import type { Database } from "@/types/database.types";
 
 type BlogPost = Database["public"]["Tables"]["blogs"]["Row"];
@@ -68,5 +68,5 @@ export default function EditBlogPage() {
     );
   }
 
-  return <BlogForm blogId={blogId} initialData={initialData} />;
+  return <EditBlogForm blogId={blogId} initialData={initialData} />;
 }

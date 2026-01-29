@@ -1,7 +1,7 @@
 "use client";
 
-import BlogForm from "@/components/blog/BlogForm";
+import CreateBlogForm from "@/components/blog/CreateBlogForm";
 
 export default function NewBlogPage() {
-  return <BlogForm />;
+  return <CreateBlogForm />;
 }

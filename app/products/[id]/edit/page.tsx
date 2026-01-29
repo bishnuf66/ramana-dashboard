@@ -1,12 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import {
-  uploadImage,
-  generateImagePath,
-  deleteImages,
-} from "@/lib/supabase/storage";
 import { Upload, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
@@ -51,6 +46,76 @@ export default function EditProductPage() {
     length_cm: "",
     tags: [] as string[],
   });
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      console.log("Starting image upload for:", file.name);
+      const fileName = `product-${Date.now()}-${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      console.log("File uploaded successfully:", data);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(fileName);
+
+      console.log("Public URL generated:", publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error; // Re-throw to stop form submission
+    }
+  };
+
+  const deleteImage = async (imageUrl: string): Promise<void> => {
+    if (!imageUrl) return;
+
+    try {
+      // Extract path from URL
+      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/product-images/path/to/file.jpg
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split("/");
+      const pathIndex = pathParts.indexOf("product-images");
+
+      if (pathIndex === -1) {
+        // If it's not a Supabase Storage URL, skip deletion
+        console.log(
+          "Skipping deletion - not a Supabase Storage URL:",
+          imageUrl,
+        );
+        return;
+      }
+
+      const filePath = pathParts.slice(pathIndex + 1).join("/");
+
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Failed to delete image:", error);
+        // Don't throw - allow operation to continue even if deletion fails
+      } else {
+        console.log("Successfully deleted image:", filePath);
+      }
+    } catch (error) {
+      console.error("Error parsing image URL:", error);
+      // Don't throw - allow operation to continue
+    }
+  };
+
+  const deleteImages = async (imageUrls: string[]): Promise<void> => {
+    await Promise.all(imageUrls.map((url) => deleteImage(url)));
+  };
+
   const [tagInput, setTagInput] = useState("");
 
   const addTag = (tag: string) => {
@@ -233,13 +298,8 @@ export default function EditProductPage() {
           );
         }
 
-        const coverImagePath = generateImagePath(
-          product.id || "",
-          coverImageFile.name,
-          "cover",
-        );
-        console.log("Uploading new cover image to:", coverImagePath);
-        newCoverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+        console.log("Uploading new cover image...");
+        newCoverImageUrl = await uploadImage(coverImageFile);
         if (!newCoverImageUrl) {
           throw new Error("Failed to upload new cover image");
         }
@@ -251,13 +311,8 @@ export default function EditProductPage() {
       console.log("Processing", galleryFiles.length, "new gallery images");
 
       for (let i = 0; i < galleryFiles.length; i++) {
-        const galleryPath = generateImagePath(
-          product.id || "",
-          galleryFiles[i].name,
-          "gallery",
-        );
-        console.log(`Uploading gallery image ${i + 1}:`, galleryPath);
-        const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+        console.log(`Uploading gallery image ${i + 1}...`);
+        const galleryUrl = await uploadImage(galleryFiles[i]);
         if (!galleryUrl) {
           throw new Error(`Failed to upload gallery image ${i + 1}`);
         }
