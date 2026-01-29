@@ -28,6 +28,7 @@ import {
   useDeleteProduct,
 } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import axiosInstance from "@/lib/axios";
 
 type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
@@ -224,26 +225,20 @@ const ProductsPage = () => {
           if (filePath) {
             try {
               // Use API route for deletion with service role key
-              const response = await fetch("/api/upload", {
-                method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
+              const response = await axiosInstance.delete("/api/upload", {
+                data: {
                   imageUrl,
                   bucket: "product-images",
-                }),
+                },
               });
 
-              if (!response.ok) {
-                const errorData = await response.json();
-                console.error("API delete error:", errorData);
-              } else {
-                console.log("Successfully deleted image via API:", filePath);
-                deletedCount++;
-              }
-            } catch (deleteError) {
+              console.log("Successfully deleted image via API:", filePath);
+              deletedCount++;
+            } catch (deleteError: any) {
               console.error("Exception during image deletion:", deleteError);
+              if (deleteError.response) {
+                console.error("API response error:", deleteError.response.data);
+              }
             }
           }
         } else {

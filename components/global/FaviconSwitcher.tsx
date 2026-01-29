@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { initFaviconSwitcher } from "@/utils/favicon";
+import { initFaviconSwitcher } from "@/lib/favicon";
 
 export default function FaviconSwitcher() {
   useEffect(() => {

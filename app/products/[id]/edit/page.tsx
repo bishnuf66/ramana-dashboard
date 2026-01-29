@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import MDEditor from "@uiw/react-md-editor";
 import { generateSlug } from "@/lib/utils";
 import { Database } from "@/types/database.types";
+import axiosInstance from "@/lib/axios";
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -92,26 +93,19 @@ export default function EditProductPage() {
     try {
       console.log("Deleting image via API:", imageUrl, "from bucket:", bucket);
 
-      const response = await fetch("/api/upload", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const response = await axiosInstance.delete("/api/upload", {
+        data: {
           imageUrl,
           bucket,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API delete error:", errorData);
-        // Don't throw - allow operation to continue even if deletion fails
-      } else {
-        console.log("Image deleted successfully via API:", imageUrl);
-      }
-    } catch (error) {
+      console.log("Image deleted successfully via API:", imageUrl);
+    } catch (error: any) {
       console.error("Error deleting image via API:", error);
+      if (error.response) {
+        console.error("API response error:", error.response.data);
+      }
       // Don't throw - allow operation to continue
     }
   };
