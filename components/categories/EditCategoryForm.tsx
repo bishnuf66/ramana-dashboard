@@ -26,17 +26,20 @@ export default function EditCategoryForm({
   onCancel,
 }: EditCategoryFormProps) {
   const router = useRouter();
+
+  console.log("EditCategoryForm - Initial data:", initialData);
+  console.log("EditCategoryForm - Initial picture:", initialData?.picture);
+
   const [formData, setFormData] = useState<CategoryFormData>({
-    name: initialData?.name || "",
-    slug: initialData?.slug || "",
-    description: initialData?.description || "",
-    picture: initialData?.picture || null,
+    name: "",
+    slug: "",
+    description: "",
+    picture: null,
   });
+
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    initialData?.picture || null,
-  );
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-generate slug from name whenever name changes
@@ -47,6 +50,20 @@ export default function EditCategoryForm({
       }));
     }
   }, [formData.name]);
+
+  // Update form data when initialData is loaded
+  useEffect(() => {
+    if (initialData) {
+      console.log("Updating form data with initialData:", initialData);
+      setFormData({
+        name: initialData.name || "",
+        slug: initialData.slug || "",
+        description: initialData.description || "",
+        picture: initialData.picture || null,
+      });
+      setImagePreview(initialData.picture || null);
+    }
+  }, [initialData]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +88,7 @@ export default function EditCategoryForm({
   };
 
   const removeImage = () => {
+    // Only clear the UI state, don't delete from storage yet
     setImageFile(null);
     setImagePreview(null);
     setFormData((prev) => ({ ...prev, picture: null }));
@@ -78,22 +96,29 @@ export default function EditCategoryForm({
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
+      console.log("Starting image upload for:", file.name);
       const fileName = `category-${Date.now()}-${file.name}`;
+
       const { data, error } = await supabase.storage
         .from("category-images")
         .upload(fileName, file);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      console.log("File uploaded successfully:", data);
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("category-images").getPublicUrl(fileName);
 
+      console.log("Public URL generated:", publicUrl);
       return publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload image");
-      return null;
+      throw error; // Re-throw to stop form submission
     }
   };
 
@@ -110,27 +135,100 @@ export default function EditCategoryForm({
     try {
       let pictureUrl = formData.picture;
 
-      // Upload new image if provided
-      if (imageFile) {
-        // Delete previous image from storage if it exists
-        if (formData.picture && formData.picture.includes("supabase")) {
-          const previousFilePath = formData.picture.split("/").pop();
-          if (previousFilePath) {
+      // Handle image removal (user clicked X button)
+      if (
+        !formData.picture &&
+        initialData?.picture &&
+        initialData.picture.includes("supabase")
+      ) {
+        console.log(
+          "Image was removed by user, deleting from storage:",
+          initialData.picture,
+        );
+        const previousFilePath = initialData.picture.split("/").pop();
+
+        if (previousFilePath) {
+          try {
             const { error: storageError } = await supabase.storage
               .from("category-images")
               .remove([previousFilePath]);
+
             if (storageError) {
-              console.warn(
-                "Failed to delete previous category image:",
+              console.error(
+                "Failed to delete removed image from storage:",
                 storageError,
               );
+              toast.warning(
+                "Warning: Could not delete previous image from storage",
+              );
+            } else {
+              console.log("Removed image deleted successfully from storage");
             }
+          } catch (deleteError) {
+            console.error(
+              "Exception during removed image deletion:",
+              deleteError,
+            );
+            toast.warning(
+              "Warning: Error occurred while deleting previous image",
+            );
           }
         }
+      }
 
+      // Upload new image if provided
+      if (imageFile) {
+        console.log("New image detected for upload");
+        console.log("Current picture URL:", formData.picture);
+
+        // Delete previous image from storage if it exists
+        if (formData.picture && formData.picture.includes("supabase")) {
+          console.log(
+            "Previous image is from Supabase, attempting to delete...",
+          );
+          const previousFilePath = formData.picture.split("/").pop();
+          console.log("Extracted file path:", previousFilePath);
+
+          if (previousFilePath) {
+            try {
+              const { error: storageError } = await supabase.storage
+                .from("category-images")
+                .remove([previousFilePath]);
+
+              if (storageError) {
+                console.error(
+                  "Failed to delete previous category image:",
+                  storageError,
+                );
+                toast.warning(
+                  "Warning: Could not delete previous image from storage",
+                );
+              } else {
+                console.log("Previous image deleted successfully from storage");
+              }
+            } catch (deleteError) {
+              console.error("Exception during image deletion:", deleteError);
+              toast.warning(
+                "Warning: Error occurred while deleting previous image",
+              );
+            }
+          } else {
+            console.warn("Could not extract file path from previous image URL");
+          }
+        } else {
+          console.log(
+            "Previous image is not from Supabase or doesn't exist, skipping deletion",
+          );
+        }
+
+        console.log("Uploading new image...");
         const uploadedUrl = await uploadImage(imageFile);
         if (uploadedUrl) {
           pictureUrl = uploadedUrl;
+          console.log("New image uploaded successfully:", uploadedUrl);
+        } else {
+          console.error("Image upload returned null");
+          throw new Error("Image upload failed");
         }
       }
 
@@ -160,7 +258,7 @@ export default function EditCategoryForm({
       console.error("Error updating category:", error);
       console.error("Form data:", formData);
       console.error("Image file:", imageFile);
-      
+
       // More specific error handling
       if (error.message?.includes("toLocaleLowerCase")) {
         toast.error("Error with form data. Please try again.");
