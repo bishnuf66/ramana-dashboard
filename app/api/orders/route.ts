@@ -13,18 +13,26 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const sortBy = searchParams.get("sortBy") || "created_at";
     const sortOrder = searchParams.get("sortOrder") || "desc";
+    const search = searchParams.get("search") || "";
 
-    console.log("API: Fetching orders with params:", { status, sortBy, sortOrder });
+    console.log("API: Fetching orders with params:", {
+      status,
+      sortBy,
+      sortOrder,
+      search,
+    });
 
-    let query = supabase
-      .from("orders")
-      .select(`
-        *,
-        user:users(id, email, full_name)
-      `);
+    let query = supabase.from("orders").select("*");
+
+    // Apply search filter
+    if (search) {
+      query = query.or(
+        `customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,id.ilike.%${search}%`,
+      );
+    }
 
     // Apply status filter
-    if (status) {
+    if (status && status !== "all") {
       query = query.eq("order_status", status);
     }
 
@@ -47,7 +55,7 @@ export async function GET(request: NextRequest) {
     console.error("API: Orders fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,7 +86,7 @@ export async function POST(request: NextRequest) {
     console.error("API: Order creation error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -110,7 +118,7 @@ export async function PUT(request: NextRequest) {
     console.error("API: Order update error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,7 +145,7 @@ export async function DELETE(request: NextRequest) {
     console.error("API: Order deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

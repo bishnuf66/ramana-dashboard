@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -26,27 +26,16 @@ export function useCategories(params: CategoryQueryParams = {}) {
   return useQuery({
     queryKey: ["categories", { search, sortBy, sortOrder, page, limit }],
     queryFn: async () => {
-      let query = (supabase as any).from("categories").select("*");
+      const params = new URLSearchParams({
+        search: search.toString(),
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,description.ilike.%${search}%`,
-        );
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as Category[];
+      const response = await axiosInstance.get(`/api/categories?${params}`);
+      return response.data.categories;
     },
   });
 }
@@ -103,14 +92,16 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (categoryData: any) => {
-      const { data, error } = await (supabase as any)
-        .from("categories")
-        .insert(categoryData)
-        .select()
-        .single();
+      console.log(
+        "useCreateCategory: Creating category via API:",
+        categoryData,
+      );
 
-      if (error) throw error;
-      return data as Category;
+      const response = await axiosInstance.post(
+        "/api/categories",
+        categoryData,
+      );
+      return response.data.category;
     },
     onSuccess: () => {
       toast.success("Category created successfully!");
@@ -118,7 +109,8 @@ export function useCreateCategory() {
       queryClient.invalidateQueries({ queryKey: ["categories-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create category");
+      console.error("useCreateCategory: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to create category");
     },
   });
 }

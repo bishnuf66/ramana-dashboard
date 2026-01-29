@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
@@ -32,6 +31,7 @@ import TestimonialList from "@/components/testimonials/TestimonialList";
 import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
+import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -56,7 +56,6 @@ export interface OrderItem {
 
 // Wrapper component that uses useSearchParams
 function DashboardContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const activeSection =
     (searchParams.get("section") as
@@ -82,7 +81,13 @@ function DashboardContent() {
   } = useProducts({ limit: 100 });
   const deleteProductMutation = useDeleteProduct();
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const {
+    data: orders = [],
+    isLoading: ordersLoading,
+    refetch: refetchOrders,
+  } = useOrders({ limit: 100 });
+  const updateOrderStatusMutation = useUpdateOrderStatus();
+
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -126,32 +131,12 @@ function DashboardContent() {
     }
   }, [activeSection, refetchProducts]);
 
-  const fetchOrders = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
-    } catch (error: any) {
-      toast.error("Failed to fetch orders: " + error.message);
-    }
-  };
-
   useEffect(() => {
-    // Fetch categories and orders on mount
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([fetchOrders()]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+    // Refetch orders when switching to orders tab
+    if (activeSection === "orders") {
+      refetchOrders();
+    }
+  }, [activeSection, refetchOrders]);
 
   const handleCloseProductModal = () => {
     setShowProductModal(false);
@@ -232,23 +217,7 @@ function DashboardContent() {
   };
 
   const handleUpdateOrderStatus = async (id: string, status: OrderStatus) => {
-    try {
-      const updatePayload: Database["public"]["Tables"]["orders"]["Update"] = {
-        order_status: status,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await (supabase as any)
-        .from("orders")
-        .update(updatePayload)
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success("Order status updated");
-      fetchOrders();
-    } catch (error: any) {
-      toast.error("Failed to update order: " + error.message);
-    }
+    updateOrderStatusMutation.mutate({ orderId: id, status });
   };
 
   const handleVerifyPayment = async (orderId: string) => {
@@ -269,7 +238,7 @@ function DashboardContent() {
 
       if (error) throw error;
       toast.success("Payment verified successfully");
-      fetchOrders();
+      refetchOrders();
     } catch (error: any) {
       toast.error("Failed to verify payment: " + error.message);
     }

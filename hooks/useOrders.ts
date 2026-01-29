@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
@@ -36,32 +36,17 @@ export function useOrders(params: OrderQueryParams = {}) {
   return useQuery({
     queryKey: ["orders", { search, status, sortBy, sortOrder, page, limit }],
     queryFn: async () => {
-      let query = (supabase as any).from("orders").select("*");
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,id.ilike.%${search}%`,
-        );
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("order_status", status);
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as Order[];
+      const response = await axiosInstance.get(`/api/orders?${params}`);
+      return response.data.orders;
     },
   });
 }
@@ -75,26 +60,13 @@ export function useOrdersCount(
   return useQuery({
     queryKey: ["orders-count", { search, status }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("orders")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,id.ilike.%${search}%`,
-        );
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("order_status", status);
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(`/api/orders/count?${params}`);
+      return response.data.count;
     },
   });
 }
@@ -104,14 +76,8 @@ export function useOrder(id: string) {
   return useQuery({
     queryKey: ["orders", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("orders")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as Order;
+      const response = await axiosInstance.get(`/api/orders/${id}`);
+      return response.data.order;
     },
     enabled: !!id,
   });
@@ -122,20 +88,33 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const { error } = await supabase
-        .from("orders")
-        .update({ order_status: status, updated_at: new Date().toISOString() })
-        .eq("id", orderId);
+    mutationFn: async ({
+      orderId,
+      status,
+    }: {
+      orderId: string;
+      status: OrderStatus;
+    }) => {
+      console.log("useUpdateOrderStatus: Updating order status:", {
+        orderId,
+        status,
+      });
 
-      if (error) throw error;
+      const response = await axiosInstance.put("/api/orders", {
+        id: orderId,
+        order_status: status,
+      });
+      return response.data.order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Order status updated successfully");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update order status");
+      console.error("useUpdateOrderStatus: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to update order status",
+      );
     },
   });
 }
@@ -152,19 +131,21 @@ export function useUpdateOrder() {
       id: string;
       updates: Partial<Order>;
     }) => {
-      const { error } = await supabase
-        .from("orders")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", id);
+      console.log("useUpdateOrder: Updating order:", { id, updates });
 
-      if (error) throw error;
+      const response = await axiosInstance.put("/api/orders", {
+        id,
+        ...updates,
+      });
+      return response.data.order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Order updated successfully");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update order");
+      console.error("useUpdateOrder: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to update order");
     },
   });
 }
