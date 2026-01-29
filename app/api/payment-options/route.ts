@@ -32,14 +32,12 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    let query = supabase
-      .from("payment_options")
-      .select("*");
+    let query = supabase.from("payment_options").select("*");
 
     // Apply search filter
     if (search) {
       query = query.or(
-        `name.ilike.%${search}%,type.ilike.%${search}%,description.ilike.%${search}%`
+        `name.ilike.%${search}%,type.ilike.%${search}%,description.ilike.%${search}%`,
       );
     }
 
@@ -63,7 +61,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Payment options fetched successfully:", data?.length || 0);
+    console.log(
+      "API: Payment options fetched successfully:",
+      data?.length || 0,
+    );
     return NextResponse.json({
       success: true,
       paymentOptions: data || [],
@@ -162,7 +163,10 @@ export async function DELETE(request: NextRequest) {
 
     console.log("API: Deleting payment option:", { id });
 
-    const { error } = await supabase.from("payment_options").delete().eq("id", id);
+    const { error } = await supabase
+      .from("payment_options")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       console.error("API: Payment option deletion error:", error);
@@ -177,12 +181,6 @@ export async function DELETE(request: NextRequest) {
     console.error("API: Payment option deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
-    return NextResponse.json(
-      { error: "Internal server error" },
       { status: 500 },
     );
   }
