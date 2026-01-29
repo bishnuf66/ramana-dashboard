@@ -88,11 +88,6 @@ export default function PaymentOptionList() {
     setCurrentPage(1);
   };
 
-  const handleItemsPerPageChange = (value: number) => {
-    setItemsPerPage(value);
-    setCurrentPage(1);
-  };
-
   const handleEdit = (option: PaymentOption) => {
     setEditingOption(option);
     setShowForm(true);

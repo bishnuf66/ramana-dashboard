@@ -31,17 +31,22 @@ export function usePaymentOptions(params: PaymentOptionQueryParams = {}) {
       { search, status, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
         sortBy: sortBy.toString(),
         sortOrder: sortOrder.toString(),
         page: page.toString(),
         limit: limit.toString(),
-      });
+      };
 
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
       const response = await axiosInstance.get(
-        `/api/payment-options?${params}`,
+        `/api/payment-options?${queryString}`,
       );
       return response.data.paymentOptions;
     },
@@ -57,13 +62,18 @@ export function usePaymentOptionsCount(
   return useQuery({
     queryKey: ["paymentOptions-count", { search, status }],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
-      });
+      };
 
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
       const response = await axiosInstance.get(
-        `/api/payment-options/count?${params}`,
+        `/api/payment-options/count?${queryString}`,
       );
       return response.data.count;
     },
