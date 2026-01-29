@@ -197,6 +197,47 @@ function DashboardContent() {
     setSelectedOrder(null);
   };
 
+  const deleteImage = async (imageUrl: string): Promise<void> => {
+    if (!imageUrl) return;
+
+    try {
+      // Extract path from URL
+      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/product-images/path/to/file.jpg
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split("/");
+      const pathIndex = pathParts.indexOf("product-images");
+
+      if (pathIndex === -1) {
+        // If it's not a Supabase Storage URL, skip deletion
+        console.log(
+          "Skipping deletion - not a Supabase Storage URL:",
+          imageUrl,
+        );
+        return;
+      }
+
+      const filePath = pathParts.slice(pathIndex + 1).join("/");
+
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Failed to delete image:", error);
+        // Don't throw - allow operation to continue even if deletion fails
+      } else {
+        console.log("Successfully deleted image:", filePath);
+      }
+    } catch (error) {
+      console.error("Error parsing image URL:", error);
+      // Don't throw - allow operation to continue
+    }
+  };
+
+  const deleteImages = async (imageUrls: string[]): Promise<void> => {
+    await Promise.all(imageUrls.map((url) => deleteImage(url)));
+  };
+
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
@@ -212,9 +253,7 @@ function DashboardContent() {
         imagesToDelete.push(...galleryImages);
 
         // Delete images (non-blocking)
-        import("@/lib/supabase/storage").then(({ deleteImages }) => {
-          deleteImages(imagesToDelete).catch(console.error);
-        });
+        deleteImages(imagesToDelete).catch(console.error);
       }
 
       const { error } = await supabase.from("products").delete().eq("id", id);

@@ -6,7 +6,7 @@ import ActionButtons from "@/components/ui/ActionButtons";
 import Pagination from "@/components/ui/Pagination";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import BlogViewModal from "./BlogViewModal";
-import { generateBlogImagePath, uploadImage } from "@/lib/supabase/storage";
+import { supabase } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/types/database.types";
 import {

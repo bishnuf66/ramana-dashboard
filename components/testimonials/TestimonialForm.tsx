@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { uploadImage, deleteImage } from "@/lib/supabase/storage";
 import { Upload, X, Star } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
@@ -37,6 +36,71 @@ export default function TestimonialForm({
     status: "active" as string,
   });
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      console.log("Starting image upload for:", file.name);
+      const fileName = `testimonial-${Date.now()}-${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from("testimonial-images")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      console.log("File uploaded successfully:", data);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("testimonial-images").getPublicUrl(fileName);
+
+      console.log("Public URL generated:", publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error; // Re-throw to stop form submission
+    }
+  };
+
+  const deleteImage = async (imageUrl: string): Promise<void> => {
+    if (!imageUrl) return;
+
+    try {
+      // Extract path from URL
+      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/testimonial-images/path/to/file.jpg
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split("/");
+      const pathIndex = pathParts.indexOf("testimonial-images");
+
+      if (pathIndex === -1) {
+        // If it's not a Supabase Storage URL, skip deletion
+        console.log(
+          "Skipping deletion - not a Supabase Storage URL:",
+          imageUrl,
+        );
+        return;
+      }
+
+      const filePath = pathParts.slice(pathIndex + 1).join("/");
+
+      const { error } = await supabase.storage
+        .from("testimonial-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Failed to delete image:", error);
+        // Don't throw - allow operation to continue even if deletion fails
+      } else {
+        console.log("Successfully deleted image:", filePath);
+      }
+    } catch (error) {
+      console.error("Error parsing image URL:", error);
+      // Don't throw - allow operation to continue
+    }
+  };
+
   useEffect(() => {
     if (testimonial) {
       setFormData({
@@ -55,11 +119,8 @@ export default function TestimonialForm({
     try {
       // Generate path for testimonials
       const timestamp = Date.now();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const fileName = `testimonials/${timestamp}-${sanitizedFileName}`;
-
-      const publicUrl = await uploadImage(file, fileName);
-      setImagePreview(publicUrl);
+      const publicUrl = await uploadImage(file);
+      setImagePreview(publicUrl || "");
       toast.success("Image uploaded successfully");
     } catch (error) {
       console.error("Error uploading image:", error);

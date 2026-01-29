@@ -8,7 +8,7 @@ import TestimonialViewModal from "./TestimonialViewModal";
 import Pagination from "@/components/ui/Pagination";
 import Image from "next/image";
 import Link from "next/link";
-import { deleteImage } from "@/lib/supabase/storage";
+import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
@@ -27,6 +27,43 @@ const TestimonialList = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [testimonialToView, setTestimonialToView] =
     useState<Testimonial | null>(null);
+
+  const deleteImage = async (imageUrl: string): Promise<void> => {
+    if (!imageUrl) return;
+
+    try {
+      // Extract path from URL
+      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/testimonial-images/path/to/file.jpg
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split("/");
+      const pathIndex = pathParts.indexOf("testimonial-images");
+
+      if (pathIndex === -1) {
+        // If it's not a Supabase Storage URL, skip deletion
+        console.log(
+          "Skipping deletion - not a Supabase Storage URL:",
+          imageUrl,
+        );
+        return;
+      }
+
+      const filePath = pathParts.slice(pathIndex + 1).join("/");
+
+      const { error } = await supabase.storage
+        .from("testimonial-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Failed to delete image:", error);
+        // Don't throw - allow operation to continue even if deletion fails
+      } else {
+        console.log("Successfully deleted image:", filePath);
+      }
+    } catch (error) {
+      console.error("Error parsing image URL:", error);
+      // Don't throw - allow operation to continue
+    }
+  };
 
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
