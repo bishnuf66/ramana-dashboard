@@ -57,26 +57,15 @@ export function usePaymentOptionsCount(
   return useQuery({
     queryKey: ["paymentOptions-count", { search, status }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("payment_options")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,description.ilike.%${search}%`,
-        );
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("is_active", status === "active");
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(
+        `/api/payment-options/count?${params}`,
+      );
+      return response.data.count;
     },
   });
 }
@@ -86,14 +75,8 @@ export function usePaymentOption(id: string) {
   return useQuery({
     queryKey: ["paymentOptions", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("payment_options")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as PaymentOption;
+      const response = await axiosInstance.get(`/api/payment-options/${id}`);
+      return response.data.paymentOption;
     },
     enabled: !!id,
   });
@@ -105,14 +88,16 @@ export function useCreatePaymentOption() {
 
   return useMutation({
     mutationFn: async (paymentOptionData: any) => {
-      const { data, error } = await (supabase as any)
-        .from("payment_options")
-        .insert(paymentOptionData)
-        .select()
-        .single();
+      console.log(
+        "useCreatePaymentOption: Creating payment option via API:",
+        paymentOptionData,
+      );
 
-      if (error) throw error;
-      return data as PaymentOption;
+      const response = await axiosInstance.post(
+        "/api/payment-options",
+        paymentOptionData,
+      );
+      return response.data.paymentOption;
     },
     onSuccess: () => {
       toast.success("Payment option created successfully!");
@@ -120,7 +105,10 @@ export function useCreatePaymentOption() {
       queryClient.invalidateQueries({ queryKey: ["paymentOptions-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create payment option");
+      console.error("useCreatePaymentOption: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to create payment option",
+      );
     },
   });
 }
@@ -131,24 +119,28 @@ export function useUpdatePaymentOption() {
 
   return useMutation({
     mutationFn: async ({ id, ...paymentOptionData }: any) => {
-      const { data, error } = await (supabase as any)
-        .from("payment_options")
-        .update(paymentOptionData)
-        .eq("id", id)
-        .select()
-        .single();
+      console.log("useUpdatePaymentOption: Updating payment option via API:", {
+        id,
+        paymentOptionData,
+      });
 
-      if (error) throw error;
-      return data as PaymentOption;
+      const response = await axiosInstance.put("/api/payment-options", {
+        id,
+        ...paymentOptionData,
+      });
+      return response.data.paymentOption;
     },
-    onSuccess: (data: PaymentOption) => {
+    onSuccess: (data: any) => {
       toast.success("Payment option updated successfully!");
       queryClient.invalidateQueries({ queryKey: ["paymentOptions"] });
       queryClient.invalidateQueries({ queryKey: ["paymentOptions-count"] });
       queryClient.invalidateQueries({ queryKey: ["paymentOptions", data.id] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update payment option");
+      console.error("useUpdatePaymentOption: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to update payment option",
+      );
     },
   });
 }
@@ -159,12 +151,15 @@ export function useDeletePaymentOption() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("payment_options")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      return id;
+      console.log(
+        "useDeletePaymentOption: Deleting payment option via API:",
+        id,
+      );
+
+      const response = await axiosInstance.delete("/api/payment-options", {
+        data: { id },
+      });
+      return response.data;
     },
     onSuccess: () => {
       toast.success("Payment option deleted successfully!");
@@ -172,7 +167,10 @@ export function useDeletePaymentOption() {
       queryClient.invalidateQueries({ queryKey: ["paymentOptions-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete payment option");
+      console.error("useDeletePaymentOption: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to delete payment option",
+      );
     },
   });
 }

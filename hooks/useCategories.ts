@@ -64,14 +64,8 @@ export function useCategory(id: string) {
   return useQuery({
     queryKey: ["categories", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("categories")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as Category;
+      const response = await axiosInstance.get(`/api/categories/${id}`);
+      return response.data.category;
     },
     enabled: !!id,
   });

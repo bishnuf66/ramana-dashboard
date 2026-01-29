@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import axiosInstance from "@/lib/axios";
+import { Category } from "@/app/dashboard/page";
 
 type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
@@ -281,7 +282,9 @@ const ProductsPage = () => {
 
   const getCategoryName = (categoryId: string | null) => {
     if (!categoryId) return "Uncategorized";
-    const category = categoriesList.find((cat) => cat.id === categoryId);
+    const category = categoriesList.find(
+      (cat: Category) => cat.id === categoryId,
+    );
     return category ? category.name : categoryId;
   };
 

@@ -69,6 +69,15 @@ function OrderTable({
 
   const updateOrderStatusMutation = useUpdateOrderStatus();
 
+  // Debug: Log the orders data
+  console.log("OrderTable Debug:", {
+    isLoading,
+    error,
+    ordersLength: orders.length,
+    orders: orders,
+    total,
+  });
+
   // Check if any filters are applied
   const hasFilters: boolean =
     !!searchTerm ||
@@ -242,137 +251,139 @@ function OrderTable({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {orders.map((order: any, index: number) => (
-                <tr key={order.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    #{order.id.slice(0, 8)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {order.customer_name}
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-12 text-center">
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No Orders Found
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {hasFilters
+                          ? "No orders match your current filters."
+                          : "No orders have been placed yet."}
+                      </p>
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {order.customer_email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {currency(order.subtotal_amount || 0)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {currency(order.discount_amount || 0)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {currency(order.delivery_charge || 0)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {currency(order.total_amount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={order.order_status}
-                      onChange={(e) =>
-                        handleStatusChange(
-                          order.id,
-                          e.target.value as OrderStatus,
-                        )
-                      }
-                      className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
-                        order.order_status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : order.order_status === "processing"
-                            ? "bg-blue-100 text-blue-800"
-                            : order.order_status === "shipped"
-                              ? "bg-purple-100 text-purple-800"
-                              : order.order_status === "delivered"
-                                ? "bg-green-100 text-green-800"
-                                : order.order_status === "returned"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="returned">Returned</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {order.cancellation_request ? (
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-xs font-medium">
-                          Requested
-                        </span>
-                        {order.cancellation_requested_at && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {new Date(
-                              order.cancellation_requested_at,
-                            ).toLocaleDateString()}
-                          </div>
-                        )}
-                        {order.cancellation_reason && (
-                          <div
-                            className="text-xs text-gray-600 dark:text-gray-300 max-w-xs truncate"
-                            title={order.cancellation_reason}
-                          >
-                            Reason: {order.cancellation_reason}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        No request
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            order.payment_status === "paid"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : order.payment_status === "failed"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}
-                        >
-                          {order.payment_status}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {currency(order.total_amount)}
-                        </span>
-                      </div>
-                      {order.payment_status === "pending" &&
-                        handleVerifyPayment && (
-                          <button
-                            onClick={() => handleVerifyPayment(order.id)}
-                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Verify Payment
-                          </button>
-                        )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {order.created_at
-                      ? new Date(order.created_at).toLocaleDateString()
-                      : "Unknown date"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {onViewOrder && (
-                      <ActionButtons
-                        id={order.id}
-                        type="order"
-                        onView={() => onViewOrder(order)}
-                        showEdit={false}
-                        showDelete={false}
-                      />
-                    )}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                orders.map((order: any, index: number) => (
+                  <tr key={order.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      #{order.id.slice(0, 8)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {order.customer_name}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {order.customer_email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {currency(order.subtotal_amount || 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {currency(order.discount_amount || 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {currency(order.delivery_charge || 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {currency(order.total_amount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={order.order_status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            order.id,
+                            e.target.value as OrderStatus,
+                          )
+                        }
+                        className={`text-xs font-semibold px-3 py-1 rounded-full border-0 ${
+                          order.order_status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : order.order_status === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.order_status === "shipped"
+                                ? "bg-purple-100 text-purple-800"
+                                : order.order_status === "delivered"
+                                  ? "bg-green-100 text-green-800"
+                                  : order.order_status === "returned"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="returned">Returned</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {order.cancellation_request ? (
+                        <span className="text-xs font-semibold px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                          Requested
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">None</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                          order.payment_status === "paid"
+                            ? "bg-green-100 text-green-800"
+                            : order.payment_status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {order.payment_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <ActionButtons
+                          onView={() => onViewOrder?.(order)}
+                          onStatusChange={() =>
+                            handleStatusChange(
+                              order.id,
+                              order.order_status === "delivered"
+                                ? "processing"
+                                : "delivered",
+                            )
+                          }
+                          onVerifyPayment={() =>
+                            handleVerifyPayment?.(order.id)
+                          }
+                          showStatus={
+                            order.order_status !== "delivered" &&
+                            order.order_status !== "cancelled" &&
+                            order.order_status !== "returned"
+                          }
+                          showVerify={
+                            order.payment_status === "pending" &&
+                            order.order_status !== "cancelled" &&
+                            order.order_status !== "returned"
+                          }
+                          statusText={
+                            order.order_status === "delivered"
+                              ? "Mark as Processing"
+                              : "Mark as Delivered"
+                          }
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -380,7 +391,7 @@ function OrderTable({
         {/* Mobile/Tablet Cards */}
         <div className="lg:hidden">
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {orders.map((order) => (
+            {orders.map((order: Order) => (
               <div key={order.id} className="p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
