@@ -334,7 +334,9 @@ export default function ProductViewModal({
                     gallery_images: product.gallery_images,
                     parsedGalleryImages: galleryImages,
                     isArray: Array.isArray(galleryImages),
-                    length: galleryImages?.length,
+                    length: Array.isArray(galleryImages)
+                      ? galleryImages.length
+                      : 0,
                     type: typeof galleryImages,
                   });
 
