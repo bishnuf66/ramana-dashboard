@@ -82,7 +82,9 @@ export function useProductsCount(
       }
 
       const queryString = new URLSearchParams(params).toString();
-      const response = await axiosInstance.get(`/api/products/count?${queryString}`);
+      const response = await axiosInstance.get(
+        `/api/products/count?${queryString}`,
+      );
       return response.data.count;
     },
   });
@@ -159,6 +161,30 @@ export function useDeleteProduct() {
     mutationFn: async (id: string) => {
       console.log("useDeleteProduct: Deleting product via API:", id);
 
+      // First, delete the product folder from storage
+      try {
+        const productFolder = `product-${id}`;
+        console.log(
+          "useDeleteProduct: Deleting product folder:",
+          productFolder,
+        );
+
+        await axiosInstance.delete("/api/upload", {
+          data: {
+            bucket: "product-images",
+            folder: productFolder,
+          },
+        });
+        console.log("useDeleteProduct: Product folder deleted successfully");
+      } catch (storageError) {
+        console.warn(
+          "useDeleteProduct: Failed to delete product folder:",
+          storageError,
+        );
+        // Don't fail the entire delete operation if folder deletion fails
+      }
+
+      // Now delete the product from database
       const response = await axiosInstance.delete("/api/products", {
         data: { id },
       });
@@ -167,7 +193,7 @@ export function useDeleteProduct() {
     onSuccess: () => {
       console.log("useDeleteProduct: Mutation success, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("Product deleted successfully");
+      toast.success("Product and associated images deleted successfully");
     },
     onError: (error: any) => {
       console.error("useDeleteProduct: Mutation error:", error);

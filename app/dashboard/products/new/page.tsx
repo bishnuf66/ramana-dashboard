@@ -119,6 +119,8 @@ export default function NewProductPage() {
   const uploadImage = async (
     file: File,
     bucket: string = "product-images",
+    folder?: string,
+    fileName?: string,
   ): Promise<string | null> => {
     try {
       console.log(
@@ -126,11 +128,23 @@ export default function NewProductPage() {
         file.name,
         "to bucket:",
         bucket,
+        "folder:",
+        folder,
+        "fileName:",
+        fileName,
       );
 
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bucket", bucket);
+
+      if (folder) {
+        formData.append("folder", folder);
+      }
+
+      if (fileName) {
+        formData.append("fileName", fileName);
+      }
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -168,15 +182,24 @@ export default function NewProductPage() {
       const productId = crypto.randomUUID();
       console.log("Generated product ID:", productId);
 
-      // Upload cover image
+      // Create folder path for this product
+      const productFolder = `product-${productId}`;
+      console.log("Product folder:", productFolder);
+
+      // Upload cover image to product folder
       console.log("Uploading cover image...");
-      const coverImageUrl = await uploadImage(coverImageFile);
+      const coverImageUrl = await uploadImage(
+        coverImageFile,
+        "product-images",
+        productFolder,
+        "cover.jpg",
+      );
       if (!coverImageUrl) {
         throw new Error("Failed to upload cover image");
       }
       console.log("Cover image uploaded successfully:", coverImageUrl);
 
-      // Upload gallery images
+      // Upload gallery images to product folder
       const galleryUrls: string[] = [];
       console.log(`Processing ${galleryFiles.length} gallery images...`);
 
@@ -185,7 +208,12 @@ export default function NewProductPage() {
           console.log(
             `Uploading gallery image ${i + 1}/${galleryFiles.length}...`,
           );
-          const galleryUrl = await uploadImage(galleryFiles[i]);
+          const galleryUrl = await uploadImage(
+            galleryFiles[i],
+            "product-images",
+            productFolder,
+            `gallery-${i + 1}.jpg`,
+          );
           if (!galleryUrl) {
             throw new Error(`Gallery image ${i + 1} upload returned null`);
           }
@@ -236,7 +264,7 @@ export default function NewProductPage() {
 
       await createProductMutation.mutateAsync(productData);
 
-      router.push("/dashboard?section=products");
+      router.push("/dashboard/products");
     } catch (error: any) {
       console.error("Error creating product:", error);
       console.error("Form data:", formData);
@@ -268,7 +296,7 @@ export default function NewProductPage() {
             Add New Product
           </h1>
           <button
-            onClick={() => router.push("/dashboard?section=products")}
+            onClick={() => router.push("/dashboard/products")}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
           >
             <X className="h-6 w-6" />

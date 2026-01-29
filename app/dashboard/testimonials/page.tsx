@@ -1,8 +1,6 @@
 "use client";
 
 import TestimonialList from "@/components/testimonials/TestimonialList";
-import Link from "next/link";
-import { Plus } from "lucide-react";
 
 export default function TestimonialsDashboardPage() {
   return (

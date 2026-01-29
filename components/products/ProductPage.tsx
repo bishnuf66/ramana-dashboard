@@ -302,7 +302,7 @@ const ProductsPage = () => {
             Manage your product catalog
           </p>
         </div>
-        <Link href="/products/new?section=products">
+        <Link href="/dashboard/products/new">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -549,7 +549,7 @@ const ProductsPage = () => {
                 ? "Try adjusting your search or filters"
                 : "Get started by adding your first product"}
             </p>
-            <Link href="/products/new?section=products">
+            <Link href="/dashboard/products/new">
               <button className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                 <Plus className="w-4 h-4" />
                 Add Product
