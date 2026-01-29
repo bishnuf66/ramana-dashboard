@@ -223,9 +223,14 @@ export default function EditProductPage() {
 
       // Upload new cover image if provided
       if (coverImageFile) {
+        console.log("New cover image detected, marking old one for deletion");
         // Mark old cover image for deletion
         if (product.cover_image) {
           imagesToDelete.push(product.cover_image);
+          console.log(
+            "Marked old cover image for deletion:",
+            product.cover_image,
+          );
         }
 
         const coverImagePath = generateImagePath(
@@ -233,22 +238,34 @@ export default function EditProductPage() {
           coverImageFile.name,
           "cover",
         );
+        console.log("Uploading new cover image to:", coverImagePath);
         newCoverImageUrl = await uploadImage(coverImageFile, coverImagePath);
+        if (!newCoverImageUrl) {
+          throw new Error("Failed to upload new cover image");
+        }
+        console.log("New cover image uploaded successfully:", newCoverImageUrl);
       }
 
       // Upload new gallery images
       const newGalleryUrls: { url: string; title: string }[] = [];
+      console.log("Processing", galleryFiles.length, "new gallery images");
+
       for (let i = 0; i < galleryFiles.length; i++) {
         const galleryPath = generateImagePath(
           product.id || "",
           galleryFiles[i].name,
           "gallery",
         );
+        console.log(`Uploading gallery image ${i + 1}:`, galleryPath);
         const galleryUrl = await uploadImage(galleryFiles[i], galleryPath);
+        if (!galleryUrl) {
+          throw new Error(`Failed to upload gallery image ${i + 1}`);
+        }
         newGalleryUrls.push({
           url: galleryUrl,
           title: galleryTitles[i] || "",
         });
+        console.log(`Gallery image ${i + 1} uploaded successfully`);
       }
 
       // Combine existing gallery images (minus removed ones) with new ones
@@ -256,22 +273,37 @@ export default function EditProductPage() {
 
       // Start with existing images if they exist and are an array
       if (product.gallery_images && Array.isArray(product.gallery_images)) {
-        finalGalleryImages = (product.gallery_images as any[]).filter(
+        const existingImages = product.gallery_images as any[];
+        finalGalleryImages = existingImages.filter(
           (img: any) => !removedGalleryImages.includes(img.url),
         );
+        console.log("Kept existing gallery images:", finalGalleryImages.length);
       }
 
       // Add new images
       finalGalleryImages = [...finalGalleryImages, ...newGalleryUrls];
+      console.log("Final gallery images count:", finalGalleryImages.length);
 
       // Delete removed images from storage
       const allImagesToDelete = [...removedGalleryImages, ...imagesToDelete];
+      console.log("Total images to delete:", allImagesToDelete.length);
+      console.log("Images to delete:", allImagesToDelete);
+
       if (allImagesToDelete.length > 0) {
-        deleteImages(allImagesToDelete).catch(console.error);
+        try {
+          await deleteImages(allImagesToDelete);
+          console.log("Successfully deleted images from storage");
+        } catch (deleteError) {
+          console.error("Failed to delete images from storage:", deleteError);
+          toast.warning(
+            "Warning: Some images could not be deleted from storage",
+          );
+        }
       }
 
       setUploading(false);
 
+      console.log("Updating product in database...");
       // Update product
       const { error } = await (supabase as any)
         .from("products")
@@ -301,15 +333,35 @@ export default function EditProductPage() {
         })
         .eq("id", product.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
+      console.log("Product updated successfully!");
       toast.success("Product updated successfully!");
       router.push("/dashboard?section=products");
     } catch (error: any) {
-      setUploading(false);
-      toast.error("Failed to update product: " + error.message);
+      console.error("Error updating product:", error);
+      console.error("Form data:", formData);
+      console.error("Cover image file:", coverImageFile);
+      console.error("Gallery files:", galleryFiles);
+
+      // More specific error handling
+      if (
+        error.message?.includes("storage") ||
+        error.message?.includes("upload")
+      ) {
+        toast.error("Error uploading images. Please try again.");
+      } else if (error.message?.includes("database")) {
+        toast.error("Error saving product to database. Please try again.");
+      } else {
+        toast.error(error.message || "Failed to update product");
+      }
     } finally {
+      console.log("Setting loading states to false");
       setSaving(false);
+      setUploading(false);
     }
   };
 

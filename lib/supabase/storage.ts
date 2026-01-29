@@ -11,22 +11,51 @@ export const uploadImageToBucket = async (
   file: File,
   path: string,
 ): Promise<string> => {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
+  console.log(
+    "Starting upload to bucket:",
+    bucket,
+    "path:",
+    path,
+    "file:",
+    file.name,
+    "size:",
+    file.size,
+    "type:",
+    file.type,
+  );
 
-  if (error) {
-    throw new Error(`Failed to upload image: ${error.message}`);
+  try {
+    console.log("Checking Supabase client connection...");
+    console.log("Supabase client:", supabase);
+
+    // Use simple upload like category forms
+    const fileName =
+      path.split("/").pop() || `product-${Date.now()}-${file.name}`;
+    console.log("Using simple file name:", fileName);
+
+    console.log("Starting file upload...");
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Storage upload error:", error);
+      throw error;
+    }
+
+    console.log("File uploaded successfully:", data);
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+    console.log("Public URL generated:", publicUrl);
+    return publicUrl;
+  } catch (error: any) {
+    console.error("Upload failed with error:", error);
+    console.error("Error stack:", error.stack);
+    throw error;
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(data.path);
-
-  return publicUrl;
 };
 
 // Service role upload (for admin operations)
@@ -57,25 +86,49 @@ export const uploadImageToBucketAdmin = async (
 
   console.log("Created admin client, attempting upload...");
 
-  const { data, error } = await supabaseAdmin.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
+  try {
+    // Add timeout to prevent hanging
+    const uploadPromise = supabaseAdmin.storage
+      .from(bucket)
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    // Add timeout - fail after 30 seconds
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error("Admin upload timeout after 30 seconds")),
+        30000,
+      );
     });
 
-  console.log("Upload result:", { data, error });
+    const { data, error } = (await Promise.race([
+      uploadPromise,
+      timeoutPromise,
+    ])) as any;
 
-  if (error) {
-    throw new Error(`Failed to upload image: ${error.message}`);
+    console.log("Admin upload result:", { data, error });
+
+    if (error) {
+      console.error("Admin storage upload error:", error);
+      throw new Error(`Failed to upload image (admin): ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error("Admin upload returned no data");
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+
+    console.log("Admin generated public URL:", publicUrl);
+    return publicUrl;
+  } catch (error: any) {
+    console.error("Admin upload failed with error:", error);
+    throw error;
   }
-
-  const {
-    data: { publicUrl },
-  } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
-
-  console.log("Generated public URL:", publicUrl);
-  return publicUrl;
 };
 
 /**
@@ -86,7 +139,32 @@ export const uploadImage = async (
   path: string,
   bucket: string = BUCKET_NAME,
 ): Promise<string> => {
-  return uploadImageToBucket(bucket, file, path);
+  try {
+    console.log("uploadImage called with:", {
+      file: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      path,
+      bucket,
+    });
+
+    // Validate file before upload
+    if (file.size > 10 * 1024 * 1024) {
+      // 10MB limit
+      throw new Error("File size too large (max 10MB)");
+    }
+
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Only image files are allowed");
+    }
+
+    const result = await uploadImageToBucket(bucket, file, path);
+    console.log("uploadImage completed successfully");
+    return result;
+  } catch (error) {
+    console.error("uploadImage failed:", error);
+    throw error; // Re-throw to maintain error handling chain
+  }
 };
 
 /**

@@ -133,20 +133,55 @@ export default function ProductViewModal({
         console.log("Found cover image:", product.cover_image);
       }
 
-      // Add gallery images
+      // Add gallery images - handle both string and object formats
       if (product.gallery_images) {
-        const galleryArray = Array.isArray(product.gallery_images)
-          ? product.gallery_images
-          : [];
-        console.log("Found gallery images:", galleryArray);
+        console.log("Processing gallery images:", product.gallery_images);
 
-        galleryArray.forEach((img: any) => {
-          if (typeof img === "string") {
-            imagesToDelete.push(img);
-          } else if (img && img.url) {
-            imagesToDelete.push(img.url);
+        if (Array.isArray(product.gallery_images)) {
+          product.gallery_images.forEach((img: any) => {
+            if (typeof img === "string") {
+              imagesToDelete.push(img);
+              console.log("Added gallery image (string format):", img);
+            } else if (img && img.url) {
+              imagesToDelete.push(img.url);
+              console.log("Added gallery image (object format):", img.url);
+            } else if (
+              img &&
+              typeof img === "object" &&
+              Object.keys(img).length > 0
+            ) {
+              // Handle nested objects - check for common image properties
+              if (img.url) {
+                imagesToDelete.push(img.url);
+                console.log("Added gallery image (nested object):", img.url);
+              } else if (img.image) {
+                imagesToDelete.push(img.image);
+                console.log("Added gallery image (image property):", img.image);
+              } else if (img.src) {
+                imagesToDelete.push(img.src);
+                console.log("Added gallery image (src property):", img.src);
+              }
+            }
+          });
+        } else if (typeof product.gallery_images === "string") {
+          // Handle JSON string format
+          try {
+            const parsed = JSON.parse(product.gallery_images);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((img: any) => {
+                if (typeof img === "string") {
+                  imagesToDelete.push(img);
+                  console.log("Added gallery image (parsed string):", img);
+                } else if (img && img.url) {
+                  imagesToDelete.push(img.url);
+                  console.log("Added gallery image (parsed object):", img.url);
+                }
+              });
+            }
+          } catch (e) {
+            console.warn("Failed to parse gallery_images JSON:", e);
           }
-        });
+        }
       }
 
       console.log("Total images to delete:", imagesToDelete.length);
