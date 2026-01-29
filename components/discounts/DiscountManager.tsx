@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import {
   Plus,
@@ -28,10 +27,11 @@ import {
 import ActionButtons from "@/components/ui/ActionButtons";
 import DiscountViewModal from "./DiscountViewModal";
 import Pagination from "@/components/ui/Pagination";
+import { useDiscounts, useDeleteDiscount } from "@/hooks/useDiscounts";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
 import Image from "next/image";
-import { useDiscounts, useDiscountsCount } from "@/hooks/useDiscounts";
+import { useDiscountsCount } from "@/hooks/useDiscounts";
 import Link from "next/link";
 
 type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
@@ -84,6 +84,8 @@ export default function DiscountManager() {
     limit: itemsPerPage,
   });
 
+  const deleteDiscountMutation = useDeleteDiscount();
+
   const { data: total = 0 } = useDiscountsCount({
     search: searchTerm,
     status: selectedStatus,
@@ -111,13 +113,10 @@ export default function DiscountManager() {
     if (!confirm("Are you sure you want to delete this coupon?")) return;
 
     try {
-      const { error } = await supabase.from("coupons").delete().eq("id", id);
-
-      if (error) throw error;
-      toast.success("Coupon deleted successfully");
+      await deleteDiscountMutation.mutateAsync(id);
       setCurrentPage(1);
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete coupon");
+      console.error("Delete error:", error);
     }
   };
 

@@ -33,17 +33,24 @@ export function useTestimonials(params: TestimonialQueryParams = {}) {
       { search, status, rating, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
         rating: rating?.toString() || "",
         sortBy: sortBy.toString(),
         sortOrder: sortOrder.toString(),
         page: page.toString(),
         limit: limit.toString(),
-      });
+      };
 
-      const response = await axiosInstance.get(`/api/testimonials?${params}`);
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axiosInstance.get(
+        `/api/testimonials?${queryString}`,
+      );
       return response.data.testimonials;
     },
   });
@@ -58,14 +65,19 @@ export function useTestimonialsCount(
   return useQuery({
     queryKey: ["testimonials-count", { search, status, rating }],
     queryFn: async () => {
-      const params = new URLSearchParams({
+      const params: Record<string, string> = {
         search: search.toString(),
-        status: status.toString(),
         rating: rating?.toString() || "",
-      });
+      };
 
+      // Only add status parameter if it's not "all"
+      if (status !== "all") {
+        params.status = status.toString();
+      }
+
+      const queryString = new URLSearchParams(params).toString();
       const response = await axiosInstance.get(
-        `/api/testimonials/count?${params}`,
+        `/api/testimonials/count?${queryString}`,
       );
       return response.data.count;
     },

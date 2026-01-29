@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Plus, Eye, Edit, Trash2, Star, MessageSquare } from "lucide-react";
 import DeleteModal from "@/components/ui/DeleteModal";
 import TestimonialViewModal from "./TestimonialViewModal";
 import Pagination from "@/components/ui/Pagination";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";
@@ -32,35 +30,31 @@ const TestimonialList = () => {
     if (!imageUrl) return;
 
     try {
-      // Extract path from URL
-      // Supabase Storage URLs look like: https://[project].supabase.co/storage/v1/object/public/testimonial-images/path/to/file.jpg
-      const url = new URL(imageUrl);
-      const pathParts = url.pathname.split("/");
-      const pathIndex = pathParts.indexOf("testimonial-images");
+      console.log("Deleting testimonial image via API:", imageUrl);
 
-      if (pathIndex === -1) {
-        // If it's not a Supabase Storage URL, skip deletion
-        console.log(
-          "Skipping deletion - not a Supabase Storage URL:",
+      const response = await fetch("/api/upload", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           imageUrl,
-        );
-        return;
-      }
+          bucket: "testimonial-images",
+        }),
+      });
 
-      const filePath = pathParts.slice(pathIndex + 1).join("/");
-
-      const { error } = await supabase.storage
-        .from("testimonial-images")
-        .remove([filePath]);
-
-      if (error) {
-        console.error("Failed to delete image:", error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API delete error:", errorData);
         // Don't throw - allow operation to continue even if deletion fails
       } else {
-        console.log("Successfully deleted image:", filePath);
+        console.log(
+          "Testimonial image deleted successfully via API:",
+          imageUrl,
+        );
       }
     } catch (error) {
-      console.error("Error parsing image URL:", error);
+      console.error("Error deleting testimonial image via API:", error);
       // Don't throw - allow operation to continue
     }
   };

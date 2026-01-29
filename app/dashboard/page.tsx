@@ -2,20 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import {
-  X,
-  Package,
-  ShoppingCart,
-  Users,
-  DollarSign,
-  Edit,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import OrderTable from "@/components/orders/OrderTable";
+import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import CustomersTab from "@/components/customers/CustomersTab";
 import type { Database } from "@/types/database.types";
@@ -23,11 +12,14 @@ import { getCurrentAdmin } from "@/lib/supabase/auth";
 import ProductsPage from "../../components/products/ProductPage";
 import SettingPage from "@/components/setting/SettingPage";
 import BlogList from "@/components/blog/BlogList";
-import CategoryList from "@/components/categories/CategoryList";
+import ReviewsManager from "@/components/reviews/ReviewManager";
 import DiscountManager from "@/components/discounts/DiscountManager";
+import TestimonialList from "@/components/testimonials/TestimonialList";
+import PaymentList from "@/components/payments/PaymentList";
+import { useUserPayments } from "@/hooks/useUserPayments";
+import CategoryList from "@/components/categories/CategoryList";
 import ReviewManager from "@/components/reviews/ReviewManager";
 import Support from "@/components/support/Support";
-import TestimonialList from "@/components/testimonials/TestimonialList";
 import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";

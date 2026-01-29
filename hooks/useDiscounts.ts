@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
 import type { Database } from "@/types/database.types";
 
 type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
@@ -14,14 +15,16 @@ interface FetchDiscountsParams {
   limit?: number;
 }
 
-const fetchDiscounts = async (params: FetchDiscountsParams): Promise<CouponRow[]> => {
+const fetchDiscounts = async (
+  params: FetchDiscountsParams,
+): Promise<CouponRow[]> => {
   let query = supabase.from("coupons").select("*");
 
   // Apply search filter
   if (params.search) {
     const searchLower = params.search.toLowerCase();
     query = query.or(
-      `code.ilike.%${searchLower}%,description.ilike.%${searchLower}%`
+      `code.ilike.%${searchLower}%,description.ilike.%${searchLower}%`,
     );
   }
 
@@ -75,14 +78,18 @@ export const useDiscounts = (params: FetchDiscountsParams = {}) => {
 };
 
 // Hook for getting total count of discounts
-const fetchDiscountsCount = async (params: FetchDiscountsParams): Promise<number> => {
-  let query = supabase.from("coupons").select("*", { count: "exact", head: true });
+const fetchDiscountsCount = async (
+  params: FetchDiscountsParams,
+): Promise<number> => {
+  let query = supabase
+    .from("coupons")
+    .select("*", { count: "exact", head: true });
 
   // Apply search filter
   if (params.search) {
     const searchLower = params.search.toLowerCase();
     query = query.or(
-      `code.ilike.%${searchLower}%,description.ilike.%${searchLower}%`
+      `code.ilike.%${searchLower}%,description.ilike.%${searchLower}%`,
     );
   }
 
@@ -111,5 +118,28 @@ export const useDiscountsCount = (params: FetchDiscountsParams = {}) => {
     queryKey: ["discountsCount", params.search, params.status, params.type],
     queryFn: () => fetchDiscountsCount(params),
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+// Delete discount mutation
+export const useDeleteDiscount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from("coupons").delete().eq("id", id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Coupon deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["discounts"] });
+      queryClient.invalidateQueries({ queryKey: ["discountsCount"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete coupon");
+    },
   });
 };

@@ -6,7 +6,7 @@ import { X, Edit, Calendar, User, Clock, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
-import { supabase } from "@/lib/supabase/client";
+import { useDeleteBlog } from "@/hooks/useBlogs";
 import { toast } from "react-toastify";
 import type { Database } from "@/types/database.types";
 
@@ -30,39 +30,17 @@ export default function BlogViewModal({
   showActions = true,
 }: BlogViewModalProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const deleteBlogMutation = useDeleteBlog();
 
   const handleDelete = async () => {
     if (!blog) return;
 
     try {
-      setDeleteLoading(true);
-
-      // Delete cover image if exists
-      if (blog.cover_image_url) {
-        const imagePath = blog.cover_image_url.split("/").pop();
-        if (imagePath) {
-          await supabase.storage.from("blog-images").remove([imagePath]);
-        }
-      }
-
-      // Delete blog post
-      const { error } = await supabase.from("blogs").delete().eq("id", blog.id);
-
-      if (error) throw error;
-
-      toast.success("Blog post deleted successfully");
+      await deleteBlogMutation.mutateAsync(blog.id);
       setShowDeleteModal(false);
       onClose();
-
-      if (onDelete) {
-        onDelete(blog.id);
-      }
-    } catch (error: any) {
-      console.error("Error deleting blog post:", error);
-      toast.error(error.message || "Failed to delete blog post");
-    } finally {
-      setDeleteLoading(false);
+    } catch (error) {
+      console.error("Delete error:", error);
     }
   };
 
@@ -230,7 +208,7 @@ export default function BlogViewModal({
           "Cover image (if exists)",
           "SEO metadata and tags",
         ]}
-        isLoading={deleteLoading}
+        isLoading={deleteBlogMutation.isPending}
       />
     </>
   );
