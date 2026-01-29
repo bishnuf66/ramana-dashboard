@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
-import { X } from "lucide-react";
+import { X, IndianRupee, ShoppingCart, Users, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import OrderViewModal from "@/components/orders/OrderViewModal";
 import CustomersTab from "@/components/customers/CustomersTab";
@@ -247,12 +247,12 @@ function DashboardContent() {
 
   const currency = (value: number) => {
     try {
-      return new Intl.NumberFormat("en-US", {
+      return new Intl.NumberFormat("en-NP", {
         style: "currency",
-        currency: "USD",
+        currency: "NPR",
       }).format(value);
     } catch {
-      return `$${value.toFixed(2)}`;
+      return `रू${value.toFixed(2)}`;
     }
   };
 
@@ -422,7 +422,7 @@ function DashboardContent() {
                         </div>
                       </div>
                       <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <IndianRupee className="h-5 w-5 text-green-600 dark:text-green-400" />
                       </div>
                     </div>
                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">

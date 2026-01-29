@@ -7,7 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// GET - Fetch payment options
+// GET - Fetch user payments
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
@@ -17,33 +17,58 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "all";
+    const status = searchParams.get("status") || "";
+    const paymentMethod = searchParams.get("paymentMethod") || "";
     const sortBy = searchParams.get("sortBy") || "created_at";
     const sortOrder = searchParams.get("sortOrder") || "desc";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    console.log("API: Fetching payment options with params:", {
+    console.log("API: Fetching payments with params:", {
       search,
       status,
+      paymentMethod,
       sortBy,
       sortOrder,
       page,
       limit,
     });
 
-    let query = supabase.from("payment_options").select("*");
+    let query = supabase
+      .from("user_payments")
+      .select(`
+        *,
+        orders:order_id (
+          customer_name,
+          customer_email,
+          customer_phone
+        )
+      `);
 
     // Apply search filter
     if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,type.ilike.%${search}%,description.ilike.%${search}%`,
-      );
+      query = query.or(`
+        transaction_id.ilike.%${search}%,
+        payment_method.ilike.%${search}%,
+        orders.customer_name.ilike.%${search}%,
+        orders.customer_email.ilike.%${search}%
+      `);
     }
 
     // Apply status filter
     if (status && status !== "all") {
-      query = query.eq("is_active", status === "active");
+      if (status === "verified") {
+        query = query.eq("is_verified", true);
+      } else if (status === "pending") {
+        query = query.eq("is_verified", false);
+      } else if (status === "rejected") {
+        query = query.eq("is_verified", false).eq("is_rejected", true);
+      }
+    }
+
+    // Apply payment method filter
+    if (paymentMethod && paymentMethod !== "all") {
+      query = query.eq("payment_method", paymentMethod);
     }
 
     // Apply sorting
@@ -57,28 +82,25 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error("API: Payment options fetch error:", error);
+      console.error("API: Payments fetch error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(
-      "API: Payment options fetched successfully:",
-      data?.length || 0,
-    );
+    console.log("API: Payments fetched successfully:", data?.length || 0);
     return NextResponse.json({
       success: true,
-      paymentOptions: data || [],
+      userPayments: data || [],
     });
   } catch (error: any) {
-    console.error("API: Payment options fetch error:", error);
+    console.error("API: Payments fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-// POST - Create payment option
+// POST - Create payment
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
@@ -86,35 +108,35 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const paymentOption = await request.json();
+    const payment = await request.json();
 
-    console.log("API: Creating payment option:", paymentOption);
+    console.log("API: Creating payment:", payment);
 
     const { data, error } = await supabase
-      .from("payment_options")
-      .insert([paymentOption])
+      .from("user_payments")
+      .insert([payment])
       .select();
 
     if (error) {
-      console.error("API: Payment option creation error:", error);
+      console.error("API: Payment creation error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Payment option created successfully:", data);
+    console.log("API: Payment created successfully:", data);
     return NextResponse.json({
       success: true,
-      paymentOption: data?.[0],
+      userPayment: data?.[0],
     });
   } catch (error: any) {
-    console.error("API: Payment option creation error:", error);
+    console.error("API: Payment creation error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-// PUT - Update payment option
+// PUT - Update payment
 export async function PUT(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
@@ -122,36 +144,36 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { id, ...paymentOptionData } = await request.json();
+    const { id, ...updates } = await request.json();
 
-    console.log("API: Updating payment option:", { id, paymentOptionData });
+    console.log("API: Updating payment:", { id, updates });
 
     const { data, error } = await supabase
-      .from("payment_options")
-      .update({ ...paymentOptionData, updated_at: new Date().toISOString() })
+      .from("user_payments")
+      .update(updates)
       .eq("id", id)
       .select();
 
     if (error) {
-      console.error("API: Payment option update error:", error);
+      console.error("API: Payment update error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Payment option updated successfully:", data);
+    console.log("API: Payment updated successfully:", data);
     return NextResponse.json({
       success: true,
-      paymentOption: data?.[0],
+      userPayment: data?.[0],
     });
   } catch (error: any) {
-    console.error("API: Payment option update error:", error);
+    console.error("API: Payment update error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-// DELETE - Delete payment option
+// DELETE - Delete payment
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
@@ -159,29 +181,34 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const { id } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
 
-    console.log("API: Deleting payment option:", { id });
+    if (!id) {
+      return NextResponse.json({ error: "Payment ID is required" }, { status: 400 });
+    }
+
+    console.log("API: Deleting payment:", id);
 
     const { error } = await supabase
-      .from("payment_options")
+      .from("user_payments")
       .delete()
       .eq("id", id);
 
     if (error) {
-      console.error("API: Payment option deletion error:", error);
+      console.error("API: Payment deletion error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("API: Payment option deleted successfully");
+    console.log("API: Payment deleted successfully:", id);
     return NextResponse.json({
       success: true,
     });
   } catch (error: any) {
-    console.error("API: Payment option deletion error:", error);
+    console.error("API: Payment deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

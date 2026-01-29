@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const paymentMethod = searchParams.get("paymentMethod") || "";
 
-    console.log("API: Counting payments with params:", { search, status, paymentMethod });
+    console.log("API: Counting payments with params:", {
+      search,
+      status,
+      paymentMethod,
+    });
 
     let query = supabase
       .from("user_payments")
@@ -37,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply status filter
-    if (status !== "all") {
+    if (status && status !== "all") {
       if (status === "verified") {
         query = query.eq("is_verified", true);
       } else if (status === "pending") {
@@ -66,7 +70,7 @@ export async function GET(request: NextRequest) {
     console.error("API: Payments count error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

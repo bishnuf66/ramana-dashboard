@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "all";
     const rating = searchParams.get("rating") || "";
 
-    console.log("API: Counting testimonials with params:", { search, status, rating });
+    console.log("API: Counting testimonials with params:", {
+      search,
+      status,
+      rating,
+    });
 
     let query = supabase
       .from("testimonials")
@@ -29,12 +33,12 @@ export async function GET(request: NextRequest) {
     // Apply search filter
     if (search) {
       query = query.or(
-        `name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`
+        `name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`,
       );
     }
 
     // Apply status filter
-    if (status !== "all") {
+    if (status && status !== "all") {
       query = query.eq("published", status === "published");
     }
 
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     console.error("API: Testimonials count error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
 
-    console.log("API: Counting payment options with params:", { search, status });
+    console.log("API: Counting payment options with params:", {
+      search,
+      status,
+    });
 
     let query = supabase
       .from("payment_options")
@@ -28,12 +31,12 @@ export async function GET(request: NextRequest) {
     // Apply search filter
     if (search) {
       query = query.or(
-        `name.ilike.%${search}%,type.ilike.%${search}%,description.ilike.%${search}%`
+        `name.ilike.%${search}%,type.ilike.%${search}%,description.ilike.%${search}%`,
       );
     }
 
     // Apply status filter
-    if (status !== "all") {
+    if (status && status !== "all") {
       query = query.eq("is_active", status === "active");
     }
 
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
     console.error("API: Payment options count error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

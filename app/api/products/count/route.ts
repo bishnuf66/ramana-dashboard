@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category") || "all";
     const status = searchParams.get("status") || "all";
 
-    console.log("API: Fetching product count with params:", { search, category, status });
+    console.log("API: Fetching product count with params:", {
+      search,
+      category,
+      status,
+    });
 
     let query = supabase
       .from("products")
@@ -23,17 +27,17 @@ export async function GET(request: NextRequest) {
     // Apply search filter
     if (search) {
       query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`
+        `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
       );
     }
 
     // Apply category filter
-    if (category !== "all") {
+    if (category && category !== "all") {
       query = query.eq("category_id", category);
     }
 
     // Apply stock status filter
-    if (status !== "all") {
+    if (status && status !== "all") {
       if (status === "in_stock") {
         query = query.gt("stock", 0);
       } else if (status === "out_of_stock") {
@@ -57,7 +61,7 @@ export async function GET(request: NextRequest) {
     console.error("API: Product count error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -47,12 +47,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply category filter
-    if (category !== "all") {
+    if (category && category !== "all") {
       query = query.eq("category_id", category);
     }
 
     // Apply stock status filter
-    if (status !== "all") {
+    if (status && status !== "all") {
       if (status === "in_stock") {
         query = query.gt("stock", 0);
       } else if (status === "out_of_stock") {

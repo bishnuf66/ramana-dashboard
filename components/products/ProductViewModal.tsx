@@ -8,8 +8,7 @@ import {
   Trash2,
   Star,
   Package,
-  Calendar,
-  DollarSign,
+
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
