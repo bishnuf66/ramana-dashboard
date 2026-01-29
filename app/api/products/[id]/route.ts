@@ -9,19 +9,21 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // GET - Fetch single product by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     console.log("API: Fetching product by ID:", id);
 
     const { data, error } = await supabase
       .from("products")
-      .select(`
+      .select(
+        `
         *,
         category:categories(id, name, slug, picture)
-      `)
+      `,
+      )
       .eq("id", id)
       .single();
 
@@ -39,7 +41,7 @@ export async function GET(
     console.error("API: Product fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -3,20 +3,26 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
-import { X, IndianRupee, ShoppingCart, Users, Package } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  IndianRupee,
+  ShoppingCart,
+  Users,
+  Package,
+  Edit,
+  Trash2,
+  Link,
+} from "lucide-react";
 import OrderViewModal from "@/components/orders/OrderViewModal";
+import OrderTable from "@/components/orders/OrderTable";
 import CustomersTab from "@/components/customers/CustomersTab";
 import type { Database } from "@/types/database.types";
 import { getCurrentAdmin } from "@/lib/supabase/auth";
 import ProductsPage from "../../components/products/ProductPage";
 import SettingPage from "@/components/setting/SettingPage";
 import BlogList from "@/components/blog/BlogList";
-import ReviewsManager from "@/components/reviews/ReviewManager";
 import DiscountManager from "@/components/discounts/DiscountManager";
 import TestimonialList from "@/components/testimonials/TestimonialList";
-import PaymentList from "@/components/payments/PaymentList";
-import { useUserPayments } from "@/hooks/useUserPayments";
 import CategoryList from "@/components/categories/CategoryList";
 import ReviewManager from "@/components/reviews/ReviewManager";
 import Support from "@/components/support/Support";
@@ -24,6 +30,7 @@ import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/payments/UserPaymentList";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
+import Image from "next/image";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -80,7 +87,6 @@ function DashboardContent() {
   } = useOrders({ limit: 100 });
   const updateOrderStatusMutation = useUpdateOrderStatus();
 
-  const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -220,24 +226,19 @@ function DashboardContent() {
         return;
       }
 
-      const { error } = await (supabase as any)
-        .from("orders")
-        .update({
-          payment_status: "paid",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", orderId);
-
-      if (error) throw error;
-      toast.success("Payment verified successfully");
-      refetchOrders();
+      // Use the updateOrderStatusMutation to update payment status
+      updateOrderStatusMutation.mutate({
+        orderId: orderId,
+        status: "delivered", // or appropriate status for verified payment
+      });
     } catch (error: any) {
-      toast.error("Failed to verify payment: " + error.message);
+      console.error("Verify payment error:", error);
+      toast.error("Failed to verify payment");
     }
   };
 
   // Only show loading on initial load, not when switching tabs
-  if (loading) {
+  if (ordersLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-xl text-gray-900 dark:text-white">Loading...</div>

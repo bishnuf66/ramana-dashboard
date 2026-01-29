@@ -9,10 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // GET - Fetch single order by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     console.log("API: Fetching order by ID:", id);
 
