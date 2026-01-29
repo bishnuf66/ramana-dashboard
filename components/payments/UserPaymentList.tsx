@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -43,7 +43,8 @@ interface UserPaymentDisplay {
   id: string;
   order_id: string;
   payment_option_id: string;
-  amount: number;
+  paid_amount: number; // Use paid_amount instead of amount
+  amount: number; // Add amount property for compatibility
   is_verified: boolean;
   transaction_id?: string;
   payment_method?: string;
@@ -103,6 +104,9 @@ export default function UserPaymentList({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<any>(null);
 
+  // State for storing fetched orders
+  const [ordersMap, setOrdersMap] = useState<Map<string, Order>>(new Map());
+
   // Mutations and queries
   const verifyPaymentMutation = useVerifyPayment();
   const deletePaymentMutation = useDeletePayment();
@@ -127,6 +131,39 @@ export default function UserPaymentList({
   });
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  // Fetch orders when userPayments data changes
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (userPayments.length === 0) return;
+
+      const uniqueOrderIds = [
+        ...new Set(
+          userPayments.map((p: UserPayment) => p.order_id).filter(Boolean),
+        ),
+      ];
+
+      if (uniqueOrderIds.length > 0) {
+        try {
+          const ordersResponse = await fetch(
+            `/api/orders?ids=${uniqueOrderIds.join(",")}`,
+          );
+          if (ordersResponse.ok) {
+            const ordersData = await ordersResponse.json();
+            const newOrdersMap = new Map<string, Order>();
+            ordersData.orders?.forEach((order: Order) => {
+              newOrdersMap.set(order.id, order);
+            });
+            setOrdersMap(newOrdersMap);
+          }
+        } catch (error) {
+          console.error("Failed to fetch orders:", error);
+        }
+      }
+    };
+
+    fetchOrders();
+  }, [userPayments]);
 
   const handleDeletePayment = (payment: UserPaymentDisplay) => {
     setPaymentToDelete(payment);
@@ -185,26 +222,60 @@ export default function UserPaymentList({
     setCurrentPage(1);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    if (userPayments.length === 0) {
+      // toast.error("No data to export");
+      return;
+    }
+
+    // Fetch related data for all payments (only orders needed now)
+    const ordersMap = new Map<string, Order>();
+
+    // Fetch all unique orders
+    const uniqueOrderIds = [
+      ...new Set(
+        userPayments.map((p: UserPayment) => p.order_id).filter(Boolean),
+      ),
+    ];
+    if (uniqueOrderIds.length > 0) {
+      try {
+        const ordersResponse = await fetch(
+          `/api/orders?ids=${uniqueOrderIds.join(",")}`,
+        );
+        if (ordersResponse.ok) {
+          const ordersData = await ordersResponse.json();
+          ordersData.orders?.forEach((order: Order) => {
+            ordersMap.set(order.id, order);
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      }
+    }
+
     const csvContent = [
       [
         "Payment ID",
         "Order ID",
         "Customer",
         "Amount",
-        "Payment Method",
+        "Payment Type",
         "Status",
         "Date",
       ],
-      ...userPayments.map((payment) => [
-        payment.id.slice(0, 8),
-        payment.order_id.slice(0, 8),
-        payment.order?.customer_name || "N/A",
-        `NRS ${payment.paid_amount ? payment.paid_amount.toString() : "0"}`,
-        payment.payment_option?.payment_type || "N/A",
-        payment.is_verified ? "Verified" : "Pending",
-        new Date(payment.created_at).toLocaleDateString(),
-      ]),
+      ...userPayments.map((payment: UserPayment) => {
+        const order = ordersMap.get(payment.order_id);
+
+        return [
+          payment.id.slice(0, 8),
+          payment.order_id.slice(0, 8),
+          order?.customer_name || "N/A",
+          `NRS ${payment.paid_amount ? payment.paid_amount.toString() : "0"}`,
+          payment.payment_type || "N/A", // Use payment_type directly from user_payments
+          payment.is_verified ? "Verified" : "Pending",
+          new Date(payment.created_at).toLocaleDateString(),
+        ];
+      }),
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -315,7 +386,7 @@ export default function UserPaymentList({
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {userPayments.map((payment) => (
+            {userPayments.map((payment: UserPayment) => (
               <tr
                 key={payment.id}
                 className="hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -327,61 +398,53 @@ export default function UserPaymentList({
                   #{payment.order_id.slice(0, 8)}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {payment.orders?.customer_name || "N/A"}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {payment.orders?.customer_email || "N/A"}
-                  </div>
-                  {payment.orders?.total_amount && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      Order Total: ${payment.orders.total_amount}
-                    </div>
-                  )}
-                  {payment.orders?.order_status && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      Status: {payment.orders.order_status}
-                    </div>
-                  )}
-                  {payment.orders?.items && payment.orders.items.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-                      <div className="font-medium">
-                        Items ({payment.orders.items.length}):
-                      </div>
-                      {payment.orders.items
-                        .slice(0, 2)
-                        .map((item: any, index: number) => (
-                          <div key={index} className="truncate">
-                            {item.quantity}x{" "}
-                            {item.title || item.name || "Product"}
+                  {(() => {
+                    const order = ordersMap.get(payment.order_id);
+                    return (
+                      <>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {order?.customer_name || "N/A"}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {order?.customer_email || "N/A"}
+                        </div>
+                        {order?.total_amount && (
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            Order Total: NRS {order.total_amount}
                           </div>
-                        ))}
-                      {payment.orders.items.length > 2 && (
-                        <div>+{payment.orders.items.length - 2} more</div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                        {order?.order_status && (
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            Status: {order.order_status}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <div className="font-medium">
                     NRS{" "}
                     {payment.paid_amount ? payment.paid_amount.toString() : "0"}
                   </div>
-                  {payment.orders?.total_amount && payment.paid_amount && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      of NRS {payment.orders.total_amount}
-                    </div>
-                  )}
-                  {payment.orders?.total_amount && payment.paid_amount && (
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                      <div
-                        className="bg-blue-600 h-1.5 rounded-full"
-                        style={{
-                          width: `${Math.min((payment.paid_amount / payment.orders.total_amount) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                  )}
+                  {(() => {
+                    const order = ordersMap.get(payment.order_id);
+                    return order?.total_amount && payment.paid_amount ? (
+                      <>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          of NRS {order.total_amount}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full"
+                            style={{
+                              width: `${Math.min((payment.paid_amount / order.total_amount) * 100, 100)}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </>
+                    ) : null;
+                  })()}
                   {payment.paid_amount_percentage && (
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       {payment.paid_amount_percentage}% paid
@@ -390,13 +453,11 @@ export default function UserPaymentList({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div className="font-medium">
-                    {payment.payment_option?.payment_type || "N/A"}
+                    {payment.payment_type || "N/A"}
                   </div>
-                  {payment.payment_option?.payment_number && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {payment.payment_option.payment_number}
-                    </div>
-                  )}
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    {payment.payment_option_id || "N/A"}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -421,13 +482,29 @@ export default function UserPaymentList({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <PaymentActionButtons
-                    payment={payment}
+                    payment={{
+                      ...payment,
+                      amount: payment.paid_amount, // Map paid_amount to amount for compatibility
+                      updated_at: payment.updated_at || "", // Handle null case for string requirement
+                    }}
                     onView={() => {
                       setSelectedPayment(payment);
                       setShowViewModal(true);
                     }}
-                    onEdit={() => handleEditPayment(payment)}
-                    onDelete={() => handleDeletePayment(payment)}
+                    onEdit={() =>
+                      handleEditPayment({
+                        ...payment,
+                        amount: payment.paid_amount,
+                        updated_at: payment.updated_at || "",
+                      })
+                    }
+                    onDelete={() =>
+                      handleDeletePayment({
+                        ...payment,
+                        amount: payment.paid_amount, // Map paid_amount to amount
+                        updated_at: payment.updated_at || "",
+                      })
+                    }
                     size="sm"
                   />
                 </td>
