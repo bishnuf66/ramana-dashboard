@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/middleware";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -8,6 +9,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // GET - Fetch products
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
@@ -18,11 +24,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    console.log("API: Fetching products with params:", { search, category, status, sortBy, sortOrder, page, limit });
+    console.log("API: Fetching products with params:", {
+      search,
+      category,
+      status,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    });
 
-    let query = supabase
-      .from("products")
-      .select(`
+    let query = supabase.from("products").select(`
         *,
         category:categories(id, name, slug, picture)
       `);
@@ -30,7 +42,7 @@ export async function GET(request: NextRequest) {
     // Apply search filter
     if (search) {
       query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`
+        `title.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%`,
       );
     }
 
@@ -72,13 +84,18 @@ export async function GET(request: NextRequest) {
     console.error("API: Products fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // POST - Create product
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   try {
     const product = await request.json();
 
@@ -103,13 +120,18 @@ export async function POST(request: NextRequest) {
     console.error("API: Product creation error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // PUT - Update product
 export async function PUT(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   try {
     const { id, ...updates } = await request.json();
 
@@ -135,13 +157,18 @@ export async function PUT(request: NextRequest) {
     console.error("API: Product update error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // DELETE - Delete product
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   try {
     const { id } = await request.json();
 
@@ -162,7 +189,7 @@ export async function DELETE(request: NextRequest) {
     console.error("API: Product deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

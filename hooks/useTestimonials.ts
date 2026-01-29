@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
@@ -28,45 +28,31 @@ export function useTestimonials(params: TestimonialQueryParams = {}) {
   } = params;
 
   return useQuery({
-    queryKey: ["testimonials", { search, status, rating, sortBy, sortOrder, page, limit }],
+    queryKey: [
+      "testimonials",
+      { search, status, rating, sortBy, sortOrder, page, limit },
+    ],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("testimonials")
-        .select("*");
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        rating: rating?.toString() || "",
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`);
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("published", status === "published");
-      }
-
-      // Apply rating filter
-      if (rating) {
-        query = query.eq("rating", rating);
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as Testimonial[];
+      const response = await axiosInstance.get(`/api/testimonials?${params}`);
+      return response.data.testimonials;
     },
   });
 }
 
 // Fetch testimonial count for pagination
-export function useTestimonialsCount(params: Omit<TestimonialQueryParams, 'page' | 'limit'> = {}) {
+export function useTestimonialsCount(
+  params: Omit<TestimonialQueryParams, "page" | "limit"> = {},
+) {
   const { search = "", status = "all", rating } = params;
 
   return useQuery({
@@ -78,7 +64,9 @@ export function useTestimonialsCount(params: Omit<TestimonialQueryParams, 'page'
 
       // Apply search filter
       if (search) {
-        query = query.or(`name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`);
+        query = query.or(
+          `name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`,
+        );
       }
 
       // Apply status filter
@@ -177,7 +165,10 @@ export function useDeleteTestimonial() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("testimonials").delete().eq("id", id);
+      const { error } = await (supabase as any)
+        .from("testimonials")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       return id;
     },

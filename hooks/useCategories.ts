@@ -2,9 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
-
 type Category = Database["public"]["Tables"]["categories"]["Row"];
-
 interface CategoryQueryParams {
   search?: string;
   sortBy?: "created_at" | "name" | "updated_at";
@@ -121,24 +119,26 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: async ({ id, ...categoryData }: any) => {
-      const { data, error } = await (supabase as any)
-        .from("categories")
-        .update(categoryData)
-        .eq("id", id)
-        .select()
-        .single();
+      console.log("useUpdateCategory: Updating category via API:", {
+        id,
+        categoryData,
+      });
 
-      if (error) throw error;
-      return data as Category;
+      const response = await axiosInstance.put("/api/categories", {
+        id,
+        ...categoryData,
+      });
+      return response.data.category;
     },
-    onSuccess: (data: Category) => {
+    onSuccess: (data: any) => {
       toast.success("Category updated successfully!");
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["categories-count"] });
       queryClient.invalidateQueries({ queryKey: ["categories", data.id] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update category");
+      console.error("useUpdateCategory: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to update category");
     },
   });
 }
@@ -149,45 +149,12 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // First, get the category to check if it has an image
-      const { data: category, error: fetchError } = await (supabase as any)
-        .from("categories")
-        .select("*")
-        .eq("id", id)
-        .single();
+      console.log("useDeleteCategory: Deleting category via API:", id);
 
-      if (fetchError) throw fetchError;
-
-      // Delete category image from storage if it exists
-      if (category?.picture && category.picture.includes("supabase")) {
-        const filePath = category.picture.split("/").pop();
-        if (filePath) {
-          const { error: storageError } = await supabase.storage
-            .from("category-images")
-            .remove([filePath]);
-          if (storageError) {
-            console.warn("Failed to delete category image:", storageError);
-          }
-        }
-      }
-
-      // Update products in this category to null category
-      const { error: updateError } = await (supabase as any)
-        .from("products")
-        .update({ category_id: null })
-        .eq("category_id", category.id);
-
-      if (updateError) {
-        console.warn("Failed to update products in category:", updateError);
-      }
-
-      // Delete the category
-      const { error } = await (supabase as any)
-        .from("categories")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      return id;
+      const response = await axiosInstance.delete("/api/categories", {
+        data: { id },
+      });
+      return response.data;
     },
     onSuccess: () => {
       toast.success("Category deleted successfully!");
@@ -195,7 +162,8 @@ export function useDeleteCategory() {
       queryClient.invalidateQueries({ queryKey: ["categories-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete category");
+      console.error("useDeleteCategory: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to delete category");
     },
   });
 }
