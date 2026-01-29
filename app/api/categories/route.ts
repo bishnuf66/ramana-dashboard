@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/middleware";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -8,6 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // GET - Fetch all categories
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     console.log("API: Fetching all categories");
 
@@ -30,13 +35,17 @@ export async function GET(request: NextRequest) {
     console.error("API: Categories fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // POST - Create category
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const category = await request.json();
 
@@ -61,13 +70,17 @@ export async function POST(request: NextRequest) {
     console.error("API: Category creation error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // PUT - Update category
 export async function PUT(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const { id, ...updates } = await request.json();
 
@@ -93,13 +106,17 @@ export async function PUT(request: NextRequest) {
     console.error("API: Category update error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // DELETE - Delete category
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const { id } = await request.json();
 
@@ -120,7 +137,7 @@ export async function DELETE(request: NextRequest) {
     console.error("API: Category deletion error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type PaymentOption = Database["public"]["Tables"]["payment_options"]["Row"];
@@ -26,40 +26,32 @@ export function usePaymentOptions(params: PaymentOptionQueryParams = {}) {
   } = params;
 
   return useQuery({
-    queryKey: ["paymentOptions", { search, status, sortBy, sortOrder, page, limit }],
+    queryKey: [
+      "paymentOptions",
+      { search, status, sortBy, sortOrder, page, limit },
+    ],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("payment_options")
-        .select("*");
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("is_active", status === "active");
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as PaymentOption[];
+      const response = await axiosInstance.get(
+        `/api/payment-options?${params}`,
+      );
+      return response.data.paymentOptions;
     },
   });
 }
 
 // Fetch payment option count for pagination
-export function usePaymentOptionsCount(params: Omit<PaymentOptionQueryParams, 'page' | 'limit'> = {}) {
+export function usePaymentOptionsCount(
+  params: Omit<PaymentOptionQueryParams, "page" | "limit"> = {},
+) {
   const { search = "", status = "all" } = params;
 
   return useQuery({
@@ -71,7 +63,9 @@ export function usePaymentOptionsCount(params: Omit<PaymentOptionQueryParams, 'p
 
       // Apply search filter
       if (search) {
-        query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+        query = query.or(
+          `name.ilike.%${search}%,description.ilike.%${search}%`,
+        );
       }
 
       // Apply status filter
@@ -165,7 +159,10 @@ export function useDeletePaymentOption() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("payment_options").delete().eq("id", id);
+      const { error } = await (supabase as any)
+        .from("payment_options")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       return id;
     },

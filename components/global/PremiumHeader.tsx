@@ -6,6 +6,7 @@ import { Menu, X, User, ChevronDown, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { supabase } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export default function PremiumHeader() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<AdminUser | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -78,9 +80,16 @@ export default function PremiumHeader() {
       await signOut();
       router.push("/");
       setIsProfileDropdownOpen(false);
+      setShowLogoutModal(false);
     } catch (error) {
       console.error("Logout error:", error);
+      setShowLogoutModal(false);
     }
+  };
+
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+    setIsProfileDropdownOpen(false);
   };
 
   return (
@@ -211,7 +220,7 @@ export default function PremiumHeader() {
                         <div className="py-2">
                           <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                           <button
-                            onClick={handleLogout}
+                            onClick={handleLogoutClick}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           >
                             Logout
@@ -283,7 +292,7 @@ export default function PremiumHeader() {
                       <div className="space-y-2">
                         <button
                           onClick={() => {
-                            handleLogout();
+                            handleLogoutClick();
                             setIsMobileMenuOpen(false);
                           }}
                           className="w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -299,6 +308,18 @@ export default function PremiumHeader() {
           )}
         </AnimatePresence>
       </motion.header>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to logout? You will need to login again to access the dashboard."
+        confirmText="Logout"
+        cancelText="Cancel"
+        type="delete"
+      />
     </>
   );
 }

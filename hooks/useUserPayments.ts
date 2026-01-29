@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 import type { Database } from "@/types/database.types";
 
 type UserPayment = Database["public"]["Tables"]["user_payments"]["Row"];
@@ -34,57 +34,18 @@ export function useUserPayments(params: UserPaymentQueryParams = {}) {
       { search, status, paymentMethod, sortBy, sortOrder, page, limit },
     ],
     queryFn: async () => {
-      let query = (supabase as any).from("user_payments").select(`
-          *,
-          payment_option:payment_options(*),
-          orders!user_payments_order_id_fkey(
-            id, 
-            customer_name, 
-            customer_email, 
-            total_amount, 
-            order_status,
-            created_at,
-            updated_at,
-            items
-          )
-        `);
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        paymentMethod: paymentMethod.toString(),
+        sortBy: sortBy.toString(),
+        sortOrder: sortOrder.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(`
-          transaction_id.ilike.%${search}%,
-          payment_method.ilike.%${search}%,
-          orders.customer_name.ilike.%${search}%,
-          orders.customer_email.ilike.%${search}%
-        `);
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        if (status === "verified") {
-          query = query.eq("is_verified", true);
-        } else if (status === "pending") {
-          query = query.eq("is_verified", false);
-        }
-      }
-
-      // Apply payment method filter
-      if (paymentMethod) {
-        query = query.eq("payment_method", paymentMethod);
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as any[];
+      const response = await axiosInstance.get(`/api/payments?${params}`);
+      return response.data.userPayments;
     },
   });
 }
@@ -98,38 +59,14 @@ export function useUserPaymentsCount(
   return useQuery({
     queryKey: ["userPayments-count", { search, status, paymentMethod }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("user_payments")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        paymentMethod: paymentMethod.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(`
-          transaction_id.ilike.%${search}%,
-          payment_method.ilike.%${search}%,
-          orders.customer_name.ilike.%${search}%,
-          orders.customer_email.ilike.%${search}%
-        `);
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        if (status === "verified") {
-          query = query.eq("is_verified", true);
-        } else if (status === "pending") {
-          query = query.eq("is_verified", false);
-        }
-      }
-
-      // Apply payment method filter
-      if (paymentMethod) {
-        query = query.eq("payment_method", paymentMethod);
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(`/api/payments/count?${params}`);
+      return response.data.count;
     },
   });
 }
@@ -139,29 +76,8 @@ export function useUserPayment(id: string) {
   return useQuery({
     queryKey: ["userPayments", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("user_payments")
-        .select(
-          `
-          *,
-          payment_option:payment_options(*),
-          orders!user_payments_order_id_fkey(
-            id, 
-            customer_name, 
-            customer_email, 
-            total_amount, 
-            order_status,
-            created_at,
-            updated_at,
-            items
-          )
-        `,
-        )
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as any;
+      const response = await axiosInstance.get(`/api/payments/${id}`);
+      return response.data.userPayment;
     },
     enabled: !!id,
   });
@@ -173,29 +89,16 @@ export function useVerifyPayment() {
 
   return useMutation({
     mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
-      console.log("=== VERIFY PAYMENT MUTATION START ===");
-      console.log("Attempting to verify payment via API:", { id, verified });
-
-      // Call API endpoint that uses service role key
-      const response = await fetch("/api/payments/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id, verified }),
+      console.log("useVerifyPayment: Verifying payment via API:", {
+        id,
+        verified,
       });
 
-      const data = await response.json();
-
-      console.log("API Response:", data);
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to verify payment");
-      }
-
-      console.log("Payment verification successful via API!");
-      console.log("=== VERIFY PAYMENT MUTATION END ===");
-      return data;
+      const response = await axiosInstance.post("/api/payments/verify", {
+        id,
+        verified,
+      });
+      return response.data;
     },
     onSuccess: (_, { verified }) => {
       toast.success(
@@ -205,8 +108,10 @@ export function useVerifyPayment() {
       queryClient.invalidateQueries({ queryKey: ["userPayments-count"] });
     },
     onError: (error: any) => {
-      console.error("Verify payment mutation error:", error);
-      toast.error(error.message || "Failed to update payment status");
+      console.error("useVerifyPayment: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to update payment status",
+      );
     },
   });
 }
@@ -217,12 +122,12 @@ export function useDeletePayment() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("user_payments")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      return id;
+      console.log("useDeletePayment: Deleting payment via API:", id);
+
+      const response = await axiosInstance.delete("/api/payments", {
+        data: { id },
+      });
+      return response.data;
     },
     onSuccess: () => {
       toast.success("Payment deleted successfully!");
@@ -230,7 +135,8 @@ export function useDeletePayment() {
       queryClient.invalidateQueries({ queryKey: ["userPayments-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete payment");
+      console.error("useDeletePayment: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to delete payment");
     },
   });
 }

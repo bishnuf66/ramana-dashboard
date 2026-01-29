@@ -47,21 +47,14 @@ export function useCategoriesCount(
   return useQuery({
     queryKey: ["categories-count", { search }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("categories")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,description.ilike.%${search}%`,
-        );
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(
+        `/api/categories/count?${params}`,
+      );
+      return response.data.count;
     },
   });
 }

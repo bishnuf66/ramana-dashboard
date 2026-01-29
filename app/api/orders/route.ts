@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/middleware";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -8,6 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // GET - Fetch all orders
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
@@ -62,6 +67,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Create order
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const order = await request.json();
 
@@ -93,6 +102,10 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update order
 export async function PUT(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const { id, ...updates } = await request.json();
 
@@ -125,6 +138,10 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete order
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
   try {
     const { id } = await request.json();
 

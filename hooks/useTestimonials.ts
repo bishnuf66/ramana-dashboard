@@ -58,31 +58,16 @@ export function useTestimonialsCount(
   return useQuery({
     queryKey: ["testimonials-count", { search, status, rating }],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("testimonials")
-        .select("*", { count: "exact", head: true });
+      const params = new URLSearchParams({
+        search: search.toString(),
+        status: status.toString(),
+        rating: rating?.toString() || "",
+      });
 
-      // Apply search filter
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,content.ilike.%${search}%,company.ilike.%${search}%`,
-        );
-      }
-
-      // Apply status filter
-      if (status !== "all") {
-        query = query.eq("published", status === "published");
-      }
-
-      // Apply rating filter
-      if (rating) {
-        query = query.eq("rating", rating);
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      const response = await axiosInstance.get(
+        `/api/testimonials/count?${params}`,
+      );
+      return response.data.count;
     },
   });
 }
@@ -92,14 +77,8 @@ export function useTestimonial(id: string) {
   return useQuery({
     queryKey: ["testimonials", id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("testimonials")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as Testimonial;
+      const response = await axiosInstance.get(`/api/testimonials/${id}`);
+      return response.data.testimonial;
     },
     enabled: !!id,
   });
@@ -111,14 +90,16 @@ export function useCreateTestimonial() {
 
   return useMutation({
     mutationFn: async (testimonialData: any) => {
-      const { data, error } = await (supabase as any)
-        .from("testimonials")
-        .insert(testimonialData)
-        .select()
-        .single();
+      console.log(
+        "useCreateTestimonial: Creating testimonial via API:",
+        testimonialData,
+      );
 
-      if (error) throw error;
-      return data as Testimonial;
+      const response = await axiosInstance.post(
+        "/api/testimonials",
+        testimonialData,
+      );
+      return response.data.testimonial;
     },
     onSuccess: () => {
       toast.success("Testimonial created successfully!");
@@ -126,7 +107,10 @@ export function useCreateTestimonial() {
       queryClient.invalidateQueries({ queryKey: ["testimonials-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create testimonial");
+      console.error("useCreateTestimonial: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to create testimonial",
+      );
     },
   });
 }
@@ -137,24 +121,28 @@ export function useUpdateTestimonial() {
 
   return useMutation({
     mutationFn: async ({ id, ...testimonialData }: any) => {
-      const { data, error } = await (supabase as any)
-        .from("testimonials")
-        .update(testimonialData)
-        .eq("id", id)
-        .select()
-        .single();
+      console.log("useUpdateTestimonial: Updating testimonial via API:", {
+        id,
+        testimonialData,
+      });
 
-      if (error) throw error;
-      return data as Testimonial;
+      const response = await axiosInstance.put("/api/testimonials", {
+        id,
+        ...testimonialData,
+      });
+      return response.data.testimonial;
     },
-    onSuccess: (data: Testimonial) => {
+    onSuccess: (data: any) => {
       toast.success("Testimonial updated successfully!");
       queryClient.invalidateQueries({ queryKey: ["testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["testimonials-count"] });
       queryClient.invalidateQueries({ queryKey: ["testimonials", data.id] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to update testimonial");
+      console.error("useUpdateTestimonial: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to update testimonial",
+      );
     },
   });
 }
@@ -165,12 +153,12 @@ export function useDeleteTestimonial() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from("testimonials")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      return id;
+      console.log("useDeleteTestimonial: Deleting testimonial via API:", id);
+
+      const response = await axiosInstance.delete("/api/testimonials", {
+        data: { id },
+      });
+      return response.data;
     },
     onSuccess: () => {
       toast.success("Testimonial deleted successfully!");
@@ -178,7 +166,10 @@ export function useDeleteTestimonial() {
       queryClient.invalidateQueries({ queryKey: ["testimonials-count"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete testimonial");
+      console.error("useDeleteTestimonial: Mutation error:", error);
+      toast.error(
+        error.response?.data?.error || "Failed to delete testimonial",
+      );
     },
   });
 }
