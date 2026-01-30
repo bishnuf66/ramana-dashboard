@@ -33,7 +33,6 @@ import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { useUserPayments, useDeletePayment } from "@/hooks/useUserPayments";
 import Image from "next/image";
-import { marked } from "marked";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -852,10 +851,9 @@ function DashboardContent() {
                     <div
                       className="text-sm sm:text-base text-gray-600 dark:text-gray-300 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{
-                        __html: marked(
+                        __html:
                           selectedProduct.description ||
-                            "No description available",
-                        ),
+                          "No description available",
                       }}
                     />
                   </div>

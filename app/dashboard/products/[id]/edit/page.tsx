@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Upload, X, Trash2, Package } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import MDEditor from "@uiw/react-md-editor";
+import ReactSimpleWysiwyg from "react-simple-wysiwyg";
 import { generateSlug } from "@/lib/utils";
 import { Database } from "@/types/database.types";
 import axiosInstance from "@/lib/axios";
@@ -1000,15 +1000,13 @@ export default function EditProductPage() {
               Description
             </label>
             <div className="dark:text-white">
-              <MDEditor
-                value={formData.description || ""}
-                onChange={(value) => {
-                  setFormData({ ...formData, description: value || "" });
+              <ReactSimpleWysiwyg
+                content={formData.description || ""}
+                onChange={(e: any) => {
+                  setFormData({ ...formData, description: e.target.value });
                 }}
-                height={200}
-                preview="edit"
-                hideToolbar={false}
-                visibleDragbar={false}
+                placeholder="Enter product description..."
+                className="w-full min-h-[200px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg"
               />
             </div>
           </div>

@@ -51,13 +51,18 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     /^\/dashboard\/payment-options$/,
     /^\/dashboard\/payments$/,
     /^\/dashboard\/support$/,
+    /^\/dashboard\/contact-messages$/,
     /^\/dashboard\/settings$/,
     /^\/blog(\/\d+)?(\/edit)?$/, // blog, blog/[id], blog/[id]/edit
     /^\/blog\/new$/, // blog/new
     /^\/categories(\/\d+)?(\/edit)?$/, // categories, categories/[id], categories/[id]/edit
     /^\/categories\/new$/, // categories/new
+    /^\/contact-messages(\/\d+)?(\/edit)?$/, // contact-messages, contact-messages/[id], contact-messages/[id]/edit
+    /^\/contact-messages\/new$/, // contact-messages/new
     /^\/discounts(\/\d+)?(\/edit)?$/, // discounts, discounts/[id], discounts/[id]/edit
     /^\/discounts\/new$/, // discounts/new
+    /^\/payment-options(\/\d+)?(\/edit)?$/, // payment-options, payment-options/[id], payment-options/[id]/edit
+    /^\/payment-options\/new$/, // payment-options/new
     /^\/payments(\/\d+)?(\/edit)?$/, // payments, payments/[id], payments/[id]/edit
     /^\/payments\/new$/, // payments/new
     /^\/products(\/\d+)?(\/edit)?$/, // products, products/[id], products/[id]/edit

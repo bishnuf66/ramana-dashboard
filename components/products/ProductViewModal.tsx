@@ -9,7 +9,6 @@ import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import type { Database } from "@/types/database.types";
-import { marked } from "marked";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
@@ -683,7 +682,7 @@ export default function ProductViewModal({
                     <div
                       className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
                       dangerouslySetInnerHTML={{
-                        __html: marked(product.description || ""),
+                        __html: product.description || "",
                       }}
                     />
                   </div>

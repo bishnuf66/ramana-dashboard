@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { ShoppingCart, X, Plus, Minus } from "lucide-react";
 import Image from "next/image";
-import { marked } from "marked";
 
 interface ProductModalProps {
   product: {
@@ -65,7 +64,7 @@ const SingleProductModal: React.FC<ProductModalProps> = ({
           <div
             className="text-gray-700 mt-2 prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{
-              __html: marked(product.description),
+              __html: product.description,
             }}
           />
         )}
