@@ -18,7 +18,6 @@ import ProductViewModal from "./ProductViewModal";
 import Pagination from "@/components/ui/Pagination";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import SearchFilterSort from "@/components/ui/SearchFilterSort";
 import type { Database } from "@/types/database.types";

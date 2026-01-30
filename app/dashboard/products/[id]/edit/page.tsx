@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Upload, X, Trash2, Package } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import ReactSimpleWysiwyg from "react-simple-wysiwyg";
+import QuillEditor from "@/components/ui/QuillEditor";
 import { generateSlug } from "@/lib/utils";
 import { Database } from "@/types/database.types";
 import axiosInstance from "@/lib/axios";
@@ -999,16 +999,15 @@ export default function EditProductPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Description
             </label>
-            <div className="dark:text-white">
-              <ReactSimpleWysiwyg
-                content={formData.description || ""}
-                onChange={(e: any) => {
-                  setFormData({ ...formData, description: e.target.value });
-                }}
-                placeholder="Enter product description..."
-                className="w-full min-h-[200px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg"
-              />
-            </div>
+            <QuillEditor
+              value={formData.description || ""}
+              onChange={(value) => {
+                setFormData({ ...formData, description: value });
+              }}
+              placeholder="Enter product description..."
+              height="200px"
+              className="w-full"
+            />
           </div>
 
           <div className="flex gap-4">
