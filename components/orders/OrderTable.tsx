@@ -17,22 +17,27 @@ import {
   useOrders,
   useOrdersCount,
   useUpdateOrderStatus,
+  useDeleteOrder,
 } from "@/hooks/useOrders";
 
 function OrderTable({
   handleUpdateOrderStatus,
   onViewOrder,
   handleVerifyPayment,
+  onEditOrder,
 }: {
   handleUpdateOrderStatus?: (id: string, status: OrderStatus) => void;
   onViewOrder?: (order: Order) => void;
   handleVerifyPayment?: (orderId: string) => void;
+  onEditOrder?: (order: Order) => void;
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{
     id: string;
     status: OrderStatus;
   } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   // Search, filter, and sort state
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,6 +73,7 @@ function OrderTable({
   });
 
   const updateOrderStatusMutation = useUpdateOrderStatus();
+  const deleteOrderMutation = useDeleteOrder();
 
   // Debug: Log the orders data
   console.log("OrderTable Debug:", {
@@ -127,6 +133,21 @@ function OrderTable({
       setTimeout(() => {
         setShowStatusModal(false);
         setPendingStatusChange(null);
+      }, 500);
+    }
+  };
+
+  const handleDeleteOrder = (orderId: string) => {
+    setPendingDelete(orderId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (pendingDelete) {
+      deleteOrderMutation.mutate(pendingDelete);
+      setTimeout(() => {
+        setShowDeleteModal(false);
+        setPendingDelete(null);
       }, 500);
     }
   };
@@ -354,9 +375,11 @@ function OrderTable({
                           id={order.id}
                           type="order"
                           onView={() => onViewOrder?.(order)}
+                          onEdit={() => onEditOrder?.(order)}
+                          onDelete={() => handleDeleteOrder(order.id)}
                           showView={true}
-                          showEdit={false}
-                          showDelete={false}
+                          showEdit={true}
+                          showDelete={true}
                           size="sm"
                         />
 
@@ -563,8 +586,10 @@ function OrderTable({
                       id={order.id}
                       type="order"
                       onView={() => onViewOrder(order)}
-                      showEdit={false}
-                      showDelete={false}
+                      onEdit={() => onEditOrder?.(order)}
+                      onDelete={() => handleDeleteOrder(order.id)}
+                      showEdit={true}
+                      showDelete={true}
                     />
                   )}
                 </div>
@@ -607,6 +632,22 @@ function OrderTable({
         cancelText="Cancel"
         type="status"
         loading={updateOrderStatusMutation.isPending}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setPendingDelete(null);
+        }}
+        onConfirm={confirmDeleteOrder}
+        title="Delete Order"
+        message="Are you sure you want to delete this order? This action cannot be undone."
+        confirmText="Delete Order"
+        cancelText="Cancel"
+        type="delete"
+        loading={deleteOrderMutation.isPending}
       />
     </div>
   );

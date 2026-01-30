@@ -8,7 +8,7 @@ interface ActionButtonsProps {
   id: string;
   type: "blog" | "product" | "order" | "customer" | "review" | "category";
   onView?: (id: string) => void;
-  onEdit?: (id: string) => void;
+  onEdit?: (id: string | any) => void; // Support both string and object
   onDelete?: (id: string) => void;
   showView?: boolean;
   showEdit?: boolean;
@@ -86,7 +86,7 @@ export default function ActionButtons({
 
   const handleEdit = () => {
     if (onEdit) {
-      setShowEditModal(true);
+      onEdit(id);
     } else {
       // Navigate to edit route
       window.location.href = getRoute("edit");
@@ -195,23 +195,23 @@ export default function ActionButtons({
 
         {showEdit &&
           (style === "pills" ? (
-            <Link
-              href={getRoute("edit")}
+            <button
+              onClick={handleEdit}
               className={
                 buttonClasses + " bg-blue-600 text-white hover:bg-blue-700"
               }
             >
               <Edit className="h-4 w-4" />
               Edit
-            </Link>
+            </button>
           ) : (
-            <Link
-              href={getRoute("edit")}
+            <button
+              onClick={handleEdit}
               className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
               title="Edit"
             >
               <Edit className="h-4 w-4" />
-            </Link>
+            </button>
           ))}
 
         {showDelete &&

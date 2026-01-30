@@ -161,3 +161,27 @@ export function useUpdateOrder() {
     },
   });
 }
+
+// Delete order mutation
+export function useDeleteOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      console.log("useDeleteOrder: Deleting order:", { orderId });
+
+      const response = await axiosInstance.delete("/api/orders", {
+        data: { id: orderId },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Order deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("useDeleteOrder: Mutation error:", error);
+      toast.error(error.response?.data?.error || "Failed to delete order");
+    },
+  });
+}
