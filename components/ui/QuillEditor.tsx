@@ -112,20 +112,111 @@ export default function QuillEditor({
         className="bg-white dark:bg-gray-700"
       />
       <style jsx global>{`
-        /* Your existing styles are fine, but ensure .ql-toolbar is visible */
+        /* Toolbar styling */
         .ql-toolbar.ql-snow {
           border-radius: 8px 8px 0 0;
           border-color: #e5e7eb;
+          background: #f8fafc; /* Light gray background */
+          border-bottom: 1px solid #e2e8f0;
         }
+
         .ql-container.ql-snow {
           border-radius: 0 0 8px 8px;
           border-color: #e5e7eb;
         }
-        .dark .ql-toolbar,
-        .dark .ql-container {
-          border-color: #4b5563 !important;
-          background: #374151;
+
+        /* Dark mode toolbar */
+        .dark .ql-toolbar.ql-snow {
+          background: #1e293b; /* Dark slate background */
+          border-color: #334155 !important;
+          color: #f1f5f9;
+        }
+
+        .dark .ql-container.ql-snow {
+          border-color: #334155 !important;
+          background: #0f172a;
+          color: #f1f5f9;
+        }
+
+        /* Toolbar button styling */
+        .ql-toolbar.ql-snow .ql-formats {
+          border-right: 1px solid #e2e8f0;
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-formats {
+          border-right: 1px solid #334155;
+        }
+
+        /* Toolbar button hover effects */
+        .ql-toolbar.ql-snow button:hover {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+
+        .dark .ql-toolbar.ql-snow button:hover {
+          background: #334155;
+          border-radius: 4px;
+        }
+
+        /* Toolbar button active state */
+        .ql-toolbar.ql-snow button.ql-active {
+          background: #3b82f6;
           color: white;
+          border-radius: 4px;
+        }
+
+        .dark .ql-toolbar.ql-snow button.ql-active {
+          background: #2563eb;
+          color: white;
+          border-radius: 4px;
+        }
+
+        /* Toolbar icons */
+        .ql-toolbar.ql-snow .ql-stroke {
+          stroke: #475569;
+        }
+
+        .ql-toolbar.ql-snow .ql-fill {
+          fill: #475569;
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-stroke {
+          stroke: #cbd5e1 !important;
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-fill {
+          fill: #cbd5e1 !important;
+        }
+
+        /* Picker styling */
+        .ql-toolbar.ql-snow .ql-picker {
+          color: #475569;
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-picker {
+          color: #cbd5e1 !important;
+        }
+
+        .ql-toolbar.ql-snow .ql-picker-options {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-picker-options {
+          background: #1e293b;
+          border-color: #334155;
+          color: #f1f5f9;
+        }
+
+        .ql-toolbar.ql-snow .ql-picker-item:hover {
+          background: #f1f5f9;
+        }
+
+        .dark .ql-toolbar.ql-snow .ql-picker-item:hover {
+          background: #334155;
+          color: #f1f5f9;
         }
       `}</style>
     </div>
