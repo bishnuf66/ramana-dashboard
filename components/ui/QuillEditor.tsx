@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Quill from "quill";
-
-// Import Quill styles
 import "quill/dist/quill.snow.css";
 
 interface QuillEditorProps {
@@ -22,73 +19,90 @@ export default function QuillEditor({
   height = "200px",
 }: QuillEditorProps) {
   const quillRef = useRef<HTMLDivElement>(null);
-  const quillInstance = useRef<Quill | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const quillInstance = useRef<any>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Keep the latest onChange in a ref to avoid re-triggering the main effect
+  const onUpdateRef = useRef(onChange);
+  useEffect(() => {
+    onUpdateRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
-    if (!quillRef.current || quillInstance.current) return;
+    setIsClient(true);
+  }, []);
 
-    // Clear any existing content to prevent duplicate toolbars
-    if (quillRef.current) {
-      quillRef.current.innerHTML = "";
-    }
+  useEffect(() => {
+    if (!isClient || !quillRef.current || quillInstance.current) return;
 
-    // Configure toolbar with heading options
-    const toolbarOptions = [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }], // Heading levels
-      ["bold", "italic", "underline", "strike"], // Text formatting
-      ["blockquote", "code-block"], // Blocks
-      [{ list: "ordered" }, { list: "bullet" }], // Lists
-      [{ script: "sub" }, { script: "super" }], // Scripts
-      [{ indent: "-1" }, { indent: "+1" }], // Indent
-      [{ direction: "rtl" }], // Text direction
-      [{ color: [] }, { background: [] }], // Colors
-      [{ font: [] }], // Fonts
-      [{ align: [] }], // Alignment
-      ["link", "image", "video"], // Media
-      ["clean"], // Remove formatting
-    ];
+    let quill: any;
 
-    // Initialize Quill
-    const quill = new Quill(quillRef.current, {
-      theme: "snow",
-      modules: {
-        toolbar: toolbarOptions,
-      },
-      placeholder,
-    });
+    const initializeQuill = async () => {
+      const QuillModule = await import("quill");
+      const Quill = QuillModule.default;
 
-    // Set initial content
-    if (value) {
-      quill.root.innerHTML = value;
-    }
+      if (!quillRef.current) return;
 
-    // Handle text changes
-    quill.on("text-change", () => {
-      const html = quill.root.innerHTML;
-      onChange(html);
-    });
+      const toolbarOptions = [
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+        ["bold", "italic", "underline", "strike"],
+        ["blockquote", "code-block"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        [{ color: [] }, { background: [] }],
+        ["link", "image"],
+        ["clean"],
+      ];
 
-    quillInstance.current = quill;
-    setIsReady(true);
+      quill = new Quill(quillRef.current, {
+        theme: "snow",
+        modules: { toolbar: toolbarOptions },
+        placeholder,
+      });
+
+      quillInstance.current = quill;
+
+      // Set initial value
+      if (value) {
+        quill.root.innerHTML = value;
+      }
+
+      // Handle changes
+      quill.on("text-change", () => {
+        const html = quill.root.innerHTML;
+        // Use the ref to call the latest onChange without re-triggering this effect
+        if (onUpdateRef.current) {
+          onUpdateRef.current(html === "<p><br></p>" ? "" : html);
+        }
+      });
+    };
+
+    initializeQuill();
 
     return () => {
       if (quillInstance.current) {
-        quillInstance.current.off("text-change");
+        // Quill doesn't have a formal "destroy", but we clear the UI
+        const toolbar = quillRef.current?.previousSibling;
+        if (toolbar && (toolbar as Element).classList.contains("ql-toolbar")) {
+          toolbar.remove();
+        }
         quillInstance.current = null;
       }
     };
-  }, []);
+    // Removed onChange and placeholder from here to prevent re-init loops
+  }, [isClient]);
 
-  // Update content when value changes externally
+  // Sync external value changes
   useEffect(() => {
-    if (quillInstance.current && isReady) {
+    if (quillInstance.current) {
       const currentHtml = quillInstance.current.root.innerHTML;
-      if (currentHtml !== value) {
-        quillInstance.current.root.innerHTML = value;
+      if (value !== currentHtml && value !== undefined) {
+        quillInstance.current.root.innerHTML = value || "";
       }
     }
-  }, [value, isReady]);
+  }, [value]);
+
+  if (!isClient)
+    return <div style={{ height }} className="animate-pulse bg-gray-100" />;
 
   return (
     <div className={`quill-editor ${className}`}>
@@ -98,81 +112,20 @@ export default function QuillEditor({
         className="bg-white dark:bg-gray-700"
       />
       <style jsx global>{`
-        .quill-editor .ql-toolbar {
-          border-top: 1px solid #e5e7eb;
-          border-left: 1px solid #e5e7eb;
-          border-right: 1px solid #e5e7eb;
-          border-bottom: none;
-          border-radius: 0.5rem 0.5rem 0 0;
-          background: white;
+        /* Your existing styles are fine, but ensure .ql-toolbar is visible */
+        .ql-toolbar.ql-snow {
+          border-radius: 8px 8px 0 0;
+          border-color: #e5e7eb;
         }
-
-        .dark .quill-editor .ql-toolbar {
-          border-color: #4b5563;
-          background: #374151;
+        .ql-container.ql-snow {
+          border-radius: 0 0 8px 8px;
+          border-color: #e5e7eb;
         }
-
-        .quill-editor .ql-container {
-          border-top: none;
-          border-left: 1px solid #e5e7eb;
-          border-right: 1px solid #e5e7eb;
-          border-bottom: 1px solid #e5e7eb;
-          border-radius: 0 0 0.5rem 0.5rem;
-          font-size: 16px;
-        }
-
-        .dark .quill-editor .ql-container {
-          border-color: #4b5563;
+        .dark .ql-toolbar,
+        .dark .ql-container {
+          border-color: #4b5563 !important;
           background: #374151;
           color: white;
-        }
-
-        .quill-editor .ql-editor {
-          min-height: 150px;
-        }
-
-        .dark .quill-editor .ql-editor {
-          color: white;
-        }
-
-        .dark .quill-editor .ql-stroke {
-          stroke: #9ca3af !important;
-        }
-
-        .dark .quill-editor .ql-fill {
-          fill: #9ca3af !important;
-        }
-
-        .dark .quill-editor .ql-picker {
-          color: #9ca3af !important;
-        }
-
-        .dark .quill-editor .ql-picker-label {
-          color: #9ca3af !important;
-        }
-
-        .dark .quill-editor .ql-picker-options {
-          background: #374151;
-          border-color: #4b5563;
-        }
-
-        .dark .quill-editor .ql-picker-item {
-          color: #9ca3af;
-        }
-
-        .dark .quill-editor .ql-picker-item:hover {
-          color: white;
-        }
-
-        .dark .quill-editor .ql-tooltip {
-          background: #374151;
-          border-color: #4b5563;
-          color: white;
-        }
-
-        /* Hide duplicate toolbar if it appears */
-        .quill-editor .ql-toolbar + .ql-toolbar {
-          display: none !important;
         }
       `}</style>
     </div>
