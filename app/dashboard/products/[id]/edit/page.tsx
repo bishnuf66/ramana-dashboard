@@ -440,38 +440,35 @@ export default function EditProductPage() {
       setUploading(false);
 
       console.log("Updating product in database...");
-      // Update product
-      const { error } = await (supabase as any)
-        .from("products")
-        .update({
-          title: formData.title,
-          slug: formData.slug,
-          description: formData.description || null,
-          price: parseFloat(formData.price),
-          discount_price: formData.discount_price
-            ? parseFloat(formData.discount_price)
-            : null,
-          cover_image: newCoverImageUrl,
-          gallery_images:
-            finalGalleryImages.length > 0 ? finalGalleryImages : null,
-          category_id: formData.category_id || null,
-          stock: parseInt(formData.stock) || 0,
-          is_featured: formData.is_featured,
-          is_active: formData.is_active,
-          weight_gram: formData.weight_gram
-            ? parseInt(formData.weight_gram)
-            : null,
-          height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
-          width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
-          length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
-          tags: formData.tags.length > 0 ? formData.tags : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", product.id);
+      // Update product using API route
+      const response = await axiosInstance.put("/api/products", {
+        id: product.id,
+        title: formData.title,
+        slug: formData.slug,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        discount_price: formData.discount_price
+          ? parseFloat(formData.discount_price)
+          : null,
+        cover_image: newCoverImageUrl,
+        gallery_images:
+          finalGalleryImages.length > 0 ? finalGalleryImages : null,
+        category_id: formData.category_id || null,
+        stock: parseInt(formData.stock) || 0,
+        is_featured: formData.is_featured,
+        is_active: formData.is_active,
+        weight_gram: formData.weight_gram
+          ? parseInt(formData.weight_gram)
+          : null,
+        height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
+        width_cm: formData.width_cm ? parseInt(formData.width_cm) : null,
+        length_cm: formData.length_cm ? parseInt(formData.length_cm) : null,
+        tags: formData.tags.length > 0 ? formData.tags : null,
+      });
 
-      if (error) {
-        console.error("Database error:", error);
-        throw error;
+      if (!response.data.success) {
+        console.error("API error:", response.data.error);
+        throw new Error(response.data.error || "Failed to update product");
       }
 
       console.log("Product updated successfully!");
