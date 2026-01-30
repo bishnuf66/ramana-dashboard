@@ -24,6 +24,7 @@
     "nodemailer": "^7.0.12",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-simple-wysiwyg": "^3.4.1",
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {
