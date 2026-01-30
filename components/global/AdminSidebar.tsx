@@ -21,6 +21,7 @@ import {
   MessageSquare,
   CreditCard,
   DollarSign,
+  Mail,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -37,6 +38,7 @@ interface AdminSidebarProps {
     | "payment-options"
     | "payments"
     | "support"
+    | "contact-messages"
     | "settings";
   onSectionChange: (
     section:
@@ -52,6 +54,7 @@ interface AdminSidebarProps {
       | "payment-options"
       | "payments"
       | "support"
+      | "contact-messages"
       | "settings",
   ) => void;
 }
@@ -98,6 +101,7 @@ export default function AdminSidebar() {
     { id: "payment-options", label: "Payment Options", icon: CreditCard },
     { id: "payments", label: "Payments", icon: DollarSign },
     { id: "support", label: "Support", icon: HelpCircle },
+    { id: "contact-messages", label: "Contact Messages", icon: Mail },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 

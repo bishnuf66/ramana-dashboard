@@ -28,6 +28,7 @@ import ReviewManager from "@/components/reviews/ReviewManager";
 import Support from "@/components/support/Support";
 import PaymentOptionList from "@/components/payment-options/PaymentOptionList";
 import UserPaymentList from "@/components/user-payments/UserPaymentList";
+import ContactMessages from "@/components/contact-messages/ContactMessages";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { useUserPayments, useDeletePayment } from "@/hooks/useUserPayments";
@@ -72,6 +73,7 @@ function DashboardContent() {
       | "payment-options"
       | "payments"
       | "support"
+      | "contact-messages"
       | "settings") || "analytics";
 
   // Use TanStack Query hooks
@@ -760,6 +762,8 @@ function DashboardContent() {
             )}
 
             {activeSection === "support" && <Support />}
+
+            {activeSection === "contact-messages" && <ContactMessages />}
 
             {activeSection === "settings" && (
               <SettingPage adminProfile={adminProfile} />
