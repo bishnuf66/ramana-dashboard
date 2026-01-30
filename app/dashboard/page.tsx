@@ -32,6 +32,7 @@ import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { useUserPayments, useDeletePayment } from "@/hooks/useUserPayments";
 import Image from "next/image";
+import { marked } from "marked";
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -844,10 +845,15 @@ function DashboardContent() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       Description
                     </h3>
-                    <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
-                      {selectedProduct.description ||
-                        "No description available"}
-                    </div>
+                    <div
+                      className="text-sm sm:text-base text-gray-600 dark:text-gray-300 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: marked(
+                          selectedProduct.description ||
+                            "No description available",
+                        ),
+                      }}
+                    />
                   </div>
 
                   <div>

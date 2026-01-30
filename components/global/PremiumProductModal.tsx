@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ShoppingCart, X, Plus, Minus, Star, Heart } from "lucide-react";
 import Image from "next/image";
+import { marked } from "marked";
 
 interface ProductModalProps {
   product: {
@@ -141,9 +142,12 @@ const PremiumProductModal: React.FC<ProductModalProps> = ({
 
                 {/* Description */}
                 {product.description && (
-                  <p className="text-gray-600 leading-relaxed mb-8">
-                    {product.description}
-                  </p>
+                  <div
+                    className="text-gray-600 leading-relaxed mb-8 prose prose-md max-w-none"
+                    dangerouslySetInnerHTML={{
+                      __html: marked(product.description),
+                    }}
+                  />
                 )}
 
                 {/* Quantity Selector */}
