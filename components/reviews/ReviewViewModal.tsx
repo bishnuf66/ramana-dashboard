@@ -25,7 +25,7 @@ import Link from "next/link";
 import DeleteModal from "@/components/ui/DeleteModal";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 import type { Database } from "@/types/database.types";
 
 type ProductReviewRow = Database["public"]["Tables"]["product_reviews"]["Row"];
@@ -319,16 +319,15 @@ export default function ReviewViewModal({
                   </h3>
                   {isEditing ? (
                     <div className="space-y-3">
-                      <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                        <MDEditor
-                          value={editForm.comment?.toString() || ""}
-                          onChange={(value) =>
-                            setEditForm({ ...editForm, comment: value || "" })
-                          }
-                          height={150}
-                          className="min-h-[150px]"
-                        />
-                      </div>
+                      <QuillEditor
+                        value={editForm.comment?.toString() || ""}
+                        onChange={(value) =>
+                          setEditForm({ ...editForm, comment: value || "" })
+                        }
+                        placeholder="Enter review comment..."
+                        height="150px"
+                        className="w-full"
+                      />
                       <div className="flex gap-3">
                         <button
                           onClick={handleSaveEdit}

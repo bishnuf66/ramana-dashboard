@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Upload, X, ArrowLeft } from "lucide-react";
 import Image from "next/image";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 import Link from "next/link";
 import type { Database } from "@/types/database.types";
 import { useUpdateBlog, useBlog } from "@/hooks/useBlogs";
@@ -31,7 +31,12 @@ interface EditBlogFormProps {
   onCancel?: () => void;
 }
 
-export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel }: EditBlogFormProps) {
+export default function EditBlogForm({
+  blogId,
+  initialData,
+  onSuccess,
+  onCancel,
+}: EditBlogFormProps) {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -95,7 +100,10 @@ export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel 
 
       if (pathIndex === -1) {
         // If it's not a Supabase Storage URL, skip deletion
-        console.log("Skipping deletion - not a Supabase Storage URL:", imageUrl);
+        console.log(
+          "Skipping deletion - not a Supabase Storage URL:",
+          imageUrl,
+        );
         return;
       }
 
@@ -232,7 +240,11 @@ export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel 
       let coverImageUrl = formData.cover_image_url;
 
       // Delete old cover image if new one is uploaded
-      if (coverImageFile && formData.cover_image_url && formData.cover_image_url.includes("supabase")) {
+      if (
+        coverImageFile &&
+        formData.cover_image_url &&
+        formData.cover_image_url.includes("supabase")
+      ) {
         console.log("Deleting old cover image:", formData.cover_image_url);
         await deleteImage(formData.cover_image_url);
       }
@@ -403,16 +415,15 @@ export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel 
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Content *
             </label>
-            <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-              <MDEditor
-                value={formData.content_md}
-                onChange={(val: any) =>
-                  setFormData({ ...formData, content_md: val || "" })
-                }
-                height={400}
-                className="min-h-[400px]"
-              />
-            </div>
+            <QuillEditor
+              value={formData.content_md}
+              onChange={(value) =>
+                setFormData({ ...formData, content_md: value || "" })
+              }
+              placeholder="Enter blog content..."
+              height="400px"
+              className="w-full"
+            />
           </div>
 
           {/* Tags */}
@@ -481,7 +492,10 @@ export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel 
               }
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <label htmlFor="published" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="published"
+              className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+            >
               Published
             </label>
           </div>
@@ -502,7 +516,11 @@ export default function EditBlogForm({ blogId, initialData, onSuccess, onCancel 
               disabled={loading || uploading}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Updating..." : uploading ? "Uploading..." : "Update Blog Post"}
+              {loading
+                ? "Updating..."
+                : uploading
+                  ? "Uploading..."
+                  : "Update Blog Post"}
             </button>
           </div>
         </form>

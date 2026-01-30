@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, ArrowLeft } from "lucide-react";
 import Image from "next/image";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 import Link from "next/link";
 import { useCreateBlog } from "@/hooks/useBlogs";
 import { useUpload } from "@/hooks/useUpload";
@@ -318,16 +318,15 @@ export default function CreateBlogForm({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Content *
             </label>
-            <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-              <MDEditor
-                value={formData.content_md}
-                onChange={(val: any) =>
-                  setFormData({ ...formData, content_md: val || "" })
-                }
-                height={400}
-                className="min-h-[400px]"
-              />
-            </div>
+            <QuillEditor
+              value={formData.content_md}
+              onChange={(value) =>
+                setFormData({ ...formData, content_md: value || "" })
+              }
+              placeholder="Enter blog content..."
+              height="400px"
+              className="w-full"
+            />
           </div>
 
           {/* Tags */}

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useCreateTestimonial } from "@/hooks/useTestimonials";
 import { useUpload } from "@/hooks/useUpload";
 import { Database } from "@/types/database.types";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 
 type TestimonialInsert = Database["public"]["Tables"]["testimonials"]["Insert"];
 
@@ -205,15 +205,14 @@ export default function CreateTestimonialForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Testimonial Content
         </label>
-        <MDEditor
+        <QuillEditor
           value={formData.content}
           onChange={(value) =>
             setFormData({ ...formData, content: value || "" })
           }
-          height={200}
-          preview="edit"
-          hideToolbar={false}
-          visibleDragbar={false}
+          placeholder="Enter testimonial content..."
+          height="200px"
+          className="w-full"
         />
       </div>
 

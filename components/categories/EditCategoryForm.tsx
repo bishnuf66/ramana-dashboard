@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 import { Database } from "@/types/database.types";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -340,16 +340,15 @@ export default function EditCategoryForm({
           >
             Description
           </label>
-          <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-            <MDEditor
-              value={formData.description?.toString() || ""}
-              onChange={(val: any) =>
-                setFormData((prev) => ({ ...prev, description: val || "" }))
-              }
-              height={200}
-              className="min-h-[200px]"
-            />
-          </div>
+          <QuillEditor
+            value={formData.description?.toString() || ""}
+            onChange={(value) =>
+              setFormData((prev) => ({ ...prev, description: value || "" }))
+            }
+            placeholder="Enter category description..."
+            height="200px"
+            className="w-full"
+          />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Rich text description of the category for SEO and user understanding
           </p>

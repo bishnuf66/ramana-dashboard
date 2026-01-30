@@ -7,7 +7,7 @@ import { useUpdateTestimonial } from "@/hooks/useTestimonials";
 import { useUpload } from "@/hooks/useUpload";
 import { useDeleteImage } from "@/hooks/useUpload";
 import { Database } from "@/types/database.types";
-import MDEditor from "@uiw/react-md-editor";
+import QuillEditor from "@/components/ui/QuillEditor";
 
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 type TestimonialUpdate = Database["public"]["Tables"]["testimonials"]["Update"];
@@ -63,7 +63,7 @@ export default function EditTestimonialForm({
     try {
       const result = await uploadMutation.mutateAsync({
         file,
-        bucket: "testimonial-images"
+        bucket: "testimonial-images",
       });
       return result.publicUrl;
     } catch (error) {
@@ -78,7 +78,7 @@ export default function EditTestimonialForm({
     try {
       await deleteMutation.mutateAsync({
         imageUrl,
-        bucket: "testimonial-images"
+        bucket: "testimonial-images",
       });
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -112,10 +112,7 @@ export default function EditTestimonialForm({
 
     try {
       // Check if image has changed and delete old image
-      if (
-        testimonial.image &&
-        testimonial.image !== imagePreview
-      ) {
+      if (testimonial.image && testimonial.image !== imagePreview) {
         try {
           await deleteImage(testimonial.image);
         } catch (imageError) {
@@ -145,8 +142,8 @@ export default function EditTestimonialForm({
           },
           onSettled: () => {
             setLoading(false);
-          }
-        }
+          },
+        },
       );
     } catch (error) {
       console.error("Error saving testimonial:", error);
@@ -163,7 +160,10 @@ export default function EditTestimonialForm({
     setImageFile(null);
   };
 
-  const renderStars = (rating: number, onRatingChange: (rating: number) => void) => {
+  const renderStars = (
+    rating: number,
+    onRatingChange: (rating: number) => void,
+  ) => {
     return (
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -197,9 +197,7 @@ export default function EditTestimonialForm({
           <input
             type="text"
             value={formData.name}
-            onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
             placeholder="Enter client name"
             required
@@ -214,9 +212,7 @@ export default function EditTestimonialForm({
           <input
             type="text"
             value={formData.role}
-            onChange={(e) =>
-              setFormData({ ...formData, role: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
             placeholder="Enter client role/title"
             required
@@ -231,9 +227,7 @@ export default function EditTestimonialForm({
         </label>
         <select
           value={formData.status}
-          onChange={(e) =>
-            setFormData({ ...formData, status: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
         >
           <option value="active">Active</option>
@@ -247,7 +241,7 @@ export default function EditTestimonialForm({
           Rating
         </label>
         {renderStars(formData.rating, (rating) =>
-          setFormData({ ...formData, rating })
+          setFormData({ ...formData, rating }),
         )}
       </div>
 
@@ -256,15 +250,14 @@ export default function EditTestimonialForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Testimonial Content
         </label>
-        <MDEditor
+        <QuillEditor
           value={formData.content}
           onChange={(value) =>
             setFormData({ ...formData, content: value || "" })
           }
-          height={200}
-          preview="edit"
-          hideToolbar={false}
-          visibleDragbar={false}
+          placeholder="Enter testimonial content..."
+          height="200px"
+          className="w-full"
         />
       </div>
 
@@ -335,7 +328,11 @@ export default function EditTestimonialForm({
           className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />
-          {loading ? "Updating..." : uploading ? "Uploading..." : "Update Testimonial"}
+          {loading
+            ? "Updating..."
+            : uploading
+              ? "Uploading..."
+              : "Update Testimonial"}
         </button>
       </div>
     </form>
